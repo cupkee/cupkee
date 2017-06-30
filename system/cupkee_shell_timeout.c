@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "cupkee_shell_misc.h"
 
-static void timer_handle(int drop, void *param)
+static void timeout_handle(int drop, void *param)
 {
     if (drop) {
         shell_reference_release(param);
@@ -37,11 +37,11 @@ static void timer_handle(int drop, void *param)
     }
 }
 
-static int timer_register(int ac, val_t *av, int repeat)
+static int timeout_register(int ac, val_t *av, int repeat)
 {
     val_t   *handle;
     uint32_t wait;
-    cupkee_timer_t *timer;
+    cupkee_timeout_t *timeout;
     val_t *ref;
 
     if (ac < 1 || !val_is_function(av)) {
@@ -61,16 +61,16 @@ static int timer_register(int ac, val_t *av, int repeat)
         return -1;
     }
 
-    timer = cupkee_timer_register(wait, repeat, timer_handle, ref);
-    if (!timer) {
+    timeout = cupkee_timeout_register(wait, repeat, timeout_handle, ref);
+    if (!timeout) {
         shell_reference_release(ref);
         return -1;
     }
 
-    return timer->id;
+    return timeout->id;
 }
 
-static int timer_unregister(int ac, val_t *av, int repeat)
+static int timeout_unregister(int ac, val_t *av, int repeat)
 {
     int32_t tid = -1; // all
 
@@ -83,15 +83,15 @@ static int timer_unregister(int ac, val_t *av, int repeat)
     }
 
     if (tid >= 0) {
-        return cupkee_timer_clear_with_id(tid);
+        return cupkee_timeout_clear_with_id(tid);
     } else {
-        return cupkee_timer_clear_with_flags(repeat ? 1: 0);
+        return cupkee_timeout_clear_with_flags(repeat ? 1: 0);
     }
 }
 
 val_t native_set_timeout(env_t *env, int ac, val_t *av)
 {
-    int tid = timer_register(ac, av, 0);
+    int tid = timeout_register(ac, av, 0);
 
     (void) env;
 
@@ -100,7 +100,7 @@ val_t native_set_timeout(env_t *env, int ac, val_t *av)
 
 val_t native_set_interval(env_t *env, int ac, val_t *av)
 {
-    int tid = timer_register(ac, av, 1);
+    int tid = timeout_register(ac, av, 1);
 
     (void) env;
 
@@ -109,7 +109,7 @@ val_t native_set_interval(env_t *env, int ac, val_t *av)
 
 val_t native_clear_timeout(env_t *env, int ac, val_t *av)
 {
-    int n = timer_unregister(ac, av, 0);
+    int n = timeout_unregister(ac, av, 0);
 
     (void) env;
 
@@ -118,7 +118,7 @@ val_t native_clear_timeout(env_t *env, int ac, val_t *av)
 
 val_t native_clear_interval(env_t *env, int ac, val_t *av)
 {
-    int n = timer_unregister(ac, av, 1);
+    int n = timeout_unregister(ac, av, 1);
 
     (void) env;
 

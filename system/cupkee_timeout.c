@@ -25,24 +25,25 @@ SOFTWARE.
 */
 
 #include <cupkee.h>
-#define TIMER_FL_REPEAT 1
 
-static cupkee_timer_t *timer_head = NULL;
-static int timer_next = 0;
+#define TIMEOUT_FL_REPEAT 1
 
-static int timer_clear_by(int (*fn)(cupkee_timer_t *, int), int x)
+static cupkee_timeout_t *timeout_head = NULL;
+static int timeout_next = 0;
+
+static int timeout_clear_by(int (*fn)(cupkee_timeout_t *, int), int x)
 {
-    cupkee_timer_t *prev = NULL, *curr = timer_head;
+    cupkee_timeout_t *prev = NULL, *curr = timeout_head;
     int n = 0;
 
     while (curr) {
-        cupkee_timer_t *next = curr->next;
+        cupkee_timeout_t *next = curr->next;
 
         if (fn(curr, x)) {
             if (prev) {
                 prev->next = next;
             } else {
-                timer_head = next;
+                timeout_head = next;
             }
 
             curr->handle(1, curr->param); // drop timer
@@ -57,33 +58,33 @@ static int timer_clear_by(int (*fn)(cupkee_timer_t *, int), int x)
     return n;
 }
 
-static int timer_with_flag(cupkee_timer_t *t, int flags)
+static int timeout_with_flag(cupkee_timeout_t *t, int flags)
 {
     return t->flags == flags;
 }
 
-static int timer_with_id(cupkee_timer_t *t, int id)
+static int timeout_with_id(cupkee_timeout_t *t, int id)
 {
     return t->id == id;
 }
 
-void cupkee_timer_init(void)
+void cupkee_timeout_init(void)
 {
-    timer_head = NULL;
-    timer_next = 0;
+    timeout_head = NULL;
+    timeout_next = 0;
 }
 
-void cupkee_timer_sync(uint32_t curr_ticks)
+void cupkee_timeout_sync(uint32_t curr_ticks)
 {
-    cupkee_timer_t *prev = NULL, *curr = timer_head;
+    cupkee_timeout_t *prev = NULL, *curr = timeout_head;
 
     while (curr) {
-        cupkee_timer_t *next = curr->next;
+        cupkee_timeout_t *next = curr->next;
 
         if (curr_ticks - curr->from >= curr->wait) {
             curr->handle(0, curr->param);       // wake up
 
-            if (curr->flags & TIMER_FL_REPEAT) {
+            if (curr->flags & TIMEOUT_FL_REPEAT) {
                 curr->from = curr_ticks;
                 prev = curr;
             } else {
@@ -92,7 +93,7 @@ void cupkee_timer_sync(uint32_t curr_ticks)
                     prev->next = next;
                 } else {
                     // Current timer is header
-                    timer_head = next;
+                    timeout_head = next;
                 }
                 cupkee_free(curr);
             }
@@ -103,40 +104,40 @@ void cupkee_timer_sync(uint32_t curr_ticks)
     }
 }
 
-cupkee_timer_t *cupkee_timer_register(uint32_t wait, int repeat, cupkee_timer_handle_t handle, void *param)
+cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int repeat, cupkee_timeout_handle_t handle, void *param)
 {
-    cupkee_timer_t *t;
+    cupkee_timeout_t *t;
 
     if (!handle) {
         return NULL;
     }
 
-    t = cupkee_malloc(sizeof(cupkee_timer_t));
+    t = cupkee_malloc(sizeof(cupkee_timeout_t));
     if (t) {
         t->handle = handle;
         t->param  = param;
-        t->id     = timer_next++;
+        t->id     = timeout_next++;
         t->wait   = wait;
         t->from   = _cupkee_systicks;
-        t->flags  = repeat ? TIMER_FL_REPEAT : 0;
+        t->flags  = repeat ? TIMEOUT_FL_REPEAT : 0;
 
-        t->next = timer_head;
-        timer_head = t;
+        t->next = timeout_head;
+        timeout_head = t;
     }
 
     return t;
 }
 
-void cupkee_timer_unregister(cupkee_timer_t *t)
+void cupkee_timeout_unregister(cupkee_timeout_t *t)
 {
-    cupkee_timer_t *prev = NULL, *curr = timer_head;
+    cupkee_timeout_t *prev = NULL, *curr = timeout_head;
 
     while (curr) {
         if (curr == t) {
             if (prev) {
                 prev->next = curr->next;
             } else {
-                timer_head = curr->next;
+                timeout_head = curr->next;
             }
 
             curr->handle(1, curr->param); // drop timer
@@ -150,14 +151,14 @@ void cupkee_timer_unregister(cupkee_timer_t *t)
     }
 }
 
-int cupkee_timer_clear_all(void)
+int cupkee_timeout_clear_all(void)
 {
-    cupkee_timer_t *curr = timer_head;
+    cupkee_timeout_t *curr = timeout_head;
     int n = 0;
 
-    timer_head = NULL;
+    timeout_head = NULL;
     while (curr) {
-        cupkee_timer_t *next = curr->next;
+        cupkee_timeout_t *next = curr->next;
 
         curr->handle(1, curr->param); // drop timer
         cupkee_free(curr);
@@ -169,14 +170,14 @@ int cupkee_timer_clear_all(void)
     return n;
 }
 
-int cupkee_timer_clear_with_flags(uint32_t flags)
+int cupkee_timeout_clear_with_flags(uint32_t flags)
 {
-    return timer_clear_by(timer_with_flag, flags);
+    return timeout_clear_by(timeout_with_flag, flags);
 }
 
-int cupkee_timer_clear_with_id(uint32_t id)
+int cupkee_timeout_clear_with_id(uint32_t id)
 {
-    return timer_clear_by(timer_with_id, id);
+    return timeout_clear_by(timeout_with_id, id);
 }
 
 volatile uint32_t _cupkee_systicks;

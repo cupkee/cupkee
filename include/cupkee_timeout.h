@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (C) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,27 +24,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __TEST_INC__
-#define __TEST_INC__
+#ifndef __CUPKEE_TIMEOUT_INC__
+#define __CUPKEE_TIMEOUT_INC__
 
-#include "CUnit.h"
-#include "CUnit_Basic.h"
+extern volatile uint32_t _cupkee_systicks;
 
-#include <hardware.h>
-#include <cupkee.h>
+typedef void (*cupkee_timeout_handle_t)(int drop, void *param);
+typedef struct cupkee_timeout_t {
+    struct cupkee_timeout_t *next;
+    cupkee_timeout_handle_t handle;
+    int      id;
+    int      flags;
+    uint32_t wait;
+    uint32_t from;
+    void    *param;
+} cupkee_timeout_t;
 
-void hw_mock_memory_reset(void);
+void cupkee_timeout_init(void);
+void cupkee_timeout_sync(uint32_t ticks);
 
-void TU_pre_init(void);
-void TU_pre_deinit(void);
-int TU_emitter_event_dispatch(void);
+cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int repeat, cupkee_timeout_handle_t handle, void *param);
+void cupkee_timeout_unregister(cupkee_timeout_t *t);
 
-CU_pSuite test_hello(void);
-CU_pSuite test_sys_event(void);
-CU_pSuite test_sys_memory(void);
-CU_pSuite test_sys_timeout(void);
-CU_pSuite test_sys_async(void);
-CU_pSuite test_sys_stream(void);
+int cupkee_timeout_clear_all(void);
+int cupkee_timeout_clear_with_flags(uint32_t flags);
+int cupkee_timeout_clear_with_id(uint32_t id);
 
-#endif /* __TEST_INC__ */
+static inline uint32_t cupkee_systicks(void) {
+    return _cupkee_systicks;
+}
+
+
+#endif /* __CUPKEE_TIMEOUT_INC__ */
 
