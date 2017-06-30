@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,27 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __TEST_INC__
-#define __TEST_INC__
+#define __CUPKEE_ASYNC_INC__
+#define __CUPKEE_ASYNC_INC__
 
-#include "CUnit.h"
-#include "CUnit_Basic.h"
-
-#include <hardware.h>
-#include <cupkee.h>
-
-void hw_mock_memory_reset(void);
-
-void TU_pre_init(void);
-void TU_pre_deinit(void);
-int TU_emitter_event_dispatch(void);
-
-CU_pSuite test_hello(void);
-CU_pSuite test_sys_event(void);
-CU_pSuite test_sys_memory(void);
-CU_pSuite test_sys_timer(void);
-CU_pSuite test_sys_async(void);
-CU_pSuite test_sys_stream(void);
-
-#endif /* __TEST_INC__ */
+#endif /* __CUPKEE_ASYNC_INC__ */
 
