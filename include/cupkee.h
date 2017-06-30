@@ -55,8 +55,12 @@ void cupkee_loop(void);
 #include "cupkee_memory.h"
 #include "cupkee_event.h"
 #include "cupkee_buffer.h"
+#include "cupkee_vector.h"
 #include "cupkee_stream.h"
-#include "cupkee_timer.h"
+#include "cupkee_block.h"
+#include "cupkee_object.h"
+
+#include "cupkee_timeout.h"
 #include "cupkee_device.h"
 #include "cupkee_console.h"
 #include "cupkee_auto_complete.h"

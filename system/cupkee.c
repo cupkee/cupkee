@@ -36,7 +36,7 @@ static void cupkee_event_process(void)
         /* Cupkee process */
         if (e.type == EVENT_SYSTICK) {
             cupkee_device_sync(_cupkee_systicks);
-            cupkee_timer_sync(_cupkee_systicks);
+            cupkee_timeout_sync(_cupkee_systicks);
         } else
         if (e.type == EVENT_DEVICE) {
             cupkee_device_event_handle(e.which, e.code);
@@ -57,7 +57,7 @@ void cupkee_init(void)
     cupkee_memory_init(0, NULL);
 
     /* System timer initial */
-    cupkee_timer_init();
+    cupkee_timeout_init();
 
     /* Devices initial */
     cupkee_device_init();
