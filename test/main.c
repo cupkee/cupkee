@@ -43,8 +43,8 @@ int main(int argc, const char *argv[])
     test_sys_event();
     test_sys_memory();
     test_sys_timeout();
+    test_sys_process();
     test_sys_stream();
-    test_sys_async();
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

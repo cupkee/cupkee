@@ -1,9 +1,9 @@
 /*
 MIT License
 
-This file is part of cupkee project
+This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,45 +24,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <stdio.h>
-#include <string.h>
+#ifndef __CUPKEE_PROCESS_INC__
+#define __CUPKEE_PROCESS_INC__
 
-#include "test.h"
+int cupkee_process_start(void (*fn)(void *entry), intptr_t data, void (*finish)(int err, intptr_t data));
 
-static int test_setup(void)
-{
-    cupkee_memory_desc_t descs[2] = {
-        {64, 8}, {256, 4}
-    };
+intptr_t cupkee_process_data(void *entry);
 
-    TU_pre_init();
+int cupkee_process_step(void *entry);
 
-    cupkee_memory_init(2, descs);
-    cupkee_event_setup();
+void cupkee_process_goto(void *entry, int step);
+void cupkee_process_next(void *entry);
+void cupkee_process_done(void *entry);
+void cupkee_process_fail(void *entry, int err);
 
-    return 0;
-}
-
-static int test_clean(void)
-{
-    TU_pre_deinit();
-    return 0;
-}
-static void test_template(void)
-{
-    // add test code here
-    //CU_ASSERT(1);
-}
-
-CU_pSuite test_sys_async(void)
-{
-    CU_pSuite suite = CU_add_suite("system async", test_setup, test_clean);
-
-    if (suite) {
-        CU_add_test(suite, "template", test_template);
-    }
-
-    return suite;
-}
-
+#endif /* __CUPKEE_PROCESS_INC__ */
 

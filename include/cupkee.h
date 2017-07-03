@@ -43,9 +43,11 @@ SOFTWARE.
 #define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
 #define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
 
-/* User configure ? */
-#define APP_DEV_MAX                 8
+/* Todo: put to User configure ? */
+#define APP_DEV_MAX                     8
 
+
+/* Cupkee api */
 void cupkee_init(void);
 void cupkee_loop(void);
 
@@ -55,6 +57,8 @@ void cupkee_loop(void);
 #include "cupkee_memory.h"
 #include "cupkee_event.h"
 #include "cupkee_buffer.h"
+#include "cupkee_process.h"
+
 #include "cupkee_vector.h"
 #include "cupkee_stream.h"
 #include "cupkee_block.h"

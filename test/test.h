@@ -43,7 +43,7 @@ CU_pSuite test_hello(void);
 CU_pSuite test_sys_event(void);
 CU_pSuite test_sys_memory(void);
 CU_pSuite test_sys_timeout(void);
-CU_pSuite test_sys_async(void);
+CU_pSuite test_sys_process(void);
 CU_pSuite test_sys_stream(void);
 
 #endif /* __TEST_INC__ */
