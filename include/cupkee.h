@@ -62,7 +62,6 @@ void cupkee_loop(void);
 #include "cupkee_vector.h"
 #include "cupkee_stream.h"
 #include "cupkee_block.h"
-#include "cupkee_object.h"
 
 #include "cupkee_timeout.h"
 #include "cupkee_device.h"
@@ -71,6 +70,7 @@ void cupkee_loop(void);
 #include "cupkee_history.h"
 #include "cupkee_command.h"
 #include "cupkee_shell.h"
+#include "cupkee_object.h"
 #include "cupkee_module.h"
 #include "cupkee_native.h"
 
