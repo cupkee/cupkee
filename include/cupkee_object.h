@@ -27,6 +27,14 @@ SOFTWARE.
 #ifndef __CUPKEE_OBJECT_INC__
 #define __CUPKEE_OBJECT_INC__
 
+typedef struct cupkee_method_entry_t {
+    const char *name;
+    val_t (*fn) (env_t *, int, val_t *);
+} cupkee_method_entry_t;
+
+int cupkee_class_register(const char *name, int mc, const cupkee_method_entry_t *mv);
+
+int cupkee_object_create(val_t *obj, const char *supper, void *data);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 
