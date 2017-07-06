@@ -391,6 +391,17 @@ cupkee_device_t *cupkee_val2device(val_t *v)
     return NULL;
 }
 
+val_t cupkee_dev2val(env_t *env, cupkee_device_t *dev)
+{
+    if (dev) {
+        dev->handle = device_event_handle_wrap;
+        dev->handle_param = 0;
+        return val_create(env, &device_op, cupkee_device_id(dev));
+    } else {
+        return VAL_UNDEFINED;
+    }
+}
+
 val_t native_device_destroy(env_t *env, int ac, val_t *av)
 {
     cupkee_device_t *dev;
@@ -765,9 +776,7 @@ val_t native_device_create(env_t *env, int ac, val_t *av)
 
     dev = cupkee_device_request(name, inst);
     if (dev) {
-        dev->handle = device_event_handle_wrap;
-        dev->handle_param = 0;
-        return val_create(env, &device_op, cupkee_device_id(dev));
+        return cupkee_dev2val(env, dev);
     } else {
         return VAL_UNDEFINED;
     }

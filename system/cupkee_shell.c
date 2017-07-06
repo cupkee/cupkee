@@ -256,7 +256,7 @@ int cupkee_shell_start(const char *initial)
     return err;
 }
 
-int cupkee_execute_function(val_t *fn, int ac, val_t *av)
+void cupkee_execute_function(val_t *fn, int ac, val_t *av)
 {
     if (fn) {
         env_t *env = &shell_env;
@@ -275,3 +275,4 @@ int cupkee_execute_function(val_t *fn, int ac, val_t *av)
         }
     }
 }
+
