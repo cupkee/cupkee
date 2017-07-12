@@ -32,19 +32,12 @@ SOFTWARE.
 
 static int test_setup(void)
 {
-    cupkee_memory_desc_t desc = {64, 4};
-
-    TU_pre_init();
-
-    cupkee_memory_init(1, &desc);
-
-    return 0;
+    return TU_pre_init();
 }
 
 static int test_clean(void)
 {
-    TU_pre_deinit();
-    return 0;
+    return TU_pre_deinit();
 }
 
 static int v1[2], v2[2], v3[2], v4[2];

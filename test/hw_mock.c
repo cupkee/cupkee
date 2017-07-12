@@ -74,3 +74,105 @@ void *hw_malloc(size_t size, size_t align)
     return mock_memory_base + off;
 }
 
+void hw_setup(void)
+{}
+
+void _hw_reset(void)
+{}
+
+void hw_poll(void)
+{}
+
+void hw_halt(void)
+{}
+
+void hw_info_get(hw_info_t *info)
+{
+    (void) info;
+}
+
+uint32_t hw_storage_size(int bank)
+{
+    (void) bank;
+    return 0;
+}
+
+int hw_storage_erase (int bank)
+{
+    (void) bank;
+    return -1;
+}
+
+int hw_storage_update(int bank, uint32_t offset, const uint8_t *data, int len)
+{
+    (void) bank;
+    (void) offset;
+    (void) data;
+    (void) len;
+
+    return -1;
+}
+
+int hw_storage_finish(int bank, uint32_t end)
+{
+    (void) bank;
+    (void) end;
+    return -1;
+}
+
+uint32_t hw_storage_data_length(int bank)
+{
+    (void) bank;
+    return 0;
+}
+
+const char *hw_storage_data_map(int bank)
+{
+    (void) bank;
+    return NULL;
+}
+
+void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
+                     int (*read_cb)(uint32_t lba, uint8_t *),
+                     int (*write_cb)(uint32_t lba, const uint8_t *))
+{
+    (void) vendor;
+    (void) product;
+    (void) version;
+    (void) blocks;
+    (void) read_cb;
+    (void) write_cb;
+}
+
+/* DEBUG LED */
+int  hw_led_map(int port, int pin)
+{
+    return 0;
+}
+
+void hw_led_set(void)
+{}
+
+void hw_led_clear(void)
+{}
+
+void hw_led_toggle(void)
+{}
+
+/* GPIO */
+int   hw_pin_map(int id, int port, int pin)
+{
+    return 0;
+}
+
+/* DEVICE */
+const hw_driver_t *hw_device_request(int type, int inst)
+{
+    return NULL;
+}
+
+int   hw_device_instances(int type)
+{
+    return 0;
+}
+

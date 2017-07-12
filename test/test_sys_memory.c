@@ -32,86 +32,20 @@ SOFTWARE.
 
 static int test_setup(void)
 {
-    TU_pre_init();
-    return 0;
+    return TU_pre_init();
 }
 
 static int test_clean(void)
 {
-    TU_pre_deinit();
-    return 0;
+    return TU_pre_deinit();
 }
 
 static void test_alloc(void)
 {
-    int i;
-
-    cupkee_memory_desc_t descs[4] = {
-        {32, 4}, {64, 4}, {128, 4}, {256, 4}
-    };
-
-    cupkee_memory_init(4, descs);
-
-    // alloc from pool
-
-    for (i = 0; i < 256; i++) {
-        void *p = cupkee_malloc(32);
-
-        if (!p) CU_ASSERT_FATAL(0);
-
-        cupkee_free(p);
-    }
-    for (i = 0; i < 256; i++) {
-        void *p = cupkee_malloc(64);
-
-        if (!p) CU_ASSERT_FATAL(0);
-
-        cupkee_free(p);
-    }
-    for (i = 0; i < 256; i++) {
-        void *p = cupkee_malloc(128);
-
-        if (!p) CU_ASSERT_FATAL(0);
-
-        cupkee_free(p);
-    }
-    for (i = 0; i < 256; i++) {
-        void *p = cupkee_malloc(256);
-
-        if (!p) CU_ASSERT_FATAL(0);
-
-        cupkee_free(p);
-    }
 }
 
 static void test_ref(void)
 {
-    void *o, *p;
-    cupkee_memory_desc_t desc = {32, 4};
-
-    cupkee_memory_init(1, &desc);
-
-    CU_ASSERT((o = cupkee_malloc(31)) != NULL);
-
-    // ran out of memory
-    while (cupkee_malloc(3))
-        ;
-
-    // not memory should be alloced
-    CU_ASSERT(cupkee_malloc(31) == NULL);
-
-    // release 1 block
-    cupkee_free(o);
-    CU_ASSERT((p = cupkee_malloc(31)) != NULL);
-
-    // create refence
-    CU_ASSERT(cupkee_mem_ref(p) == p);
-    CU_ASSERT(cupkee_malloc(31) == NULL);
-
-    cupkee_free(p);
-    CU_ASSERT(cupkee_malloc(31) == NULL);
-    cupkee_free(p);
-    CU_ASSERT((p = cupkee_malloc(31)) != NULL);
 }
 
 CU_pSuite test_sys_memory(void)

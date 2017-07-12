@@ -36,14 +36,12 @@ SOFTWARE.
 
 static int test_setup(void)
 {
-    TU_pre_init();
-    return 0;
+    return TU_pre_init();
 }
 
 static int test_clean(void)
 {
-    TU_pre_deinit();
-    return 0;
+    return TU_pre_deinit();
 }
 
 static void test_post_take(void)

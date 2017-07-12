@@ -31,22 +31,12 @@ SOFTWARE.
 
 static int test_setup(void)
 {
-    cupkee_memory_desc_t descs[2] = {
-        {64, 32}, {256, 16}
-    };
-
-    TU_pre_init();
-
-    cupkee_memory_init(2, descs);
-    cupkee_event_setup();
-
-    return 0;
+    return TU_pre_init();
 }
 
 static int test_clean(void)
 {
-    TU_pre_deinit();
-    return 0;
+    return TU_pre_deinit();
 }
 
 static void test_request(void)
