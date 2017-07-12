@@ -53,8 +53,8 @@ CU_pSuite test_sys_memory(void)
     CU_pSuite suite = CU_add_suite("system memory", test_setup, test_clean);
 
     if (suite) {
-        CU_add_test(suite, "alloc", test_alloc);
-        CU_add_test(suite, "ref",   test_ref);
+        CU_add_test(suite, "alloc            ", test_alloc);
+        CU_add_test(suite, "ref              ", test_ref);
     }
 
     return suite;

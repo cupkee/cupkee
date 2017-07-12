@@ -149,10 +149,10 @@ CU_pSuite test_sys_process(void)
     CU_pSuite suite = CU_add_suite("system process", test_setup, test_clean);
 
     if (suite) {
-        CU_add_test(suite, "process common", test_common);
-        CU_add_test(suite, "process next",   test_next);
-        CU_add_test(suite, "process goto",   test_goto);
-        CU_add_test(suite, "process fail",   test_fail);
+        CU_add_test(suite, "process common   ", test_common);
+        CU_add_test(suite, "process next     ", test_next);
+        CU_add_test(suite, "process goto     ", test_goto);
+        CU_add_test(suite, "process fail     ", test_fail);
     }
 
     return suite;

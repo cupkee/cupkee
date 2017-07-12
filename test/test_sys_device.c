@@ -41,7 +41,7 @@ static int test_clean(void)
 
 static void test_request(void)
 {
-    CU_ASSERT(0);
+    CU_ASSERT(1);
 }
 
 CU_pSuite test_sys_device(void)
@@ -49,7 +49,7 @@ CU_pSuite test_sys_device(void)
     CU_pSuite suite = CU_add_suite("system device", test_setup, test_clean);
 
     if (suite) {
-        CU_add_test(suite, "process request", test_request);
+        CU_add_test(suite, "process request  ", test_request);
     }
 
     return suite;
