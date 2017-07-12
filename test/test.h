@@ -27,13 +27,12 @@ SOFTWARE.
 #ifndef __TEST_INC__
 #define __TEST_INC__
 
-#include "CUnit.h"
-#include "CUnit_Basic.h"
-
-#include <hardware.h>
 #include <cupkee.h>
 
-void hw_mock_memory_reset(void);
+#include "hw_mock.h"
+
+#include "CUnit.h"
+#include "CUnit_Basic.h"
 
 void TU_pre_init(void);
 void TU_pre_deinit(void);
@@ -45,6 +44,7 @@ CU_pSuite test_sys_memory(void);
 CU_pSuite test_sys_timeout(void);
 CU_pSuite test_sys_process(void);
 CU_pSuite test_sys_stream(void);
+CU_pSuite test_sys_device(void);
 
 #endif /* __TEST_INC__ */
 

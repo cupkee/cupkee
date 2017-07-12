@@ -101,5 +101,8 @@ int cupkee_device_write_sync(cupkee_device_t *dev, size_t n, const void *data);
 
 int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out);
 
+// new api
+int cupkee_device_query(cupkee_device_t *dev, size_t n, void *req, size_t want, void (*cb)(int state, void *buf));
+
 #endif /* __CUPKEE_DEVICE_INC__ */
 

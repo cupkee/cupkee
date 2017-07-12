@@ -1,7 +1,7 @@
 /*
 MIT License
 
-This file is part of cupkee project.
+This file is part of cupkee project
 
 Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
 
@@ -24,45 +24,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "test.h"
 
-typedef struct mock_mblock_t {
-    struct mock_mblock_t *next;
-    size_t size;
-    char mem[0];
-} mock_mblock_t;
-
-static mock_mblock_t *mem_chain = NULL;
-
-void hw_enter_critical(uint32_t *state)
+static int test_setup(void)
 {
-    (void) state;
+    cupkee_memory_desc_t descs[2] = {
+        {64, 32}, {256, 16}
+    };
+
+    TU_pre_init();
+
+    cupkee_memory_init(2, descs);
+    cupkee_event_setup();
+
+    return 0;
 }
 
-void hw_exit_critical(uint32_t state)
+static int test_clean(void)
 {
-    (void) state;
+    TU_pre_deinit();
+    return 0;
 }
 
-void *hw_malloc(size_t size, size_t align)
+static void test_request(void)
 {
-    mock_mblock_t *mb = malloc(sizeof(mock_mblock_t) + size);
+    CU_ASSERT(0);
+}
 
-    (void) align;
+CU_pSuite test_sys_device(void)
+{
+    CU_pSuite suite = CU_add_suite("system device", test_setup, test_clean);
 
-    if (mb) {
-        mb->size = size;
-        mb->next = mem_chain;
-        mem_chain = mb;
-
-        memset(mb->mem, 0x55, size);
-
-        return mb->mem;
+    if (suite) {
+        CU_add_test(suite, "process request", test_request);
     }
-    return NULL;
+
+    return suite;
 }
 
-void hw_mock_memory_reset(void)
-{
-}
 

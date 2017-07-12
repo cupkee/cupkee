@@ -28,12 +28,14 @@ SOFTWARE.
 
 void TU_pre_init(void)
 {
-    hw_mock_memory_reset();
+    hw_mock_init(1024 * 16);
+
+
 }
 
 void TU_pre_deinit(void)
 {
-    hw_mock_memory_reset();
+    hw_mock_deinit();
 }
 
 int TU_emitter_event_dispatch(void)

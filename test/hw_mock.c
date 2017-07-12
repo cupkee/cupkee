@@ -24,34 +24,53 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "test.h"
 
-int main(int argc, const char *argv[])
-{
-    (void) argc;
-    (void) argv;
+static uint8_t *mock_memory_base = NULL;
+static size_t   mock_memory_size = 0;
+static size_t   mock_memory_off  = 0;
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
+void hw_mock_init(size_t mem_size)
+{
+    if (mock_memory_base) {
+        free(mock_memory_base);
     }
 
-    /***********************************************
-     * Test suites here:
-     ***********************************************/
-    test_hello();
+    mock_memory_base = malloc(mem_size);
+    mock_memory_size = mem_size;
+    mock_memory_off = 0;
+}
 
-    test_sys_memory();
-    test_sys_event();
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_device();
+void hw_mock_deinit(void)
+{
+    if (mock_memory_base) {
+        free(mock_memory_base);
+        mock_memory_base = NULL;
+        mock_memory_size = 0;
+        mock_memory_off = 0;
+    }
+}
 
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
+void hw_enter_critical(uint32_t *state)
+{
+    (void) state;
+}
 
-    return CU_get_error();
+void hw_exit_critical(uint32_t state)
+{
+    (void) state;
+}
+
+void *hw_malloc(size_t size, size_t align)
+{
+    size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);
+
+    if (off + size > mock_memory_size) {
+        return NULL;
+    }
+
+    mock_memory_off = off + size;
+
+    return mock_memory_base + off;
 }
 
