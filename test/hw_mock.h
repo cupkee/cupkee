@@ -30,5 +30,11 @@ SOFTWARE.
 void hw_mock_init(size_t mem_size);
 void hw_mock_deinit(void);
 
+cupkee_device_t *mock_device_curr(void);
+size_t           mock_device_curr_want(void);
+
+int  hw_mock_device_curr_id(void);
+size_t hw_mock_device_curr_want(void);
+
 #endif /* __HW_MOCK_INC__ */
 

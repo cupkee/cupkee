@@ -177,6 +177,9 @@ typedef struct hw_driver_t {
     void (*release) (int inst);
     void (*reset) (int inst);
     int  (*setup) (int inst, uint8_t devid, const hw_config_t *conf);
+
+    int  (*query) (int inst, size_t n, void *data, size_t want);
+
     void (*sync)  (int inst, uint32_t systicks);
     void (*poll)  (int inst);
 

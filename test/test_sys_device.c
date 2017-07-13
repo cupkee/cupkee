@@ -41,7 +41,78 @@ static int test_clean(void)
 
 static void test_request(void)
 {
-    CU_ASSERT(1);
+    cupkee_device_t *dev;
+
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("spi", 0)));
+    CU_ASSERT(0 == cupkee_device_release(dev));
+
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request2(DEVICE_TYPE_SPI, 0)));
+    CU_ASSERT(0 == cupkee_device_release(dev));
+}
+
+static void test_enable(void)
+{
+    cupkee_device_t *dev;
+
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("spi", 0)));
+
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+    CU_ASSERT(0 == cupkee_device_enable(dev));
+    CU_ASSERT(cupkee_device_is_enabled(dev));
+
+    CU_ASSERT(0 == cupkee_device_disable(dev));
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+
+    CU_ASSERT(0 == cupkee_device_release(dev));
+}
+
+static struct {
+    cupkee_device_t *dev;
+    int state;
+    void *reply;
+} query_reply_arg;
+
+static void test_query_reply_clean(void)
+{
+    query_reply_arg.dev = NULL;
+    query_reply_arg.state = 0;
+    query_reply_arg.reply = NULL;
+}
+
+static void test_query_reply_set(cupkee_device_t *dev, int state, intptr_t param)
+{
+    (void) param;
+    query_reply_arg.dev = dev;
+    query_reply_arg.state = state;
+    query_reply_arg.reply = cupkee_device_reply_take(dev);
+}
+
+static void test_query(void)
+{
+    cupkee_device_t *dev;
+
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("spi", 0)));
+
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+    CU_ASSERT(0 == cupkee_device_enable(dev));
+
+    CU_ASSERT(0 == cupkee_device_query(dev, 0, NULL, 8, test_query_reply_set, 0));
+
+    CU_ASSERT(dev == mock_device_curr());
+    CU_ASSERT(8   == mock_device_curr_want());
+
+    // Bsp driver should push reply to device
+    CU_ASSERT(8   == cupkee_device_reply_push(dev, 8, "12345678"));
+
+    CU_ASSERT(dev == query_reply_arg.dev);
+    CU_ASSERT(0 == query_reply_arg.state);
+    CU_ASSERT(NULL != query_reply_arg.reply);
+    CU_ASSERT(8 == cupkee_buffer_length(query_reply_arg.reply));
+
+    CU_ASSERT(0 == cupkee_device_disable(dev));
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+
+    CU_ASSERT(0 == cupkee_device_release(dev));
 }
 
 CU_pSuite test_sys_device(void)
@@ -49,7 +120,10 @@ CU_pSuite test_sys_device(void)
     CU_pSuite suite = CU_add_suite("system device", test_setup, test_clean);
 
     if (suite) {
-        CU_add_test(suite, "process request  ", test_request);
+        CU_add_test(suite, "device request   ", test_request);
+        CU_add_test(suite, "device enable    ", test_enable);
+
+        CU_add_test(suite, "device query     ", test_query);
     }
 
     return suite;
