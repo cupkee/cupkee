@@ -115,6 +115,10 @@ static void device_op_prop(void *env, intptr_t id, val_t *name, val_t *prop)
     (void) env;
 
     if (dev && prop_name) {
+        if (!strcmp(prop_name, "query")) {
+            val_set_native(prop, (intptr_t)native_device_query);
+            return;
+        } else
         if (!strcmp(prop_name, "read")) {
             val_set_native(prop, (intptr_t)native_device_read);
             return;
@@ -451,6 +455,128 @@ val_t native_device_config(env_t *env, int ac, val_t *av)
         return which ? cupkee_device_config_get_one(dev, env, which) :
                        cupkee_device_config_get_all(dev);
     }
+}
+
+static inline int native_take_arg_device(int *ac, val_t **av, cupkee_device_t **dev)
+{
+    if ((*ac)) {
+        cupkee_device_t *d = cupkee_val2device(*av);
+        if (d) {
+            (*ac) --; (*av) ++;
+        }
+        *dev = d;
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+static inline int native_take_arg_data(int *ac, val_t **av, void **ptr)
+{
+    if ((*ac)) {
+        int size;
+        void *p = cupkee_val2data(*av, &size);
+        if (p) {
+            (*ac) --; (*av) ++;
+            *ptr = p;
+            return size;
+        }
+    }
+
+    *ptr = NULL;
+    return 0;
+}
+
+static inline int native_take_arg_int(int *ac, val_t **av, int *v)
+{
+    if ((*ac) && val_is_number(*av)) {
+        (*ac) --;
+        *v = val_2_integer((*av)++);
+        return 0;
+    }
+    return -1;
+}
+
+static int device_reply2buffer(void *reply, val_t *obj)
+{
+    int len;
+    if (reply && 0 < (len = cupkee_buffer_length(reply))) {
+        type_buffer_t *b = buffer_create(cupkee_shell_env(), len);
+
+        if (!b) {
+            return -CUPKEE_ERESOURCE;
+        }
+
+        cupkee_buffer_take(reply, len, b->buf);
+        val_set_buffer(obj, b);
+    } else {
+        val_set_undefined(obj);
+    }
+
+    return 0;
+}
+
+static void device_reply_handle(void *d, int state, intptr_t param)
+{
+    cupkee_device_t *dev = (cupkee_device_t *) d;
+    void *reply = cupkee_device_reply_take(dev);
+
+    if (param) {
+        val_t *fn = (val_t *) param;
+        int   ac;
+        val_t av[2];
+
+        if (state || !(state = device_reply2buffer(reply, &av[1]))) {
+            ac = 1;
+            val_set_number(av, state);
+        } else {
+            ac = 2;
+            val_set_undefined(av);
+        }
+        cupkee_execute_function(fn, ac, av);
+
+        shell_reference_release(fn);
+    }
+    cupkee_buffer_release(reply);
+}
+
+val_t native_device_query(env_t *env, int ac, val_t *av)
+{
+    cupkee_device_t *dev;
+    void *data;
+    int n, want;
+    intptr_t cb;
+
+    (void) env;
+
+    if (native_take_arg_device(&ac, &av, &dev)) {
+        return VAL_UNDEFINED;
+    }
+
+    n = native_take_arg_data(&ac, &av, &data);
+
+    if (native_take_arg_int(&ac, &av, &want)) {
+        want = -1;
+    }
+
+    if (ac && val_is_function(av)) {
+        val_t *ref = shell_reference_create(av);
+
+        if (!ref) {
+            return VAL_FALSE;
+        }
+        cb = (intptr_t) ref;
+    } else {
+        cb = 0;
+    }
+
+    if (cupkee_device_query(dev, n, data, want, device_reply_handle, cb)) {
+        if (cb) {
+            shell_reference_release((val_t *)cb);
+        }
+        return VAL_FALSE;
+    }
+    return VAL_TRUE;
 }
 
 val_t native_device_get(env_t *env, int ac, val_t *av)

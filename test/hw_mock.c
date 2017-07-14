@@ -76,7 +76,7 @@ static int  hw_mock_setup (int inst, uint8_t devid, const hw_config_t *conf)
     return 0;
 }
 
-static int hw_mock_query(int inst, size_t n, void *data, size_t want)
+static int hw_mock_query(int inst, size_t n, void *data, int want)
 {
     (void) inst;
 

@@ -401,9 +401,13 @@ int cupkee_device_reply_push(cupkee_device_t *dev, size_t n, void *data)
 
         if (res > 0 && cupkee_buffer_is_full(dev->reply_buffer)) {
             if (dev->reply_handle) {
-                dev->reply_handle(dev, CUPKEE_OK, dev->query_param);
+                cupkee_callback_t cb = dev->reply_handle;
+                intptr_t param = dev->query_param;
+
                 dev->reply_handle = NULL;
                 dev->query_param = 0;
+
+                cb(dev, CUPKEE_OK, param);
             }
         }
         return res;
@@ -412,12 +416,16 @@ int cupkee_device_reply_push(cupkee_device_t *dev, size_t n, void *data)
     }
 }
 
-int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, size_t want, cupkee_callback_t cb, intptr_t param)
+int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, int want, cupkee_callback_t cb, intptr_t param)
 {
     if (cupkee_device_is_enabled(dev)) {
         if (dev->driver->query) {
             if (dev->reply_handle) {
                 return -CUPKEE_EBUSY;
+            }
+            if (dev->reply_buffer) {
+                cupkee_buffer_release(dev->reply_buffer);
+                dev->reply_buffer = NULL;
             }
             if (want && NULL == (dev->reply_buffer = cupkee_buffer_alloc(want))) {
                 return -CUPKEE_ENOMEM;

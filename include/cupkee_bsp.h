@@ -178,23 +178,33 @@ typedef struct hw_driver_t {
     void (*reset) (int inst);
     int  (*setup) (int inst, uint8_t devid, const hw_config_t *conf);
 
-    int  (*query) (int inst, size_t n, void *data, size_t want);
+    int  (*query) (int inst, size_t n, void *data, int want);
 
-    void (*sync)  (int inst, uint32_t systicks);
-    void (*poll)  (int inst);
+    // for stream interface
+    // int (*read) (int inst, size_t want);
+    // cupkee_device_push(dev, n, data)
+    // int (*write)(int inst, size_t want);
+    // cupkee_device_load(dev, n, buf);
 
-    int  (*get) (int inst, int offset, uint32_t*data);
-    int  (*set) (int inst, int offset, uint32_t data);
-    int  (*size)(int inst);
+    // for vector interface
+    // int (*set) (int inst, int i, uint32_t v);
+    // cupkee_device_updata(dev, i, v);
 
-    int (*read_req)     (int inst, size_t n);
-    int (*read)         (int inst, size_t n, void *buf);
-    int (*write)        (int inst, size_t n, const void *buf);
-    int (*read_sync)    (int inst, size_t n, void *buf);
-    int (*write_sync)   (int inst, size_t n, const void *buf);
+    void (*sync)  (int inst, uint32_t systicks);         // deprecate
+    void (*poll)  (int inst);                            // deprecate
+
+    int  (*get) (int inst, int offset, uint32_t*data);   // deprecate  
+    int  (*set) (int inst, int offset, uint32_t data);   // deprecate
+    int  (*size)(int inst);                              // deprecate
+
+    int (*read_req)     (int inst, size_t n);                   // deprecate
+    int (*read)         (int inst, size_t n, void *buf);        // deprecate
+    int (*write)        (int inst, size_t n, const void *buf);  // deprecate
+    int (*read_sync)    (int inst, size_t n, void *buf);        // deprecate
+    int (*write_sync)   (int inst, size_t n, const void *buf);  // deprecate
 
     // Todo: need a suitable name
-    int (*io_cached) (int inst, size_t *in, size_t *out);
+    int (*io_cached) (int inst, size_t *in, size_t *out);       // deprecate
 } hw_driver_t;
 
 /****************************************************************/

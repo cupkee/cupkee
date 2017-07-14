@@ -79,9 +79,12 @@ static void test_query_reply_clean(void)
     query_reply_arg.reply = NULL;
 }
 
-static void test_query_reply_set(cupkee_device_t *dev, int state, intptr_t param)
+static void test_query_reply_set(void *obj, int state, intptr_t param)
 {
+    cupkee_device_t *dev = (cupkee_device_t *)obj;
+
     (void) param;
+
     query_reply_arg.dev = dev;
     query_reply_arg.state = state;
     query_reply_arg.reply = cupkee_device_reply_take(dev);
@@ -96,6 +99,7 @@ static void test_query(void)
     CU_ASSERT(!cupkee_device_is_enabled(dev));
     CU_ASSERT(0 == cupkee_device_enable(dev));
 
+    test_query_reply_clean();
     CU_ASSERT(0 == cupkee_device_query(dev, 0, NULL, 8, test_query_reply_set, 0));
 
     CU_ASSERT(dev == mock_device_curr());
