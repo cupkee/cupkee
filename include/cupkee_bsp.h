@@ -156,9 +156,18 @@ typedef struct hw_config_uart_t {
 } hw_config_uart_t;
 
 typedef struct hw_config_i2c_t {
-    uint32_t speed;
     uint8_t  addr;       // self-address
+    uint8_t  mode;       // master or slave
+    uint8_t  order;      // MSB or LSB
+    uint32_t speed;
 } hw_config_i2c_t;
+
+typedef struct hw_config_spi_t {
+    uint8_t  mode;       // master or slave
+    uint8_t  order;      // MSB or LSB
+    uint8_t  dir;        // readonly or writonly or duplex(default)
+    uint32_t speed;
+} hw_config_spi_t;
 
 typedef struct hw_config_t {
     union {
@@ -170,6 +179,7 @@ typedef struct hw_config_t {
         hw_config_counter_t counter;
         hw_config_uart_t    uart;
         hw_config_i2c_t     i2c;
+        hw_config_spi_t     spi;
     } data;
 } hw_config_t;
 
