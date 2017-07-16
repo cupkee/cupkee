@@ -157,13 +157,13 @@ typedef struct hw_config_uart_t {
 
 typedef struct hw_config_i2c_t {
     uint8_t  addr;       // self-address
-    uint8_t  mode;       // master or slave
+    uint8_t  mode;       // master or slave or multi-master
     uint8_t  order;      // MSB or LSB
     uint32_t speed;
 } hw_config_i2c_t;
 
 typedef struct hw_config_spi_t {
-    uint8_t  mode;       // master or slave
+    uint8_t  mode;       // master or slave or multi-master
     uint8_t  order;      // MSB or LSB
     uint8_t  dir;        // readonly or writonly or duplex(default)
     uint32_t speed;
