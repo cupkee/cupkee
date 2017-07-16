@@ -39,6 +39,7 @@ MAIN_DIR = ${PWD}
 endif
 
 export BASE_DIR
+export MAIN_DIR
 export MAKE_DIR = ${BASE_DIR}/make
 
 export INC_DIR = ${BASE_DIR}/include
