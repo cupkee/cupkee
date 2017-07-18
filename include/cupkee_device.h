@@ -30,6 +30,9 @@ SOFTWARE.
 #define DEVICE_FL_ENABLE    1
 
 typedef struct cupkee_device_t cupkee_device_t;
+
+typedef void (*cupkee_callback_t)(void *hnd, int state, intptr_t param);
+
 typedef void (*cupkee_handle_t)(cupkee_device_t *, uint8_t event, intptr_t param);
 
 typedef struct cupkee_device_desc_t {
@@ -52,6 +55,10 @@ struct cupkee_device_t {
     cupkee_handle_t handle;
     intptr_t        handle_param;
 
+    intptr_t        query_param;
+    cupkee_callback_t reply_handle;
+    void             *reply_buffer;
+
     const cupkee_device_desc_t *desc;
     const hw_driver_t *driver;
 
@@ -73,6 +80,18 @@ hw_config_t     *cupkee_device_config(int id);
 int cupkee_device_id(cupkee_device_t *device);
 int cupkee_device_elem_id(cupkee_device_t *dev, int index);
 int cupkee_device_elem_index(intptr_t id, cupkee_device_t **pdev);
+
+int cupkee_device_reply_push(cupkee_device_t *dev, size_t n, void *data);
+static inline void *cupkee_device_reply_take(cupkee_device_t *dev) {
+    if (dev && dev->reply_buffer) {
+        void *buf = dev->reply_buffer;
+
+        dev->reply_buffer = NULL;
+        return buf;
+    } else {
+        return NULL;
+    }
+}
 
 static inline int cupkee_device_is_enabled(cupkee_device_t *dev) {
     return (dev && (dev->flags & DEVICE_FL_ENABLE));
@@ -100,6 +119,9 @@ int cupkee_device_read_sync(cupkee_device_t *dev, size_t n, void *buf);
 int cupkee_device_write_sync(cupkee_device_t *dev, size_t n, const void *data);
 
 int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out);
+
+// new api
+int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, int want, cupkee_callback_t cb, intptr_t param);
 
 #endif /* __CUPKEE_DEVICE_INC__ */
 

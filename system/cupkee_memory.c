@@ -64,23 +64,6 @@ static const cupkee_memory_desc_t mem_pool_def[3] = {
     {512,  4},
 };
 
-/*
-static inline int memory_ref_dec(void *p) {
-    mem_block_t *b = CUPKEE_CONTAINER_OF(p, mem_block_t, next);
-
-    if (b->head.ref > 1) {
-        b->head.ref -= 2;
-    }
-    return b->head.ref;
-}
-
-static inline void memory_ref_inc(void *p) {
-    mem_block_t *b = CUPKEE_CONTAINER_OF(p, mem_block_t, next);
-
-    b->head.ref += 2;
-}
-*/
-
 static int memory_pool_setup(size_t block_size, size_t block_cnt)
 {
     mem_pool_t *pool;

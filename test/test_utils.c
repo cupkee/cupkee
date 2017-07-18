@@ -26,14 +26,20 @@ SOFTWARE.
 
 #include "test.h"
 
-void TU_pre_init(void)
+int TU_pre_init(void)
 {
-    hw_mock_memory_reset();
+    hw_mock_init(1024 * 16);
+
+    cupkee_init();
+    cupkee_start();
+
+    return 0;
 }
 
-void TU_pre_deinit(void)
+int TU_pre_deinit(void)
 {
-    hw_mock_memory_reset();
+    hw_mock_deinit();
+    return 0;
 }
 
 int TU_emitter_event_dispatch(void)

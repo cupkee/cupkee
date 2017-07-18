@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "cupkee_sysdisk.h"
 
-static void cupkee_event_process(void)
+void cupkee_event_poll(void)
 {
     cupkee_event_t e;
 
@@ -83,7 +83,7 @@ void cupkee_loop(void)
     while (1) {
         cupkee_device_poll();
 
-        cupkee_event_process();
+        cupkee_event_poll();
     }
 }
 

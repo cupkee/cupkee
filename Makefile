@@ -94,7 +94,7 @@ ogin: build bsp sys
 atom: build bsp sys lang
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/atom.mk extend
 
-test: build sys
+test: build sys lang
 	@rm -rf ${BUILD_DIR}/test.elf
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/test.mk
 	${BUILD_DIR}/test.elf

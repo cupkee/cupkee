@@ -1,9 +1,9 @@
 /*
 MIT License
 
-This file is part of cupkee project.
+This file is part of cupkee project
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,45 +24,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "test.h"
+#ifndef __HW_MOCK_INC__
+#define __HW_MOCK_INC__
 
-typedef struct mock_mblock_t {
-    struct mock_mblock_t *next;
-    size_t size;
-    char mem[0];
-} mock_mblock_t;
+void hw_mock_init(size_t mem_size);
+void hw_mock_deinit(void);
 
-static mock_mblock_t *mem_chain = NULL;
+cupkee_device_t *mock_device_curr(void);
+size_t           mock_device_curr_want(void);
 
-void hw_enter_critical(uint32_t *state)
-{
-    (void) state;
-}
+int  hw_mock_device_curr_id(void);
+size_t hw_mock_device_curr_want(void);
 
-void hw_exit_critical(uint32_t state)
-{
-    (void) state;
-}
-
-void *hw_malloc(size_t size, size_t align)
-{
-    mock_mblock_t *mb = malloc(sizeof(mock_mblock_t) + size);
-
-    (void) align;
-
-    if (mb) {
-        mb->size = size;
-        mb->next = mem_chain;
-        mem_chain = mb;
-
-        memset(mb->mem, 0x55, size);
-
-        return mb->mem;
-    }
-    return NULL;
-}
-
-void hw_mock_memory_reset(void)
-{
-}
+#endif /* __HW_MOCK_INC__ */
 

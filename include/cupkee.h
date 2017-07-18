@@ -50,6 +50,7 @@ SOFTWARE.
 /* Cupkee api */
 void cupkee_init(void);
 void cupkee_loop(void);
+void cupkee_event_poll(void);
 
 #include "cupkee_bsp.h"
 #include "cupkee_errno.h"
@@ -73,6 +74,15 @@ void cupkee_loop(void);
 #include "cupkee_object.h"
 #include "cupkee_module.h"
 #include "cupkee_native.h"
+
+static inline void cupkee_start(void) {
+    _cupkee_systicks = 0;
+}
+
+static inline void cupkee_poll(void) {
+    cupkee_device_poll();
+    cupkee_event_poll();
+}
 
 #endif /* __CUPKEE_INC__ */
 
