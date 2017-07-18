@@ -76,15 +76,13 @@ static int  hw_mock_setup (int inst, uint8_t devid, const hw_config_t *conf)
     return 0;
 }
 
-static int hw_mock_query(int inst, size_t n, void *data, int want)
+static int hw_mock_query(int inst, size_t n, int want)
 {
     (void) inst;
 
     mock_device_info.want = want;
     mock_device_info.out = n;
     n = n < 32 ? n : 32;
-
-    memcpy(mock_device_info.data, data, n);
 
     return 0;
 }

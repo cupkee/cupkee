@@ -519,7 +519,7 @@ static int device_reply2buffer(void *reply, val_t *obj)
 static void device_reply_handle(void *d, int state, intptr_t param)
 {
     cupkee_device_t *dev = (cupkee_device_t *) d;
-    void *reply = cupkee_device_reply_take(dev);
+    void *reply = cupkee_device_response_take(dev);
 
     if (param) {
         val_t *fn = (val_t *) param;
