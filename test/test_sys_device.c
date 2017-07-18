@@ -70,48 +70,121 @@ static struct {
     cupkee_device_t *dev;
     int state;
     void *reply;
-} query_reply_arg;
+} response_handle_arg;
 
-static void test_query_reply_clean(void)
+static void test_response_clean(void)
 {
-    query_reply_arg.dev = NULL;
-    query_reply_arg.state = 0;
-    query_reply_arg.reply = NULL;
+    response_handle_arg.dev = NULL;
+    response_handle_arg.state = 0;
+    response_handle_arg.reply = NULL;
 }
 
-static void test_query_reply_set(void *obj, int state, intptr_t param)
+static void test_response_release(void)
+{
+    if (response_handle_arg.reply) {
+        cupkee_buffer_release(response_handle_arg.reply);
+    }
+    test_response_clean();
+}
+
+static void test_response_restore(void *obj, int state, intptr_t param)
 {
     cupkee_device_t *dev = (cupkee_device_t *)obj;
 
     (void) param;
 
-    query_reply_arg.dev = dev;
-    query_reply_arg.state = state;
-    query_reply_arg.reply = cupkee_device_reply_take(dev);
+    response_handle_arg.dev = dev;
+    response_handle_arg.state = state;
+    response_handle_arg.reply = cupkee_device_response_take(dev);
 }
 
 static void test_query(void)
 {
     cupkee_device_t *dev;
+    uint8_t buf[2];
+
+    test_response_clean();
 
     CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("spi", 0)));
 
     CU_ASSERT(!cupkee_device_is_enabled(dev));
     CU_ASSERT(0 == cupkee_device_enable(dev));
 
-    test_query_reply_clean();
-    CU_ASSERT(0 == cupkee_device_query(dev, 0, NULL, 8, test_query_reply_set, 0));
-
+    /*
+     * query without request data
+     */
+    CU_ASSERT(0 == cupkee_device_query(dev, 0, NULL, 8, test_response_restore, 0));
+    // Bsp driver code start
     CU_ASSERT(dev == mock_device_curr());
     CU_ASSERT(8   == mock_device_curr_want());
+    // take request data
+    CU_ASSERT(0   == cupkee_device_request_pull(dev, 2, buf));
+    // push reply to device
+    CU_ASSERT(8   == cupkee_device_response_push(dev, 8, "12345678"));
+    // Call response_end to complete query
+    cupkee_device_response_end(dev);
+    // Bsp driver code end
 
-    // Bsp driver should push reply to device
-    CU_ASSERT(8   == cupkee_device_reply_push(dev, 8, "12345678"));
+    CU_ASSERT(dev == response_handle_arg.dev);
+    CU_ASSERT(0 == response_handle_arg.state);
+    CU_ASSERT_FATAL(NULL != response_handle_arg.reply);
+    CU_ASSERT(8 == cupkee_buffer_length(response_handle_arg.reply));
+    test_response_release();
 
-    CU_ASSERT(dev == query_reply_arg.dev);
-    CU_ASSERT(0 == query_reply_arg.state);
-    CU_ASSERT(NULL != query_reply_arg.reply);
-    CU_ASSERT(8 == cupkee_buffer_length(query_reply_arg.reply));
+    /*
+     * query with request data
+     */
+    CU_ASSERT(0 == cupkee_device_query(dev, 5, "hihao", 8, test_response_restore, 0));
+
+    // Bsp driver code start
+    CU_ASSERT(dev == mock_device_curr());
+    CU_ASSERT(8   == mock_device_curr_want());
+    // take request data
+    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(1   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(0   == cupkee_device_request_pull(dev, 2, buf));
+
+    // push reply to device
+    CU_ASSERT(8   == cupkee_device_response_push(dev, 8, "12345678"));
+    CU_ASSERT(0   == cupkee_device_response_push(dev, 8, "12345678"));
+
+    // Call response_end to complete query
+    cupkee_device_response_end(dev);
+    // Bsp driver code end
+
+    CU_ASSERT(dev == response_handle_arg.dev);
+    CU_ASSERT(0 == response_handle_arg.state);
+    CU_ASSERT_FATAL(NULL != response_handle_arg.reply);
+    CU_ASSERT(8 == cupkee_buffer_length(response_handle_arg.reply));
+    test_response_release();
+
+    /*
+     * query without response data
+     */
+
+    CU_ASSERT(0 == cupkee_device_query(dev, 7, "0123456", 0, test_response_restore, 0));
+
+    // Bsp driver code start
+    CU_ASSERT(dev == mock_device_curr());
+    CU_ASSERT(0   == mock_device_curr_want());
+    // take request data
+    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(1   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT('6' == buf[0]);
+    // push reply to device
+    CU_ASSERT(0   > cupkee_device_response_push(dev, 8, "12345678"));
+    // Call response_end to complete query
+    cupkee_device_response_end(dev);
+    // Bsp driver code end
+
+    CU_ASSERT(dev == response_handle_arg.dev);
+    CU_ASSERT(0 == response_handle_arg.state);
+    CU_ASSERT(NULL == response_handle_arg.reply);
+    test_response_release();
+
 
     CU_ASSERT(0 == cupkee_device_disable(dev));
     CU_ASSERT(!cupkee_device_is_enabled(dev));

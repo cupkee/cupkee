@@ -28,6 +28,7 @@ SOFTWARE.
 #define __CUPKEE_DEVICE_INC__
 
 #define DEVICE_FL_ENABLE    1
+#define DEVICE_FL_BUSY      2
 
 typedef struct cupkee_device_t cupkee_device_t;
 
@@ -55,9 +56,11 @@ struct cupkee_device_t {
     cupkee_handle_t handle;
     intptr_t        handle_param;
 
-    intptr_t        query_param;
-    cupkee_callback_t reply_handle;
-    void             *reply_buffer;
+    intptr_t        query_param;       // Todo: rename
+    cupkee_callback_t reply_handle;    // Todo: rename and combine with handle
+
+    void             *req;
+    void             *res;
 
     const cupkee_device_desc_t *desc;
     const hw_driver_t *driver;
@@ -82,11 +85,12 @@ int cupkee_device_elem_id(cupkee_device_t *dev, int index);
 int cupkee_device_elem_index(intptr_t id, cupkee_device_t **pdev);
 
 int cupkee_device_reply_push(cupkee_device_t *dev, size_t n, void *data);
-static inline void *cupkee_device_reply_take(cupkee_device_t *dev) {
-    if (dev && dev->reply_buffer) {
-        void *buf = dev->reply_buffer;
 
-        dev->reply_buffer = NULL;
+static inline void *cupkee_device_response_take(cupkee_device_t *dev) {
+    if (dev && dev->res) {
+        void *buf = dev->res;
+
+        dev->res = NULL;
         return buf;
     } else {
         return NULL;
@@ -121,6 +125,9 @@ int cupkee_device_write_sync(cupkee_device_t *dev, size_t n, const void *data);
 int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out);
 
 // new api
+void cupkee_device_response_end(cupkee_device_t *dev);
+int cupkee_device_response_push(cupkee_device_t *dev, size_t n, void *data);
+int cupkee_device_request_pull(cupkee_device_t *dev, size_t n, void *buf);
 int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, int want, cupkee_callback_t cb, intptr_t param);
 
 #endif /* __CUPKEE_DEVICE_INC__ */

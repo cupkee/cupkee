@@ -188,7 +188,7 @@ typedef struct hw_driver_t {
     void (*reset) (int inst);
     int  (*setup) (int inst, uint8_t devid, const hw_config_t *conf);
 
-    int  (*query) (int inst, size_t n, void *data, int want);
+    int  (*query) (int inst, size_t post, int want);
 
     // for stream interface
     // int (*read) (int inst, size_t want);
