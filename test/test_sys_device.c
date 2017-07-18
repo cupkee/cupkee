@@ -102,6 +102,7 @@ static void test_query(void)
 {
     cupkee_device_t *dev;
     uint8_t buf[2];
+    void *req;
 
     test_response_clean();
 
@@ -117,8 +118,9 @@ static void test_query(void)
     // Bsp driver code start
     CU_ASSERT(dev == mock_device_curr());
     CU_ASSERT(8   == mock_device_curr_want());
+
     // take request data
-    CU_ASSERT(0   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(NULL == (req = cupkee_device_request_take(dev)));
     // push reply to device
     CU_ASSERT(8   == cupkee_device_response_push(dev, 8, "12345678"));
     // Call response_end to complete query
@@ -140,10 +142,9 @@ static void test_query(void)
     CU_ASSERT(dev == mock_device_curr());
     CU_ASSERT(8   == mock_device_curr_want());
     // take request data
-    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(1   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(0   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(NULL != (req = cupkee_device_request_take(dev)));
+    CU_ASSERT(5   == cupkee_buffer_length(req));
+    cupkee_buffer_release(req);
 
     // push reply to device
     CU_ASSERT(8   == cupkee_device_response_push(dev, 8, "12345678"));
@@ -169,10 +170,10 @@ static void test_query(void)
     CU_ASSERT(dev == mock_device_curr());
     CU_ASSERT(0   == mock_device_curr_want());
     // take request data
-    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(2   == cupkee_device_request_pull(dev, 2, buf));
-    CU_ASSERT(1   == cupkee_device_request_pull(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(dev, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(dev, 2, buf));
+    CU_ASSERT(1   == cupkee_device_request_load(dev, 2, buf));
     CU_ASSERT('6' == buf[0]);
     // push reply to device
     CU_ASSERT(0   > cupkee_device_response_push(dev, 8, "12345678"));
