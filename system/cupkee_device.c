@@ -393,7 +393,7 @@ int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out)
     }
 }
 
-int cupkee_device_request_pull(cupkee_device_t *dev, size_t n, void *data)
+int cupkee_device_request_load(cupkee_device_t *dev, size_t n, void *data)
 {
     if (cupkee_device_is_enabled(dev)) {
         if (dev->req) {
