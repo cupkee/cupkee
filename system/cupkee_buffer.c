@@ -27,6 +27,7 @@ SOFTWARE.
 #include "cupkee.h"
 
 typedef struct cupkee_buffer_t {
+    uint16_t flags;
     uint16_t cap;
     uint16_t bgn;
     uint16_t len;
@@ -232,4 +233,25 @@ int cupkee_buffer_give(void *p, size_t n, const void *buf)
     }
 
     return n;
+}
+
+void *cupkee_buffer_ptr(void *buf)
+{
+    cupkee_buffer_t *b = (cupkee_buffer_t *)buf;
+    int wrap = b->bgn + b->len - b->cap;
+
+    if (wrap > 0) {
+        int gap = b->cap - b->len;
+        uint8_t *ptr = b->ptr;
+        if (gap >= wrap) {
+            memmove(ptr + wrap, ptr + b->bgn, b->len - wrap);
+            memcpy(ptr + b->len - wrap, ptr, wrap);
+            b->bgn = wrap;
+        } else {
+            // Todo: alloc new ptr
+            return NULL;
+        }
+    }
+
+    return b->ptr + b->bgn;
 }

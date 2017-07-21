@@ -38,18 +38,18 @@ size_t cupkee_buffer_capacity(void *b);
 size_t cupkee_buffer_space(void *b);
 size_t cupkee_buffer_length(void *b);
 
-int    cupkee_buffer_is_empty(void *b);
-int    cupkee_buffer_is_full(void *b);
+int cupkee_buffer_is_empty(void *b);
+int cupkee_buffer_is_full(void *b);
 
-int    cupkee_buffer_set(void *b, int offset, uint8_t d);
-int    cupkee_buffer_get(void *b, int offset, uint8_t d);
-int    cupkee_buffer_push(void *b, uint8_t d);
-int    cupkee_buffer_pop(void *b, uint8_t *d);
-int    cupkee_buffer_unshift(void *b, uint8_t d);
-int    cupkee_buffer_shift(void *b, uint8_t *d);
+int cupkee_buffer_set(void *b, int offset, uint8_t d);
+int cupkee_buffer_get(void *b, int offset, uint8_t *d);
+int cupkee_buffer_push(void *b, uint8_t d);
+int cupkee_buffer_pop(void *b, uint8_t *d);
+int cupkee_buffer_unshift(void *b, uint8_t d);
+int cupkee_buffer_shift(void *b, uint8_t *d);
 
-int    cupkee_buffer_take(void *b, size_t n, void *buf);
-int    cupkee_buffer_give(void *b, size_t n, const void *buf);
+int cupkee_buffer_take(void *b, size_t n, void *buf);
+int cupkee_buffer_give(void *b, size_t n, const void *buf);
 
 void   *cupkee_buffer_slice(void *b, int start, int n);
 void   *cupkee_buffer_copy(void *b);
@@ -57,26 +57,27 @@ void   *cupkee_buffer_sort(void *b);
 void   *cupkee_buffer_reverse(void *b);
 
 //void   *cupkee_buffer_to_string(void *b);
+void *cupkee_buffer_ptr(void *buf);
 
-int    cupkee_buffer_read_int8  (void *b, int offset, int8_t *i);
-int    cupkee_buffer_read_uint8 (void *b, int offset, uint8_t *u);
+int cupkee_buffer_read_int8  (void *b, int offset, int8_t *i);
+int cupkee_buffer_read_uint8 (void *b, int offset, uint8_t *u);
 
-int    cupkee_buffer_read_int16_le  (void *b, int offset, int16_t *i);
-int    cupkee_buffer_read_int16_be  (void *b, int offset, int16_t *i);
+int cupkee_buffer_read_int16_le  (void *b, int offset, int16_t *i);
+int cupkee_buffer_read_int16_be  (void *b, int offset, int16_t *i);
 
-int    cupkee_buffer_read_uint16_le (void *b, int offset, uint16_t *u);
-int    cupkee_buffer_read_uint16_be (void *b, int offset, uint16_t *u);
+int cupkee_buffer_read_uint16_le (void *b, int offset, uint16_t *u);
+int cupkee_buffer_read_uint16_be (void *b, int offset, uint16_t *u);
 
-int    cupkee_buffer_read_int32_le  (void *b, int offset, int32_t *i);
-int    cupkee_buffer_read_int32_be  (void *b, int offset, int32_t *i);
+int cupkee_buffer_read_int32_le  (void *b, int offset, int32_t *i);
+int cupkee_buffer_read_int32_be  (void *b, int offset, int32_t *i);
 
-int    cupkee_buffer_read_uint32_le (void *b, int offset, uint32_t *u);
-int    cupkee_buffer_read_uint32_be (void *b, int offset, uint32_t *u);
+int cupkee_buffer_read_uint32_le (void *b, int offset, uint32_t *u);
+int cupkee_buffer_read_uint32_be (void *b, int offset, uint32_t *u);
 
-int    cupkee_buffer_read_float_be(void *b, int offset, float *f);
-int    cupkee_buffer_read_float_le(void *b, int offset, float *f);
-int    cupkee_buffer_read_double_be(void *b, int offset, double *d);
-int    cupkee_buffer_read_double_le(void *b, int offset, double *d);
+int cupkee_buffer_read_float_be(void *b, int offset, float *f);
+int cupkee_buffer_read_float_le(void *b, int offset, float *f);
+int cupkee_buffer_read_double_be(void *b, int offset, double *d);
+int cupkee_buffer_read_double_le(void *b, int offset, double *d);
 
 #endif /* __CUPKEE_BUFFER_INC__ */
 
