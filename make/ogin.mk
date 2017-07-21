@@ -24,7 +24,9 @@
 ## SOFTWARE.
 ##
 
-MAIN_DIR ?=${FRAMEWORK_DIR}/ogin
+ifeq (${MAIN_DIR},)
+MAIN_DIR = ${FRAMEWORK_DIR}/ogin
+endif
 
 include ${MAKE_DIR}/cupkee.modules.mk
 
