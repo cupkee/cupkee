@@ -393,6 +393,19 @@ int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out)
     }
 }
 
+void *cupkee_device_request_ptr(cupkee_device_t *dev)
+{
+    if (cupkee_device_is_enabled(dev)) {
+        if (dev->req) {
+            return cupkee_buffer_ptr(dev->req);
+        } else {
+            return NULL;
+        }
+    } else {
+        return NULL;
+    }
+}
+
 int cupkee_device_request_load(cupkee_device_t *dev, size_t n, void *data)
 {
     if (cupkee_device_is_enabled(dev)) {

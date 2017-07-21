@@ -172,7 +172,7 @@ const hw_driver_t *hw_device_request(int type, int instance)
     case DEVICE_TYPE_COUNTER:   return hw_request_counter(instance);
     case DEVICE_TYPE_UART:      return hw_request_uart(instance);
     case DEVICE_TYPE_I2C:       return hw_request_i2c(instance);
-    case DEVICE_TYPE_SPI:
+    case DEVICE_TYPE_SPI:       return hw_request_spi(instance);
     case DEVICE_TYPE_USART:     return NULL;
     case DEVICE_TYPE_USB_CDC:   return hw_request_cdc(instance);
     default:                    return NULL;
@@ -191,7 +191,7 @@ int hw_device_instances(int type)
     case DEVICE_TYPE_COUNTER:   return HW_INSTANCES_COUNTER;
     case DEVICE_TYPE_UART:      return HW_INSTANCES_UART;
     case DEVICE_TYPE_I2C:       return HW_INSTANCES_I2C;
-    case DEVICE_TYPE_SPI:       return 0;
+    case DEVICE_TYPE_SPI:       return HW_INSTANCES_SPI;
     case DEVICE_TYPE_USART:     return 0;
     case DEVICE_TYPE_USB_CDC:   return 1;
     default:                    return 0;
