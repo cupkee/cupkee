@@ -526,7 +526,7 @@ static void device_reply_handle(void *d, int state, intptr_t param)
         int   ac;
         val_t av[2];
 
-        if (state || !(state = device_reply2buffer(reply, &av[1]))) {
+        if (state || (state = device_reply2buffer(reply, &av[1]))) {
             ac = 1;
             val_set_number(av, state);
         } else {

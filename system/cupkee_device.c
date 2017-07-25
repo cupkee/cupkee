@@ -494,7 +494,7 @@ int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, int want, cu
     dev->query_param = param;
 
     retv = dev->driver->query(dev->instance, n, want);
-    if (retv) {
+    if (retv < 0) {
         if (dev->req) {
             cupkee_buffer_release(dev->req);
         }
