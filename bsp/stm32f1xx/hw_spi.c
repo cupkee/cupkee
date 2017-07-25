@@ -149,48 +149,6 @@ static int hw_setup_pin(int instance)
     return 0;
 }
 
-static void hw_spi_reset(int instance)
-{
-    hw_reset_pin(instance);
-
-    SPI_CR1(hw_reg_base[instance]) = 0;
-    SPI_CR2(hw_reg_base[instance]) = 0;
-
-    rcc_periph_clock_disable(hw_reg_base[instance]);
-}
-
-static int hw_spi_setup(int instance, uint8_t dev_id, const hw_config_t *conf)
-{
-    hw_spi_t *spi = hw_device(instance);
-
-    if (!spi) {
-        return -1;
-    }
-
-    rcc_periph_clock_enable(hw_reg_base[instance]);
-
-    if (hw_setup_pin(instance)) {
-        rcc_periph_clock_disable(hw_reg_base[instance]);
-        return -1;
-    }
-
-    spi->done = 0;
-    spi->conf = (const hw_config_spi_t *)conf;
-    spi->devid = dev_id;
-
-    spi_reset(hw_reg_base[instance]);
-
-    SPI_I2SCFGR(hw_reg_base[instance]) = 0;
-
-    SPI_CR1(hw_reg_base[instance]) = SPI_CR1_MSBFIRST |    // 8Bit MSB
-                                     SPI_CR1_BAUDRATE_FPCLK_DIV_32 |
-                                     SPI_CR1_MSTR;
-    SPI_CR2(hw_reg_base[instance]) = SPI_CR2_RXNEIE |
-                                     SPI_CR2_TXEIE |
-                                     SPI_CR2_SSOE;
-    return 0;
-}
-
 static void hw_recv(hw_spi_t *spi, uint32_t base_reg)
 {
     uint8_t dat = SPI_DR(base_reg);
@@ -215,37 +173,50 @@ static void hw_send(hw_spi_t *spi, uint32_t base_reg)
     ++spi->txcnt;
 }
 
-void spi1_isr(void)
+static void hw_spi_reset(int instance)
 {
-    uint32_t sr = SPI_SR(SPI1);
-    if (sr & SPI_SR_RXNE) {
-        hw_recv(&hw_spi[0], SPI1);
-    }
-    if (sr & SPI_SR_TXE) {
-        hw_send(&hw_spi[0], SPI1);
-    }
+    hw_reset_pin(instance);
+
+    SPI_CR1(hw_reg_base[instance]) = 0;
+    SPI_CR2(hw_reg_base[instance]) = 0;
+
+    rcc_periph_clock_disable(hw_reg_rcc[instance]);
 }
 
-void spi2_isr(void)
+static int hw_spi_setup(int instance, uint8_t dev_id, const hw_config_t *conf)
 {
-    uint32_t sr = SPI_SR(SPI2);
-    if (sr & SPI_SR_RXNE) {
-        hw_recv(&hw_spi[1], SPI2);
-    }
-    if (sr & SPI_SR_TXE) {
-        hw_send(&hw_spi[1], SPI2);
-    }
-}
+    hw_spi_t *spi = hw_device(instance);
 
-void spi3_isr(void)
-{
-    uint32_t sr = SPI_SR(SPI3);
-    if (sr & SPI_SR_RXNE) {
-        hw_recv(&hw_spi[2], SPI3);
+    if (!spi) {
+        return -1;
     }
-    if (sr & SPI_SR_TXE) {
-        hw_send(&hw_spi[2], SPI3);
+
+    rcc_periph_clock_enable(hw_reg_rcc[instance]);
+
+    if (hw_setup_pin(instance)) {
+        rcc_periph_clock_disable(hw_reg_base[instance]);
+        return -1;
     }
+
+    spi->done = 0;
+    spi->conf = (const hw_config_spi_t *)conf;
+    spi->devid = dev_id;
+
+    spi_reset(hw_reg_base[instance]);
+
+    SPI_I2SCFGR(hw_reg_base[instance]) = 0;
+
+    SPI_CR1(hw_reg_base[instance]) = SPI_CR1_SSM |
+                                     SPI_CR1_SSI |
+                                     SPI_CR1_MSBFIRST |    // 8Bit MSB
+                                     SPI_CR1_BAUDRATE_FPCLK_DIV_32 |
+                                     SPI_CR1_MSTR;
+
+    SPI_CR2(hw_reg_base[instance]) = 0;
+
+    SPI_CR1(hw_reg_base[instance]) |= SPI_CR1_SPE;
+
+    return 0;
 }
 
 static void hw_spi_release(int instance)
@@ -284,14 +255,15 @@ static int hw_spi_query(int instance, size_t send, int want)
     spi->rxcnt = 0;
 
     spi->flags |= HW_FL_BUSY;
-    SPI_CR1(hw_reg_base[instance]) = SPI_CR1_SPE;
+
     while (SPI_SR(hw_reg_base[instance]) & SPI_SR_BSY) {
         ;
     }
+
     if (spi->txcnt < spi->txmax) {
         SPI_DR(hw_reg_base[instance]) = spi->txbuf[spi->txcnt++];
     } else {
-        SPI_DR(hw_reg_base[instance]) = 0xFF;
+        SPI_DR(hw_reg_base[instance]) = 0;
     }
 
     return 0;
@@ -302,8 +274,17 @@ static void hw_spi_poll(int instance)
     hw_spi_t *spi = hw_device(instance);
 
     if (spi->flags & HW_FL_BUSY) {
+        if (1) {
+            uint32_t sr = SPI_SR(SPI1);
+
+            if (sr & SPI_SR_RXNE) {
+                hw_recv(spi, SPI1);
+            }
+            if (sr & SPI_SR_TXE) {
+                hw_send(spi, SPI1);
+            }
+        }
         if (spi->done && !(SPI_SR(hw_reg_base[instance]) & SPI_SR_BSY)) {
-            SPI_CR1(hw_reg_base[instance]) &= ~SPI_CR1_SPE;
             spi->flags &= ~HW_FL_BUSY;
             spi->done = 0;
 
@@ -338,3 +319,39 @@ void hw_setup_spi(void)
     }
 }
 
+/*
+void spi1_isr(void)
+{
+    uint32_t sr = SPI_SR(SPI1);
+    console_log("spi1 isr call\r\n");
+
+    if (sr & SPI_SR_RXNE) {
+        hw_recv(&hw_spi[0], SPI1);
+    }
+    if (sr & SPI_SR_TXE) {
+        hw_send(&hw_spi[0], SPI1);
+    }
+}
+
+void spi2_isr(void)
+{
+    uint32_t sr = SPI_SR(SPI2);
+    if (sr & SPI_SR_RXNE) {
+        hw_recv(&hw_spi[1], SPI2);
+    }
+    if (sr & SPI_SR_TXE) {
+        hw_send(&hw_spi[1], SPI2);
+    }
+}
+
+void spi3_isr(void)
+{
+    uint32_t sr = SPI_SR(SPI3);
+    if (sr & SPI_SR_RXNE) {
+        hw_recv(&hw_spi[2], SPI3);
+    }
+    if (sr & SPI_SR_TXE) {
+        hw_send(&hw_spi[2], SPI3);
+    }
+}
+*/
