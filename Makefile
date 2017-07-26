@@ -32,7 +32,14 @@ endif
 export CPU ?= test
 
 
-export BASE_DIR = ${PWD}
+ifeq (${BASE_DIR},)
+BASE_DIR = ${PWD}
+else
+MAIN_DIR = ${PWD}
+endif
+
+export BASE_DIR
+export MAIN_DIR
 export MAKE_DIR = ${BASE_DIR}/make
 
 export INC_DIR = ${BASE_DIR}/include
@@ -95,5 +102,5 @@ test: build sys lang
 clean:
 	@rm -rf ${BUILD_DIR}
 
-.PHONY: clean build main bsp lang sys ogin tiny atom
+.PHONY: clean build main bsp lang sys ogin atom
 

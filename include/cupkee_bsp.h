@@ -163,10 +163,10 @@ typedef struct hw_config_i2c_t {
 } hw_config_i2c_t;
 
 typedef struct hw_config_spi_t {
-    uint8_t  mode;       // master or slave or multi-master
-    uint8_t  order;      // MSB or LSB
+    uint8_t  mode;       // master(default) or slave or multi-master
+    uint8_t  order;      // MSB(default) or LSB
     uint8_t  dir;        // readonly or writonly or duplex(default)
-    uint32_t speed;
+    uint32_t speed;      // 1,200,000 default
 } hw_config_spi_t;
 
 typedef struct hw_config_t {
