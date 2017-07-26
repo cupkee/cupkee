@@ -30,7 +30,7 @@ SOFTWARE.
 void cupkee_buffer_init(void);
 
 void   *cupkee_buffer_alloc(size_t size);
-void   *cupkee_buffer_create(size_t n, const char *data);
+void   *cupkee_buffer_create(size_t n, const void *data);
 void   cupkee_buffer_release(void *b);
 void   cupkee_buffer_reset(void *b);
 

@@ -58,7 +58,7 @@ void *cupkee_buffer_alloc(size_t size)
     return buf;
 }
 
-void *cupkee_buffer_create(size_t n, const char *data)
+void *cupkee_buffer_create(size_t n, const void *data)
 {
     cupkee_buffer_t *buf = cupkee_malloc(n + sizeof(cupkee_buffer_t));
 
