@@ -142,7 +142,8 @@ int cupkee_device_request_load(cupkee_device_t *dev, size_t n, void *data);
 void cupkee_device_response_end(cupkee_device_t *dev);
 int cupkee_device_response_push(cupkee_device_t *dev, size_t n, void *data);
 
-int cupkee_device_query(cupkee_device_t *dev, size_t n, void *data, int want, cupkee_callback_t cb, intptr_t param);
+int cupkee_device_query(cupkee_device_t *dev, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
+int cupkee_device_query2(cupkee_device_t *dev, void *req, int want, cupkee_callback_t cb, intptr_t param);
 
 #endif /* __CUPKEE_DEVICE_INC__ */
 

@@ -471,43 +471,66 @@ static inline int native_take_arg_device(int *ac, val_t **av, cupkee_device_t **
     }
 }
 
-static inline int native_take_arg_data(int *ac, val_t **av, void **ptr)
+static int native_take_arg_query(int *ac, val_t **av, void **buf, int *want)
 {
-    if ((*ac)) {
-        int size;
-        void *p = cupkee_val2data(*av, &size);
-        if (p) {
-            (*ac) --; (*av) ++;
-            *ptr = p;
-            return size;
+    int size;
+    uint8_t *ptr;
+    int c = *ac;
+    val_t *v = *av;
+
+    if (c && (ptr = cupkee_val2data(v, &size))) {
+        if (!(*buf = cupkee_buffer_create(size, (void *)ptr))) {
+            // no memory
+            return -1;
+        }
+        c--; v++;
+    } else {
+        int i = 0;
+        while (i < c && val_is_number(v + i)) {
+            i++;
+        }
+        size = i - 1;
+
+        if (size > 0) {
+            if (!(*buf = cupkee_buffer_alloc(size))) {
+                // no memory
+                return -1;
+            }
+            for (i = 0; i < size; i++) {
+                cupkee_buffer_push(*buf, val_2_integer(v + i));
+            }
+
+            c -= size;
+            v += size;
+        } else {
+            *buf = NULL;
         }
     }
 
-    *ptr = NULL;
+    if (c && val_is_number(v)) {
+        *want = val_2_integer(v);
+        c--; v++;
+    } else {
+        *want = 0;
+    }
+
+    *ac = c;
+    *av = v;
+
     return 0;
 }
 
-static inline int native_take_arg_int(int *ac, val_t **av, int *v)
-{
-    if ((*ac) && val_is_number(*av)) {
-        (*ac) --;
-        *v = val_2_integer((*av)++);
-        return 0;
-    }
-    return -1;
-}
-
-static int device_reply2buffer(void *reply, val_t *obj)
+static int device_response2buffer(void *response, val_t *obj)
 {
     int len;
-    if (reply && 0 < (len = cupkee_buffer_length(reply))) {
+    if (response && 0 < (len = cupkee_buffer_length(response))) {
         type_buffer_t *b = buffer_create(cupkee_shell_env(), len);
 
         if (!b) {
             return -CUPKEE_ERESOURCE;
         }
 
-        cupkee_buffer_take(reply, len, b->buf);
+        cupkee_buffer_take(response, len, b->buf);
         val_set_buffer(obj, b);
     } else {
         val_set_undefined(obj);
@@ -516,17 +539,17 @@ static int device_reply2buffer(void *reply, val_t *obj)
     return 0;
 }
 
-static void device_reply_handle(void *d, int state, intptr_t param)
+static void device_response_handle(void *d, int state, intptr_t param)
 {
     cupkee_device_t *dev = (cupkee_device_t *) d;
-    void *reply = cupkee_device_response_take(dev);
+    void *res = cupkee_device_response_take(dev);
 
     if (param) {
         val_t *fn = (val_t *) param;
         int   ac;
         val_t av[2];
 
-        if (state || (state = device_reply2buffer(reply, &av[1]))) {
+        if (state || (state = device_response2buffer(res, &av[1]))) {
             ac = 1;
             val_set_number(av, state);
         } else {
@@ -537,14 +560,16 @@ static void device_reply_handle(void *d, int state, intptr_t param)
 
         shell_reference_release(fn);
     }
-    cupkee_buffer_release(reply);
+    if (res) {
+        cupkee_buffer_release(res);
+    }
 }
 
 val_t native_device_query(env_t *env, int ac, val_t *av)
 {
     cupkee_device_t *dev;
-    void *data;
-    int n, want;
+    void *req;
+    int want;
     intptr_t cb;
 
     (void) env;
@@ -553,11 +578,9 @@ val_t native_device_query(env_t *env, int ac, val_t *av)
         return VAL_UNDEFINED;
     }
 
-    n = native_take_arg_data(&ac, &av, &data);
-
-    if (native_take_arg_int(&ac, &av, &want)) {
-        want = -1;
-    }
+    if (native_take_arg_query(&ac, &av, &req, &want)) {
+        return VAL_FALSE;
+    };
 
     if (ac && val_is_function(av)) {
         val_t *ref = shell_reference_create(av);
@@ -570,7 +593,7 @@ val_t native_device_query(env_t *env, int ac, val_t *av)
         cb = 0;
     }
 
-    if (cupkee_device_query(dev, n, data, want, device_reply_handle, cb)) {
+    if (cupkee_device_query2(dev, req, want, device_response_handle, cb)) {
         if (cb) {
             shell_reference_release((val_t *)cb);
         }
