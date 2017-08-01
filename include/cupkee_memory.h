@@ -38,5 +38,77 @@ void *cupkee_malloc(size_t n);
 void cupkee_free(void *p);
 void *cupkee_mem_ref(void *p);
 
+/* list_head interface */
+typedef struct list_head_t list_head_t;
+
+struct list_head_t {
+    list_head_t *prev;
+    list_head_t *next;
+};
+
+static inline void list_head_init(list_head_t *head) {
+    head->prev = head;
+    head->next = head;
+}
+
+static inline void __list_add(list_head_t *node, list_head_t *prev, list_head_t *next) {
+    node->prev = prev;
+    node->next = next;
+
+    prev->next = node;
+    next->prev = node;
+}
+
+static inline void __list_del(list_head_t *prev, list_head_t *next) {
+    prev->next = next;
+    next->prev = prev;
+}
+
+static inline int list_is_empty(list_head_t *head) {
+    return head == head->next;
+}
+
+static inline void list_del(list_head_t *node) {
+    if (node) {
+        __list_del(node->prev, node->next);
+    }
+}
+
+static inline void list_add(list_head_t *node, list_head_t *head) {
+    __list_add(node, head, head->next);
+}
+
+static inline void list_add_tail(list_head_t *node, list_head_t *head) {
+    __list_add(node, head->prev, head);
+}
+
+#define list_for_each(pos, head) \
+    for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/* list_head */
+
+/* new interface */
+
+typedef struct cupkee_page_t {
+    list_head_t list;
+
+    uint8_t flags;
+    uint8_t units;
+    uint16_t order;
+
+    void    *blocks;
+} cupkee_page_t;
+
+
+int cupkee_mm_init(void);
+int cupkee_free_pages(int order);
+int cupkee_memory_zone_create(intptr_t base, size_t size);
+
+void *cupkee_page_ptr(cupkee_page_t *page);
+cupkee_page_t *cupkee_ptr2page(void *ptr);
+
+cupkee_page_t *cupkee_page_alloc(int order);
+void cupkee_page_free(cupkee_page_t *page);
+
 #endif /* __CUPKEE_MEMORY_INC__ */
 

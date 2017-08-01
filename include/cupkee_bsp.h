@@ -237,6 +237,9 @@ void hw_info_get(hw_info_t *);
 
 void *hw_malloc(size_t size, size_t align);
 
+void  *hw_boot_memory_alloc(size_t size, size_t align);
+size_t hw_boot_memory_size(void);
+
 size_t hw_memory_left(void);
 size_t hw_malloc_all(void **p, size_t align);
 

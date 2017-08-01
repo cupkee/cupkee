@@ -234,6 +234,24 @@ void *hw_malloc(size_t size, size_t align)
     return mock_memory_base + off;
 }
 
+void *hw_boot_memory_alloc(size_t size, size_t align)
+{
+    size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);
+
+    if (off + size > mock_memory_size) {
+        return NULL;
+    }
+
+    mock_memory_off = off + size;
+
+    return mock_memory_base + off;
+}
+
+size_t hw_boot_memory_size(void)
+{
+    return mock_memory_size - mock_memory_off;
+}
+
 void hw_setup(void)
 {}
 
