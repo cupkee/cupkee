@@ -28,7 +28,7 @@ SOFTWARE.
 
 int TU_pre_init(void)
 {
-    hw_mock_init(1024 * 16);
+    hw_mock_init(1024 * 32);
 
     cupkee_init();
     cupkee_start();
