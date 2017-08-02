@@ -221,19 +221,6 @@ void hw_exit_critical(uint32_t state)
     (void) state;
 }
 
-void *hw_malloc(size_t size, size_t align)
-{
-    size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);
-
-    if (off + size > mock_memory_size) {
-        return NULL;
-    }
-
-    mock_memory_off = off + size;
-
-    return mock_memory_base + off;
-}
-
 void *hw_boot_memory_alloc(size_t size, size_t align)
 {
     size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);

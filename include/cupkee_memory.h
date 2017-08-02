@@ -27,17 +27,6 @@ SOFTWARE.
 #ifndef __CUPKEE_MEMORY_INC__
 #define __CUPKEE_MEMORY_INC__
 
-typedef struct cupkee_memory_desc_t {
-    uint32_t block_size;
-    uint32_t block_cnt;
-} cupkee_memory_desc_t;
-
-void cupkee_memory_init(int n, cupkee_memory_desc_t *descs);
-
-void *cupkee_malloc(size_t n);
-void cupkee_free(void *p);
-void *cupkee_mem_ref(void *p);
-
 /* list_head interface */
 typedef struct list_head_t list_head_t;
 
@@ -93,22 +82,25 @@ typedef struct cupkee_page_t {
     list_head_t list;
 
     uint8_t flags;
-    uint8_t units;
+    uint8_t used;
     uint16_t order;
 
-    void    *blocks;
+    intptr_t blocks;
 } cupkee_page_t;
 
+int cupkee_memory_init(void);
+int cupkee_memory_extend(intptr_t base, size_t size);
 
-int cupkee_mm_init(void);
 int cupkee_free_pages(int order);
-int cupkee_memory_zone_create(intptr_t base, size_t size);
 
-void *cupkee_page_ptr(cupkee_page_t *page);
-cupkee_page_t *cupkee_ptr2page(void *ptr);
+void *cupkee_page_memory(cupkee_page_t *page);
+cupkee_page_t *cupkee_memory_page(void *ptr);
 
 cupkee_page_t *cupkee_page_alloc(int order);
 void cupkee_page_free(cupkee_page_t *page);
+
+void *cupkee_malloc(size_t s);
+void  cupkee_free(void *p);
 
 #endif /* __CUPKEE_MEMORY_INC__ */
 

@@ -54,7 +54,7 @@ void cupkee_init(void)
     hw_setup();
 
     /* Memory pool initial */
-    cupkee_memory_init(0, NULL);
+    cupkee_memory_init();
 
     /* System timer initial */
     cupkee_timeout_init();
