@@ -82,7 +82,12 @@ size_t hw_malloc_all(void **p, size_t align)
     return left;
 }
 
-void *hw_malloc(size_t size, size_t align)
+size_t hw_boot_memory_size(void)
+{
+    return hw_memory_end - hw_memory_bgn;
+}
+
+void  *hw_boot_memory_alloc(size_t size, size_t align)
 {
     void *memory_align;
     size_t left;
