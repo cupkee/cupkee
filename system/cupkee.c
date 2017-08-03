@@ -73,6 +73,7 @@ void cupkee_init(void)
 
     /* Event initial */
     cupkee_event_setup();
+
 }
 
 void cupkee_loop(void)

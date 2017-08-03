@@ -44,6 +44,7 @@ int main(void)
     tty->config.data.uart.data_bits = 8;
 #endif
     cupkee_device_enable(tty);
+
     cupkee_shell_init(tty, board_native_number(), board_native_entries());
 
     /**********************************************************

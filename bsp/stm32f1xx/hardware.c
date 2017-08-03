@@ -56,32 +56,6 @@ void sys_tick_handler(void)
     cupkee_event_post_systick();
 }
 
-size_t hw_memory_left(void)
-{
-    return hw_memory_end - hw_memory_bgn;
-}
-
-size_t hw_malloc_all(void **p, size_t align)
-{
-    void *memory_align;
-    int left;
-
-    if (align) {
-        memory_align = CUPKEE_ADDR_ALIGN(hw_memory_bgn, align);
-    } else {
-        memory_align = hw_memory_bgn;
-    }
-
-    left = hw_memory_end - memory_align;
-    hw_memory_bgn = memory_align + left;
-
-    if (p) {
-        *p = memory_align;
-    }
-
-    return left;
-}
-
 size_t hw_boot_memory_size(void)
 {
     return hw_memory_end - hw_memory_bgn;
