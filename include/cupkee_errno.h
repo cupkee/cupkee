@@ -41,6 +41,7 @@ SOFTWARE.
 #define CUPKEE_ENOMEM           8       // out of memory
 #define CUPKEE_ETIMEOUT         9       // time out
 #define CUPKEE_EHARDWARE        10      // hardware error
+#define CUPKEE_EBUSY            11      // busy
 
 #define CUPKEE_ENAME            16      // invalid device name
 #define CUPKEE_EENABLED         17      // config set for device that already enabled

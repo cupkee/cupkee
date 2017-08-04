@@ -37,7 +37,7 @@ test_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include
 test_CPPFLAGS += -I${TST_DIR}/cunit -I${BSP_DIR}/test
 
 test_CFLAGS   =
-test_LDFLAGS  = -L${BSP_BUILD_DIR} -L${SYS_BUILD_DIR} -L${LANG_BUILD_DIR} -lsys
+test_LDFLAGS  = -L${BSP_BUILD_DIR} -L${SYS_BUILD_DIR} -L${LANG_BUILD_DIR} -lsys -llang
 
 include ${MAKE_DIR}/cupkee.ruls.mk
 

@@ -56,33 +56,12 @@ void sys_tick_handler(void)
     cupkee_event_post_systick();
 }
 
-size_t hw_memory_left(void)
+size_t hw_boot_memory_size(void)
 {
     return hw_memory_end - hw_memory_bgn;
 }
 
-size_t hw_malloc_all(void **p, size_t align)
-{
-    void *memory_align;
-    int left;
-
-    if (align) {
-        memory_align = CUPKEE_ADDR_ALIGN(hw_memory_bgn, align);
-    } else {
-        memory_align = hw_memory_bgn;
-    }
-
-    left = hw_memory_end - memory_align;
-    hw_memory_bgn = memory_align + left;
-
-    if (p) {
-        *p = memory_align;
-    }
-
-    return left;
-}
-
-void *hw_malloc(size_t size, size_t align)
+void  *hw_boot_memory_alloc(size_t size, size_t align)
 {
     void *memory_align;
     size_t left;
@@ -172,7 +151,7 @@ const hw_driver_t *hw_device_request(int type, int instance)
     case DEVICE_TYPE_COUNTER:   return hw_request_counter(instance);
     case DEVICE_TYPE_UART:      return hw_request_uart(instance);
     case DEVICE_TYPE_I2C:       return hw_request_i2c(instance);
-    case DEVICE_TYPE_SPI:
+    case DEVICE_TYPE_SPI:       return hw_request_spi(instance);
     case DEVICE_TYPE_USART:     return NULL;
     case DEVICE_TYPE_USB_CDC:   return hw_request_cdc(instance);
     default:                    return NULL;
@@ -191,7 +170,7 @@ int hw_device_instances(int type)
     case DEVICE_TYPE_COUNTER:   return HW_INSTANCES_COUNTER;
     case DEVICE_TYPE_UART:      return HW_INSTANCES_UART;
     case DEVICE_TYPE_I2C:       return HW_INSTANCES_I2C;
-    case DEVICE_TYPE_SPI:       return 0;
+    case DEVICE_TYPE_SPI:       return HW_INSTANCES_SPI;
     case DEVICE_TYPE_USART:     return 0;
     case DEVICE_TYPE_USB_CDC:   return 1;
     default:                    return 0;

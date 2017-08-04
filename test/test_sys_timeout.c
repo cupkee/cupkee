@@ -32,32 +32,15 @@ SOFTWARE.
 
 static int test_setup(void)
 {
-    cupkee_memory_desc_t desc = {64, 4};
-
-    TU_pre_init();
-
-    cupkee_memory_init(1, &desc);
-
-    return 0;
+    return TU_pre_init();
 }
 
 static int test_clean(void)
 {
-    TU_pre_deinit();
-    return 0;
+    return TU_pre_deinit();
 }
 
 static int v1[2], v2[2], v3[2], v4[2];
-
-static void dump_v(void)
-{
-    printf("===========================\n");
-    printf("[1] %u, %u\n", v1[0], v1[1]);
-    printf("[2] %u, %u\n", v2[0], v2[1]);
-    printf("[3] %u, %u\n", v3[0], v3[1]);
-    printf("[4] %u, %u\n", v4[0], v4[1]);
-    printf("===========================\n");
-}
 
 static void test_handle(int drop, void *param)
 {
@@ -306,10 +289,10 @@ CU_pSuite test_sys_timeout(void)
     CU_pSuite suite = CU_add_suite("system timeout", test_setup, test_clean);
 
     if (suite) {
-        CU_add_test(suite, "timeout wakeup",    test_wakeup);
-        CU_add_test(suite, "timeout running",   test_running);
-        CU_add_test(suite, "timeout clear1",    test_self_clear);
-        CU_add_test(suite, "timeout clear2",    test_timeout_clear);
+        CU_add_test(suite, "timeout wakeup   ", test_wakeup);
+        CU_add_test(suite, "timeout running  ", test_running);
+        CU_add_test(suite, "timeout clear1   ", test_self_clear);
+        CU_add_test(suite, "timeout clear2   ", test_timeout_clear);
     }
 
     return suite;

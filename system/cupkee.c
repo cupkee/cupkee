@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include "cupkee_sysdisk.h"
 
-static void cupkee_event_process(void)
+void cupkee_event_poll(void)
 {
     cupkee_event_t e;
 
@@ -54,7 +54,7 @@ void cupkee_init(void)
     hw_setup();
 
     /* Memory pool initial */
-    cupkee_memory_init(0, NULL);
+    cupkee_memory_init();
 
     /* System timer initial */
     cupkee_timeout_init();
@@ -73,6 +73,7 @@ void cupkee_init(void)
 
     /* Event initial */
     cupkee_event_setup();
+
 }
 
 void cupkee_loop(void)
@@ -83,7 +84,7 @@ void cupkee_loop(void)
     while (1) {
         cupkee_device_poll();
 
-        cupkee_event_process();
+        cupkee_event_poll();
     }
 }
 

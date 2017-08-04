@@ -24,8 +24,9 @@
 ## SOFTWARE.
 ##
 
-MAIN_DIR ?=${FRAMEWORK_DIR}/atom
-
+ifeq (${MAIN_DIR},)
+MAIN_DIR = ${FRAMEWORK_DIR}/atom
+endif
 include ${MAKE_DIR}/cupkee.modules.mk
 
 elf_NAMES = cupkee

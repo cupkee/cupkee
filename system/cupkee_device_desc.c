@@ -45,7 +45,11 @@ static const char * const device_uart_conf_names[] = {
 };
 
 static const char *device_i2c_conf_names[] = {
-    "speed", "address"
+    "speed", "address", "mode"
+};
+
+static const char *device_spi_conf_names[] = {
+    "speed", "mode"
 };
 
 static const char *device_opt_dir[] = {
@@ -128,6 +132,14 @@ static const cupkee_device_desc_t device_i2c = {
     .conf_names = device_i2c_conf_names,
 };
 
+static const cupkee_device_desc_t device_spi = {
+    .name = "spi",
+    .type = DEVICE_TYPE_SPI,
+    .category = DEVICE_CATEGORY_BLOCK,
+    .conf_num = 2,
+    .conf_names = device_spi_conf_names,
+};
+
 static const cupkee_device_desc_t device_usb_cdc = {
     .name = "usb-cdc",
     .type = DEVICE_TYPE_USB_CDC,
@@ -144,6 +156,7 @@ static const cupkee_device_desc_t *device_entrys[] = {
     &device_counter,
     &device_uart,
     &device_i2c,
+    &device_spi,
     &device_usb_cdc,
     NULL
 };

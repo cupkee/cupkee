@@ -40,6 +40,7 @@ SOFTWARE.
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/adc.h>
 #include <libopencm3/stm32/i2c.h>
@@ -50,6 +51,9 @@ SOFTWARE.
 #include <cupkee.h>
 
 #define SYS_PCLK   ((uint32_t)36000000)
+
+#define HW_FL_USED              1
+#define HW_FL_BUSY              2
 
 static inline int hw_use_instance(int instance, uint8_t *use_map) {
     uint8_t bit = 1 << instance;
@@ -71,10 +75,11 @@ static inline void hw_release_instance(int instance, uint8_t *use_map) {
 #include "hw_misc.h"
 
 #include "hw_gpio.h"
+#include "hw_timer.h"
 #include "hw_usart.h"
 #include "hw_adc.h"
 #include "hw_i2c.h"
-#include "hw_timer.h"
+#include "hw_spi.h"
 
 
 #if 0

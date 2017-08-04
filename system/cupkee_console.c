@@ -223,7 +223,7 @@ static void console_input_proc(int type, int c)
 static void console_input_handle(int n, void *data)
 {
     int pos = 0;
-    int ch = '.';
+    int ch = '.'; // Give a initial value to make gcc happy
 
     while (pos < n) {
         int type = console_input_parse(data, n, &pos, &ch);

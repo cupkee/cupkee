@@ -247,7 +247,9 @@ int cupkee_device_release(cupkee_device_t *dev)
 {
     cupkee_device_disable(dev);
 
-    dev->driver->release(dev->instance);
+    if (dev->driver->release) {
+        dev->driver->release(dev->instance);
+    }
     device_block_release(dev);
 
     return CUPKEE_OK;
@@ -389,5 +391,157 @@ int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out)
     } else {
         return -CUPKEE_EENABLED;
     }
+}
+
+void *cupkee_device_request_ptr(cupkee_device_t *dev)
+{
+    if (cupkee_device_is_enabled(dev)) {
+        if (dev->req) {
+            return cupkee_buffer_ptr(dev->req);
+        } else {
+            return NULL;
+        }
+    } else {
+        return NULL;
+    }
+}
+
+int cupkee_device_request_load(cupkee_device_t *dev, size_t n, void *data)
+{
+    if (cupkee_device_is_enabled(dev)) {
+        if (dev->req) {
+            return cupkee_buffer_take(dev->req, n, data);
+        } else {
+            return 0;
+        }
+    } else {
+        return -1;
+    }
+}
+
+int cupkee_device_response_push(cupkee_device_t *dev, size_t n, void *data)
+{
+    if (cupkee_device_is_enabled(dev) && dev->res) {
+        return cupkee_buffer_give(dev->res, n, data);
+    } else {
+        return -1;
+    }
+}
+
+void cupkee_device_response_end(cupkee_device_t *dev)
+{
+    if (cupkee_device_is_enabled(dev) && (dev->flags & DEVICE_FL_BUSY)) {
+        if (dev->reply_handle) {
+            cupkee_callback_t cb = dev->reply_handle;
+            intptr_t param = dev->query_param;
+
+            dev->reply_handle = NULL;
+            dev->query_param = 0;
+
+            cb(dev, CUPKEE_OK, param);
+        }
+        if (dev->res) {
+            cupkee_buffer_release(dev->res);
+        }
+        if (dev->req) {
+            cupkee_buffer_release(dev->req);
+        }
+
+        dev->flags &= ~DEVICE_FL_BUSY;
+    }
+}
+
+static int device_query_setup(cupkee_device_t *dev, void *req, int want)
+{
+    if (dev->flags & DEVICE_FL_BUSY) {
+        return -CUPKEE_EBUSY;
+    }
+
+    if (want <= 0) {
+        dev->res = NULL;
+    } else
+    if (!(dev->res = cupkee_buffer_alloc(want))) {
+        return -CUPKEE_ENOMEM;
+    }
+
+    dev->req = req;
+    dev->flags |= DEVICE_FL_BUSY;
+
+
+    return 0;
+}
+
+static int device_query_start(cupkee_device_t *dev, size_t send, int want, cupkee_callback_t cb, intptr_t param)
+{
+    int retv;
+
+    dev->reply_handle = cb;
+    dev->query_param = param;
+
+    retv = dev->driver->query(dev->instance, send, want);
+    if (retv < 0) {
+        if (dev->req) {
+            cupkee_buffer_release(dev->req);
+        }
+        if (dev->res) {
+            cupkee_buffer_release(dev->res);
+        }
+    }
+    return retv;
+}
+
+int cupkee_device_query(cupkee_device_t *dev, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param)
+{
+    int retv;
+    void *req = NULL;
+
+    if (!cupkee_device_is_enabled(dev)) {
+        return -CUPKEE_EENABLED;
+    }
+
+    if (!dev->driver->query) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    if (req_len && NULL == (req = cupkee_buffer_create(req_len, req_data))) {
+        return -CUPKEE_ENOMEM;
+    }
+
+    retv = device_query_setup(dev, req, want);
+    if (retv) {
+        if (req) {
+            cupkee_buffer_release(req);
+        }
+        return retv;
+    }
+
+    return device_query_start(dev, req_len, want, cb, param);
+}
+
+int cupkee_device_query2(cupkee_device_t *dev, void *req, int want, cupkee_callback_t cb, intptr_t param)
+{
+    int retv;
+    size_t req_len;
+
+    if (!cupkee_device_is_enabled(dev)) {
+        return -CUPKEE_EENABLED;
+    }
+
+    if (!dev->driver->query) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    retv = device_query_setup(dev, req, want);
+    if (retv) {
+        return retv;
+    }
+
+    if (req) {
+        req_len = cupkee_buffer_length(req);
+    } else {
+        req_len = 0;
+    }
+
+    return device_query_start(dev, req_len, want, cb, param);
 }
 

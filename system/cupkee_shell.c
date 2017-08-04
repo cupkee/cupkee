@@ -53,8 +53,9 @@ static void shell_memory_location(int *heap_mem_sz, int *stack_mem_sz)
     size_t size, block_size = 512;
     int core_blocks;
 
-    size = hw_malloc_all(&memory, 16);
-    if (size < 1024 * 8) {
+    size = 16 * 1024;
+    memory = cupkee_malloc(size);
+    if (!memory) {
         // memory not enought !
         hw_halt();
     }

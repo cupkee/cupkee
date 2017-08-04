@@ -27,16 +27,80 @@ SOFTWARE.
 #ifndef __CUPKEE_MEMORY_INC__
 #define __CUPKEE_MEMORY_INC__
 
-typedef struct cupkee_memory_desc_t {
-    uint32_t block_size;
-    uint32_t block_cnt;
-} cupkee_memory_desc_t;
+/* list_head interface */
+typedef struct list_head_t list_head_t;
 
-void cupkee_memory_init(int n, cupkee_memory_desc_t *descs);
+struct list_head_t {
+    list_head_t *prev;
+    list_head_t *next;
+};
 
-void *cupkee_malloc(size_t n);
-void cupkee_free(void *p);
-void *cupkee_mem_ref(void *p);
+static inline void list_head_init(list_head_t *head) {
+    head->prev = head;
+    head->next = head;
+}
+
+static inline void __list_add(list_head_t *node, list_head_t *prev, list_head_t *next) {
+    node->prev = prev;
+    node->next = next;
+
+    prev->next = node;
+    next->prev = node;
+}
+
+static inline void __list_del(list_head_t *prev, list_head_t *next) {
+    prev->next = next;
+    next->prev = prev;
+}
+
+static inline int list_is_empty(list_head_t *head) {
+    return head == head->next;
+}
+
+static inline void list_del(list_head_t *node) {
+    if (node) {
+        __list_del(node->prev, node->next);
+    }
+}
+
+static inline void list_add(list_head_t *node, list_head_t *head) {
+    __list_add(node, head, head->next);
+}
+
+static inline void list_add_tail(list_head_t *node, list_head_t *head) {
+    __list_add(node, head->prev, head);
+}
+
+#define list_for_each(pos, head) \
+    for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/* list_head */
+
+/* new interface */
+
+typedef struct cupkee_page_t {
+    list_head_t list;
+
+    uint8_t flags;
+    uint8_t used;
+    uint16_t order;
+
+    intptr_t blocks;
+} cupkee_page_t;
+
+int cupkee_memory_init(void);
+int cupkee_memory_extend(intptr_t base, size_t size);
+
+int cupkee_free_pages(int order);
+
+void *cupkee_page_memory(cupkee_page_t *page);
+cupkee_page_t *cupkee_memory_page(void *ptr);
+
+cupkee_page_t *cupkee_page_alloc(int order);
+void cupkee_page_free(cupkee_page_t *page);
+
+void *cupkee_malloc(size_t s);
+void  cupkee_free(void *p);
 
 #endif /* __CUPKEE_MEMORY_INC__ */
 

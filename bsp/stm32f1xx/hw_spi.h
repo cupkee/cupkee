@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef __HW_SPI_INC__
+#define __HW_SPI_INC__
 
-#include "test.h"
+#define HW_INSTANCES_SPI    (3)
 
-int main(int argc, const char *argv[])
-{
-    (void) argc;
-    (void) argv;
+void  hw_setup_spi(void);
+const hw_driver_t *hw_request_spi(int instance);
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
-    }
-
-    /***********************************************
-     * Test suites here:
-     ***********************************************/
-    test_hello();
-
-    test_sys_memory();
-    test_sys_event();
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_device();
-
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-
-    return CU_get_error();
-}
+#endif /* __HW_SPI_INC__ */
 

@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define HW_FL_USED              1
 #define USART_TOUT_THRESHOLD    20
 
 typedef struct hw_uart_t {

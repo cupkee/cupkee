@@ -156,9 +156,18 @@ typedef struct hw_config_uart_t {
 } hw_config_uart_t;
 
 typedef struct hw_config_i2c_t {
-    uint32_t speed;
     uint8_t  addr;       // self-address
+    uint8_t  mode;       // master or slave or multi-master
+    uint8_t  order;      // MSB or LSB
+    uint32_t speed;
 } hw_config_i2c_t;
+
+typedef struct hw_config_spi_t {
+    uint8_t  mode;       // master(default) or slave or multi-master
+    uint8_t  order;      // MSB(default) or LSB
+    uint8_t  dir;        // readonly or writonly or duplex(default)
+    uint32_t speed;      // 1,200,000 default
+} hw_config_spi_t;
 
 typedef struct hw_config_t {
     union {
@@ -170,6 +179,7 @@ typedef struct hw_config_t {
         hw_config_counter_t counter;
         hw_config_uart_t    uart;
         hw_config_i2c_t     i2c;
+        hw_config_spi_t     spi;
     } data;
 } hw_config_t;
 
@@ -177,21 +187,34 @@ typedef struct hw_driver_t {
     void (*release) (int inst);
     void (*reset) (int inst);
     int  (*setup) (int inst, uint8_t devid, const hw_config_t *conf);
-    void (*sync)  (int inst, uint32_t systicks);
-    void (*poll)  (int inst);
 
-    int  (*get) (int inst, int offset, uint32_t*data);
-    int  (*set) (int inst, int offset, uint32_t data);
-    int  (*size)(int inst);
+    int  (*query) (int inst, size_t post, int want);
 
-    int (*read_req)     (int inst, size_t n);
-    int (*read)         (int inst, size_t n, void *buf);
-    int (*write)        (int inst, size_t n, const void *buf);
-    int (*read_sync)    (int inst, size_t n, void *buf);
-    int (*write_sync)   (int inst, size_t n, const void *buf);
+    // for stream interface
+    // int (*read) (int inst, size_t want);
+    // cupkee_device_push(dev, n, data)
+    // int (*write)(int inst, size_t want);
+    // cupkee_device_load(dev, n, buf);
+
+    // for vector interface
+    // int (*set) (int inst, int i, uint32_t v);
+    // cupkee_device_updata(dev, i, v);
+
+    void (*sync)  (int inst, uint32_t systicks);         // deprecate
+    void (*poll)  (int inst);                            // deprecate
+
+    int  (*get) (int inst, int offset, uint32_t*data);   // deprecate  
+    int  (*set) (int inst, int offset, uint32_t data);   // deprecate
+    int  (*size)(int inst);                              // deprecate
+
+    int (*read_req)     (int inst, size_t n);                   // deprecate
+    int (*read)         (int inst, size_t n, void *buf);        // deprecate
+    int (*write)        (int inst, size_t n, const void *buf);  // deprecate
+    int (*read_sync)    (int inst, size_t n, void *buf);        // deprecate
+    int (*write_sync)   (int inst, size_t n, const void *buf);  // deprecate
 
     // Todo: need a suitable name
-    int (*io_cached) (int inst, size_t *in, size_t *out);
+    int (*io_cached) (int inst, size_t *in, size_t *out);       // deprecate
 } hw_driver_t;
 
 /****************************************************************/
@@ -213,6 +236,9 @@ void hw_exit_critical(uint32_t state);
 void hw_info_get(hw_info_t *);
 
 void *hw_malloc(size_t size, size_t align);
+
+void  *hw_boot_memory_alloc(size_t size, size_t align);
+size_t hw_boot_memory_size(void);
 
 size_t hw_memory_left(void);
 size_t hw_malloc_all(void **p, size_t align);
