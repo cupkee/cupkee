@@ -440,3 +440,21 @@ val_t native_led(env_t *env, int ac, val_t *av)
     return VAL_UNDEFINED;
 }
 
+val_t native_erase(env_t *env, int ac, val_t *av)
+{
+    int bank;
+
+    (void) env;
+
+    if (ac > 0 && val_is_number(av)) {
+        bank = val_2_integer(av);
+    } else {
+        bank = HW_STORAGE_BANK_APP;
+    }
+
+    if (bank <= HW_STORAGE_BANK_CFG) {
+        hw_storage_erase(bank);
+    }
+
+    return VAL_UNDEFINED;
+}

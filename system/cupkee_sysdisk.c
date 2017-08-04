@@ -285,7 +285,7 @@ static void sysdisk_write_finish(const uint8_t *entry)
 
     if (old_size != size) {
         hw_storage_finish(bank, size);
-        console_log_sync("update %s: %dbytes\r\n", target, size);
+        console_log("update %s: %dbytes\r\n", target, size);
     }
 }
 
