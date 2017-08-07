@@ -53,27 +53,23 @@ void cupkee_init(void)
     /* Hardware startup */
     hw_setup();
 
-    /* Memory pool initial */
     cupkee_memory_init();
 
-    /* System timer initial */
+    cupkee_object_setup();
+
     cupkee_timeout_init();
 
-    /* Devices initial */
     cupkee_device_init();
 
-    /* Sysdisk initial */
+    cupkee_timer_setup();
+
     cupkee_sysdisk_init();
 
-    /* Buffer initial */
     cupkee_buffer_init();
 
-    /* Module initial */
     cupkee_module_init();
 
-    /* Event initial */
     cupkee_event_setup();
-
 }
 
 void cupkee_loop(void)

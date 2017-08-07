@@ -39,12 +39,14 @@ int TU_pre_deinit(void);
 int TU_emitter_event_dispatch(void);
 
 CU_pSuite test_hello(void);
+
 CU_pSuite test_sys_event(void);
 CU_pSuite test_sys_memory(void);
 CU_pSuite test_sys_timeout(void);
 CU_pSuite test_sys_process(void);
 CU_pSuite test_sys_stream(void);
 CU_pSuite test_sys_device(void);
+CU_pSuite test_sys_timer(void);
 
 #endif /* __TEST_INC__ */
 

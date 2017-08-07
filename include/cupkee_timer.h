@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2016-2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,38 +24,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef __CUPKEE_TIMER_INC__
+#define __CUPKEE_TIMER_INC__
 
-#include "test.h"
+#define CUPKEE_TIMER_KEEP 0
+#define CUPKEE_TIMER_STOP (-1)
 
-int main(int argc, const char *argv[])
-{
-    (void) argc;
-    (void) argv;
+int cupkee_timer_setup(void);
+int cupkee_timer_start(int us, cupkee_cb_t cb, intptr_t param);
+int cupkee_timer_duration(int timer);
+int cupkee_timer_stop(int timer);
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
-    }
-
-    /***********************************************
-     * Test suites register here:
-     ***********************************************/
-    test_hello();
-
-    test_sys_memory();
-    test_sys_event();
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_device();
-    test_sys_timer();
-
-    /***********************************************
-     * Test running
-     ***********************************************/
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-
-    return CU_get_error();
-}
+#endif /* __CUPKEE_TIMER_INC__ */
 

@@ -24,19 +24,66 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __HW_MOCK_INC__
-#define __HW_MOCK_INC__
+#include <stdio.h>
+#include <string.h>
 
-void hw_mock_init(size_t mem_size);
-void hw_mock_deinit(void);
+#include "test.h"
+#include <cupkee.h>
 
-cupkee_device_t *mock_device_curr(void);
-size_t           mock_device_curr_want(void);
+/* */
 
-int  hw_mock_device_curr_id(void);
-size_t hw_mock_device_curr_want(void);
+/* */
 
-int mock_timer_curr_id(void);
+static int test_setup(void)
+{
+    return TU_pre_init();
+}
 
-#endif /* __HW_MOCK_INC__ */
+static int test_clean(void)
+{
+    return TU_pre_deinit();
+}
+
+static int timer_count = 0;
+static int timer_ctrol = CUPKEE_TIMER_STOP; // CUPKEE_TIMER_KEEP, CUPKEE_TIMER_RELOAD
+static int test_timer_counter(int timer, int event, intptr_t param)
+{
+    (void) timer;
+    (void) event;
+    (void) param;
+
+    timer_count++;
+    return timer_ctrol;
+}
+
+static void test_timer_start(void)
+{
+    int timer;
+
+    timer_count = 0;
+    CU_ASSERT(0 <= (timer = cupkee_timer_start(10, test_timer_counter, 0)));
+}
+
+static void test_timer_stop(void)
+{
+    CU_ASSERT(0);
+}
+
+static void test_timer_read(void)
+{
+    CU_ASSERT(0);
+}
+
+CU_pSuite test_sys_timer(void)
+{
+    CU_pSuite suite = CU_add_suite("system timer", test_setup, test_clean);
+
+    if (suite) {
+        CU_add_test(suite, "timer start      ", test_timer_start);
+        CU_add_test(suite, "timer stop       ", test_timer_stop);
+        CU_add_test(suite, "timer read       ", test_timer_read);
+    }
+
+    return suite;
+}
 

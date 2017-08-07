@@ -350,3 +350,34 @@ int hw_device_instances(int type)
     return mock_device_instance_max;
 }
 
+/* TIMER */
+int hw_timer_alloc(void)
+{
+    return 0;
+}
+
+void hw_timer_release(int inst)
+{
+    (void) inst;
+}
+
+int hw_timer_start(int inst, int id, int us)
+{
+    return 0;
+}
+
+int hw_timer_stop(int inst)
+{
+    return 0;
+}
+
+int hw_timer_duration_set(int inst, int us)
+{
+    return 0;
+}
+
+int hw_timer_duration_get(int inst)
+{
+    return 0;
+}
+

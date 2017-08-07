@@ -53,6 +53,8 @@ SOFTWARE.
 #define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
 #define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
 
+typedef int (*cupkee_cb_t)(int id, int event, intptr_t param);
+
 /* Todo: put to User configure ? */
 #define APP_DEV_MAX                     8
 
@@ -72,6 +74,7 @@ void cupkee_event_poll(void);
 #include "cupkee_vector.h"
 #include "cupkee_stream.h"
 #include "cupkee_block.h"
+#include "cupkee_timer.h"
 
 #include "cupkee_timeout.h"
 #include "cupkee_device.h"
