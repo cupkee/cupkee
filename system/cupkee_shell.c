@@ -257,13 +257,13 @@ int cupkee_shell_start(const char *initial)
     return err;
 }
 
-void cupkee_execute_function(val_t *fn, int ac, val_t *av)
+val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)
 {
     if (fn) {
         env_t *env = &shell_env;
         if (val_is_native(fn)) {
             function_native_t f = (function_native_t) val_2_intptr(fn);
-            f(env, ac, av);
+            return f(env, ac, av);
         } else
         if (val_is_script(fn)){
             if (ac) {
@@ -272,8 +272,9 @@ void cupkee_execute_function(val_t *fn, int ac, val_t *av)
                     env_push_call_argument(env, av + i);
             }
             env_push_call_function(env, fn);
-            interp_execute_call(env, ac);
+            return interp_execute_call(env, ac);
         }
     }
+    return VAL_UNDEFINED;
 }
 

@@ -45,6 +45,7 @@ static const native_t native_entries[] = {
     {"clearInterval",   native_clear_interval},
 
     {"Device",          native_device_create},
+    {"Timer",           native_timer_create},
 };
 
 int board_native_number(void)
@@ -64,8 +65,6 @@ void board_setup(void)
 
 const char *board_initial_script(void)
 {
-    return "\
-print('OK')\
-";
+    return "";
 }
 

@@ -145,10 +145,6 @@ const hw_driver_t *hw_device_request(int type, int instance)
     case DEVICE_TYPE_PIN:       return hw_request_pin(instance);
     case DEVICE_TYPE_ADC:       return hw_request_adc(instance);
     case DEVICE_TYPE_DAC:       return NULL;
-    case DEVICE_TYPE_PWM:       return hw_request_pwm(instance);
-    case DEVICE_TYPE_PULSE:     return hw_request_pulse(instance);
-    case DEVICE_TYPE_TIMER:     return hw_request_timer(instance);
-    case DEVICE_TYPE_COUNTER:   return hw_request_counter(instance);
     case DEVICE_TYPE_UART:      return hw_request_uart(instance);
     case DEVICE_TYPE_I2C:       return hw_request_i2c(instance);
     case DEVICE_TYPE_SPI:       return hw_request_spi(instance);
@@ -164,10 +160,6 @@ int hw_device_instances(int type)
     case DEVICE_TYPE_PIN:       return HW_INSTANCES_PIN;
     case DEVICE_TYPE_ADC:       return HW_INSTANCES_ADC;
     case DEVICE_TYPE_DAC:       return 0;
-    case DEVICE_TYPE_PWM:       return HW_INSTANCES_PWM;
-    case DEVICE_TYPE_PULSE:     return HW_INSTANCES_PULSE;
-    case DEVICE_TYPE_TIMER:     return HW_INSTANCES_TIMER;
-    case DEVICE_TYPE_COUNTER:   return HW_INSTANCES_COUNTER;
     case DEVICE_TYPE_UART:      return HW_INSTANCES_UART;
     case DEVICE_TYPE_I2C:       return HW_INSTANCES_I2C;
     case DEVICE_TYPE_SPI:       return HW_INSTANCES_SPI;

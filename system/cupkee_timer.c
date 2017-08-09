@@ -66,10 +66,12 @@ static void timer_event_handle(int id, uint8_t code)
     // printf("get timer event\n");
     if (NULL != (timer = timer_from_object(id))) {
         switch (code) {
+        case CUPKEE_EVENT_STOP:
+            timer->state = CUPKEE_TIMER_STATE_IDLE;
+            // no break;
         case CUPKEE_EVENT_DESTROY:
         case CUPKEE_EVENT_ERROR:
         case CUPKEE_EVENT_START:
-        case CUPKEE_EVENT_STOP:
             if (timer && timer->cb) {
                 timer->cb(id, code, timer->cb_param);
             }
@@ -160,8 +162,12 @@ int cupkee_timer_start(int id, int us)
     if (us < 1) {
         return -CUPKEE_EINVAL;
     }
-    timer->period = us;
 
+    if (timer->state != CUPKEE_TIMER_STATE_IDLE) {
+        return -CUPKEE_EBUSY;
+    }
+
+    timer->period = us;
     if (hw_timer_start(timer->inst, id, us)) {
         return -CUPKEE_EHARDWARE;
     }
@@ -201,5 +207,16 @@ int cupkee_timer_duration(int id)
     }
 
     return hw_timer_duration_get(timer->inst);
+}
+
+intptr_t cupkee_timer_callback_param(int id)
+{
+    cupkee_timer_t *timer;
+
+    if (NULL == (timer = timer_from_object(id))) {
+        return 0;
+    }
+
+    return timer->cb_param;
 }
 

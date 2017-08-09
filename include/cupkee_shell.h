@@ -37,7 +37,7 @@ void cupkee_shell_reference_release(val_t *ref);
 int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives);
 int cupkee_shell_start(const char *initial);
 
-void cupkee_execute_function(val_t *fn, int ac, val_t *av);
+val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
 
 void *cupkee_val2data(val_t *data, int *size);
 cupkee_device_t *cupkee_val2device(val_t *v);

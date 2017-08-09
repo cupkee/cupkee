@@ -44,6 +44,7 @@ int cupkee_timer_state(int timer);
 int cupkee_timer_start(int timer, int us);
 int cupkee_timer_stop(int timer);
 int cupkee_timer_duration(int timer);
+intptr_t cupkee_timer_callback_param(int timer);
 
 // Should only be call in BSP
 static inline void cupkee_timer_rewind(int id)
