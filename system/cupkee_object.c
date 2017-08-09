@@ -52,6 +52,21 @@ static int              obj_num;
 static uint8_t              obj_tag_end;
 static cupkee_object_info_t obj_infos[CUPKEE_OBJECT_TAG_MAX];
 
+static inline cupkee_object_t *id_2_block(int id) {
+    if (id < 0 || id >= obj_map_size) {
+        return NULL;
+    }
+
+    return obj_map[id];
+}
+
+static void object_destroy(cupkee_object_t *obj)
+{
+    // Todo call meta.destroy();
+
+    cupkee_free(obj);
+}
+
 int cupkee_object_setup(void)
 {
     obj_map_size = CUPKEE_OBJECT_NUM_DEF;
@@ -71,7 +86,21 @@ int cupkee_object_setup(void)
     return 0;
 }
 
-int cupkee_object_register(size_t size, cupkee_meta_t *meta)
+void cupkee_object_event_dispatch(uint16_t which, uint8_t code)
+{
+    cupkee_object_t *obj = id_2_block(which);
+
+    // printf("object[%u, %p] event: %u\n", which, obj, code);
+    if (obj && obj->tag < obj_tag_end) {
+        cupkee_object_info_t *info = &obj_infos[obj->tag];
+
+        if (info && info->meta && info->meta->event_handle) {
+            info->meta->event_handle(which, code);
+        }
+    }
+}
+
+int cupkee_object_register(size_t size, const cupkee_meta_t *meta)
 {
     if (obj_tag_end >= CUPKEE_OBJECT_TAG_MAX) {
         return -1;
@@ -115,21 +144,6 @@ int cupkee_object_alloc(int tag)
     list_add_tail(&obj->list, &obj_list_head);
 
     return id;
-}
-
-static inline cupkee_object_t *id_2_block(int id) {
-    if (id < 0 || id >= obj_map_size) {
-        return NULL;
-    }
-
-    return obj_map[id];
-}
-
-static void object_destroy(cupkee_object_t *obj)
-{
-    // Todo call meta.destroy();
-
-    cupkee_free(obj);
 }
 
 void cupkee_object_release(int id)

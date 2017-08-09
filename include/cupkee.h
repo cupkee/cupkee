@@ -68,6 +68,7 @@ void cupkee_event_poll(void);
 #include "cupkee_utils.h"
 #include "cupkee_memory.h"
 #include "cupkee_event.h"
+#include "cupkee_object.h"
 #include "cupkee_buffer.h"
 #include "cupkee_process.h"
 
@@ -83,7 +84,6 @@ void cupkee_event_poll(void);
 #include "cupkee_history.h"
 #include "cupkee_command.h"
 #include "cupkee_shell.h"
-#include "cupkee_object.h"
 #include "cupkee_module.h"
 #include "cupkee_native.h"
 

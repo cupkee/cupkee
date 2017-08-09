@@ -36,6 +36,8 @@ SOFTWARE.
 
 int TU_pre_init(void);
 int TU_pre_deinit(void);
+int TU_object_event_dispatch(void);
+
 int TU_emitter_event_dispatch(void);
 
 CU_pSuite test_hello(void);

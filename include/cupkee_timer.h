@@ -30,10 +30,26 @@ SOFTWARE.
 #define CUPKEE_TIMER_KEEP 0
 #define CUPKEE_TIMER_STOP (-1)
 
+enum {
+    CUPKEE_TIMER_STATE_IDLE = 0,
+    CUPKEE_TIMER_STATE_RUNNING,
+};
+
 int cupkee_timer_setup(void);
-int cupkee_timer_start(int us, cupkee_cb_t cb, intptr_t param);
-int cupkee_timer_duration(int timer);
+
+int cupkee_timer_request(cupkee_cb_t cb, intptr_t param);
+int cupkee_timer_release(int timer);
+int cupkee_timer_state(int timer);
+
+int cupkee_timer_start(int timer, int us);
 int cupkee_timer_stop(int timer);
+int cupkee_timer_duration(int timer);
+
+// Should only be call in BSP
+static inline void cupkee_timer_rewind(int id)
+{
+    cupkee_object_event_post(id, CUPKEE_EVENT_REWIND);
+}
 
 #endif /* __CUPKEE_TIMER_INC__ */
 

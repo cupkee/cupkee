@@ -53,3 +53,14 @@ int TU_emitter_event_dispatch(void)
     }
 }
 
+int TU_object_event_dispatch(void)
+{
+    cupkee_event_t e;
+    if (cupkee_event_take(&e) && e.type == EVENT_OBJECT) {
+        cupkee_object_event_dispatch(e.which, e.code);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+

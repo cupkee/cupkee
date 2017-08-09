@@ -351,33 +351,86 @@ int hw_device_instances(int type)
 }
 
 /* TIMER */
+static int mock_timer_curr_inst = 0;
+static int mock_timer_curr_id   = -1;
+static int mock_timer_curr_period = -1;
+static int mock_timer_curr_duration = -1;
+static int mock_timer_curr_state = -1;  // 0: stop, 1: start, -1: noused
+
 int hw_timer_alloc(void)
 {
-    return 0;
+    return mock_timer_curr_inst;
 }
 
 void hw_timer_release(int inst)
 {
-    (void) inst;
+    if (inst == mock_timer_curr_inst) {
+        mock_timer_curr_state = -1;
+    }
 }
 
 int hw_timer_start(int inst, int id, int us)
 {
+    mock_timer_curr_inst = inst;
+    mock_timer_curr_id   = id;
+    mock_timer_curr_period = us;
+
+    mock_timer_curr_state = 1;
+
     return 0;
 }
 
 int hw_timer_stop(int inst)
 {
+    if (inst != mock_timer_curr_inst) {
+        printf("a Ha\n");
+        return -1;
+    }
+
+    mock_timer_curr_state = 0;
     return 0;
 }
 
-int hw_timer_duration_set(int inst, int us)
+int hw_timer_update(int inst, int us)
 {
+    if (inst != mock_timer_curr_inst) {
+        return -1;
+    }
+
+    if (us < 1) {
+        return -1;
+    }
+
+    mock_timer_curr_period = us;
+
     return 0;
 }
 
 int hw_timer_duration_get(int inst)
 {
-    return 0;
+    if (inst != mock_timer_curr_inst) {
+        return -1;
+    }
+
+    return mock_timer_curr_duration;
 }
 
+int hw_mock_timer_curr_id(void)
+{
+    return mock_timer_curr_id;
+}
+
+void hw_mock_timer_duration_set(int us)
+{
+    mock_timer_curr_duration = us;
+}
+
+int hw_mock_timer_curr_state(void)
+{
+    return mock_timer_curr_state;
+}
+
+int hw_mock_timer_period(void)
+{
+    return mock_timer_curr_period;
+}

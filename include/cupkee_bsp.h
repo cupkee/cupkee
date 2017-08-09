@@ -273,7 +273,7 @@ void hw_timer_release(int inst);
 
 int hw_timer_start(int inst, int id, int us);
 int hw_timer_stop(int inst);
-int hw_timer_duration_set(int inst, int us);
+int hw_timer_update(int inst, int us);
 int hw_timer_duration_get(int inst);
 
 #endif /* __CUPKEE_BSP_INC__ */

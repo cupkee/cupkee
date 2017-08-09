@@ -27,32 +27,27 @@ SOFTWARE.
 #ifndef __CUPKEE_OBJECT_INC__
 #define __CUPKEE_OBJECT_INC__
 
+#define CUPKEE_OBJECT(id, type)         ((type *)cupkee_object_data(id))
+#define CUPKEE_OBJECT_HAS_TAG(id, tag)  (cupkee_object_tag(id) == (tag))
+
 typedef struct cupkee_meta_t {
-    void *noused;
+    void (*event_handle) (int id, uint8_t code);
 } cupkee_meta_t;
 
-int cupkee_object_setup(void);
+int  cupkee_object_setup(void);
+void cupkee_object_event_dispatch(uint16_t which, uint8_t code);
 
-int cupkee_object_register(size_t size, cupkee_meta_t *meta);
+static inline void cupkee_object_event_post(int id, uint8_t code) {
+    cupkee_event_post(EVENT_OBJECT, code, id);
+}
+
+int cupkee_object_register(size_t size, const cupkee_meta_t *meta);
 
 int cupkee_object_alloc(int tag);
 void cupkee_object_release(int id);
 
 int cupkee_object_tag(int id);
 void *cupkee_object_data(int id);
-
-#define CUPKEE_OBJECT(id, type) ((type *)cupkee_object_data(id))
-
-
-// old
-typedef struct cupkee_method_entry_t {
-    const char *name;
-    val_t (*fn) (env_t *, int, val_t *);
-} cupkee_method_entry_t;
-
-int cupkee_class_register(const char *name, int mc, const cupkee_method_entry_t *mv);
-
-int cupkee_object_create(val_t *obj, const char *supper, void *data);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 

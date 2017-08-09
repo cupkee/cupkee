@@ -38,12 +38,15 @@ void cupkee_event_poll(void)
             cupkee_device_sync(_cupkee_systicks);
             cupkee_timeout_sync(_cupkee_systicks);
         } else
-        if (e.type == EVENT_DEVICE) {
-            cupkee_device_event_handle(e.which, e.code);
-            continue;
+        if (e.type == EVENT_OBJECT) {
+            cupkee_object_event_dispatch(e.which, e.code);
         } else
         if (e.type == EVENT_EMITTER) {
             cupkee_event_emitter_dispatch(e.which, e.code);
+        } else
+        if (e.type == EVENT_DEVICE) {
+            cupkee_device_event_handle(e.which, e.code);
+            continue;
         }
     }
 }
