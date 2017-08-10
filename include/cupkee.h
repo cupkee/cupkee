@@ -32,7 +32,7 @@ SOFTWARE.
 #include <string.h>
 #include <stdint.h>
 
-
+/* Todo: need cupkee_config.h ? */
 /* Todo: put to cupkee_type.h ? */
 #define CUPKEE_TRUE                     1
 #define CUPKEE_FALSE                    0
@@ -71,6 +71,7 @@ void cupkee_event_poll(void);
 #include "cupkee_object.h"
 #include "cupkee_buffer.h"
 #include "cupkee_process.h"
+#include "cupkee_struct.h"
 
 #include "cupkee_vector.h"
 #include "cupkee_stream.h"

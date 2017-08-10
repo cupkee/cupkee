@@ -43,11 +43,14 @@ int main(int argc, const char *argv[])
 
     test_sys_memory();
     test_sys_event();
+
     test_sys_timeout();
     test_sys_process();
     test_sys_stream();
-    test_sys_device();
+    test_sys_config();
+
     test_sys_timer();
+    test_sys_device();
 
     /***********************************************
      * Test running

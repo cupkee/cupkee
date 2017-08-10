@@ -287,6 +287,7 @@ static void test_query2(void)
 
     CU_ASSERT(0 == cupkee_device_release(dev));
 }
+
 CU_pSuite test_sys_device(void)
 {
     CU_pSuite suite = CU_add_suite("system device", test_setup, test_clean);
