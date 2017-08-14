@@ -192,22 +192,6 @@ static void test_writable_init(void)
 
 static void test_duplex_init(void)
 {
-    cupkee_event_emitter_t emitter;
-    cupkee_stream_t stream;
-
-    CU_ASSERT(0 <= cupkee_event_emitter_init(&emitter, NULL));
-
-    CU_ASSERT(0 != cupkee_stream_init_writable(NULL, &emitter, 32, write_implement_immediately));
-    CU_ASSERT(0 != cupkee_stream_init_writable(&stream, &emitter, 32, NULL));
-
-    // init without emitter
-    CU_ASSERT(0 == cupkee_stream_init_writable(&stream, NULL, 32, write_implement_immediately));
-
-    // init with emitter
-    CU_ASSERT(0 == cupkee_stream_init_writable(&stream, &emitter, 32, write_implement_immediately));
-
-    cupkee_stream_deinit(&stream);
-    cupkee_event_emitter_deinit(&emitter);
 }
 
 static void test_read_immediately(void)

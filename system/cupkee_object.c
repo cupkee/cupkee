@@ -26,14 +26,17 @@ SOFTWARE.
 
 #include "cupkee.h"
 
-#define CUPKEE_OBJECT_TAG_MAX  (8)
-#define CUPKEE_OBJECT_NUM_DEF   (8)
+#define CUPKEE_OBJECT_TAG_MAX   (16)
+#define CUPKEE_OBJECT_NUM_DEF   (32)
 
 typedef struct cupkee_object_t {
     list_head_t list;
 
-    uint8_t id;
     uint8_t tag;
+    uint8_t err;
+    uint8_t res[2];
+
+    uint16_t id;
     uint16_t ref;
 
     uint8_t data[0];
@@ -182,5 +185,26 @@ int cupkee_object_tag(int id)
     }
 
     return -1;
+}
+
+void cupkee_object_error_set(int id, int err)
+{
+    cupkee_object_t *obj = id_2_block(id);
+
+    if (obj) {
+        obj->err = err;
+        cupkee_object_event_post(id, CUPKEE_EVENT_ERROR);
+    }
+}
+
+int cupkee_object_error_get(int id)
+{
+    cupkee_object_t *obj = id_2_block(id);
+
+    if (obj) {
+        return obj->err;
+    } else {
+        return CUPKEE_EINVAL;
+    }
 }
 

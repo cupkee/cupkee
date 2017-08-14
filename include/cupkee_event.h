@@ -38,14 +38,20 @@ enum CUPKEE_EVENT_CODE {
     CUPKEE_EVENT_DESTROY = 0,
     CUPKEE_EVENT_ERROR,
     CUPKEE_EVENT_READY,
+
     CUPKEE_EVENT_DATA,
     CUPKEE_EVENT_DRAIN,
     CUPKEE_EVENT_START,
     CUPKEE_EVENT_STOP,
     CUPKEE_EVENT_REWIND,
 
+    CUPKEE_EVENT_END,     // r
+    CUPKEE_EVENT_FINISH,  //  w
+    CUPKEE_EVENT_CLOSE,   // rw
+    CUPKEE_EVENT_PIPE,    //  w
+    CUPKEE_EVENT_UNPIPE,  //  w
 
-    CUPKEE_EVENT_USER,
+    CUPKEE_EVENT_USER = 128,
 };
 
 enum {
@@ -63,7 +69,7 @@ typedef struct cupkee_event_t {
 } cupkee_event_t;
 
 typedef struct cupkee_event_emitter_t cupkee_event_emitter_t;
-typedef int (*cupkee_event_handle_t)(cupkee_event_t *);
+typedef int  (*cupkee_event_handle_t)(cupkee_event_t *);
 typedef void (*cupkee_event_emitter_handle_t)(cupkee_event_emitter_t *emitter, uint8_t code);
 
 struct cupkee_event_emitter_t {

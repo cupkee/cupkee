@@ -31,7 +31,7 @@ SOFTWARE.
 #define CUPKEE_OBJECT_HAS_TAG(id, tag)  (cupkee_object_tag(id) == (tag))
 
 typedef struct cupkee_meta_t {
-    void (*event_handle) (int id, uint8_t code);
+    void (*event_handle) (int id, uint8_t event);
 } cupkee_meta_t;
 
 int  cupkee_object_setup(void);
@@ -43,10 +43,13 @@ static inline void cupkee_object_event_post(int id, uint8_t code) {
 
 int cupkee_object_register(size_t size, const cupkee_meta_t *meta);
 
-int cupkee_object_alloc(int tag);
+int  cupkee_object_alloc(int tag);
 void cupkee_object_release(int id);
 
-int cupkee_object_tag(int id);
+void cupkee_object_error_set(int id, int err);
+int  cupkee_object_error_get(int id);
+
+int   cupkee_object_tag(int id);
 void *cupkee_object_data(int id);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
