@@ -37,7 +37,7 @@ enum {
 
 int cupkee_timer_setup(void);
 
-int cupkee_timer_request(cupkee_cb_t cb, intptr_t param);
+int cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
 int cupkee_timer_release(int timer);
 
 int cupkee_is_timer(int id);

@@ -34,7 +34,7 @@ env_t *cupkee_shell_env(void);
 val_t *cupkee_shell_reference_create(val_t *v);
 void cupkee_shell_reference_release(val_t *ref);
 
-int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives);
+int cupkee_shell_init(int tty, int n, const native_t *natives);
 int cupkee_shell_start(const char *initial);
 
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);

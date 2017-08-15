@@ -194,12 +194,11 @@ static int shell_console_handle(int type, int ch)
     return CON_EXECUTE_DEF;
 }
 
-static void shell_console_init(cupkee_device_t *tty)
+static void shell_console_init(int tty)
 {
-    if (!tty) {
+    if (cupkee_device_enable(tty)) {
         hw_halt();
     }
-    cupkee_device_enable(tty);
 
     cupkee_history_init();
     cupkee_console_init(tty, shell_console_handle);
@@ -228,7 +227,7 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives)
+int cupkee_shell_init(int tty, int n, const native_t *natives)
 {
     int heap_mem_sz, stack_mem_sz;
 

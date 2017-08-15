@@ -1,7 +1,7 @@
 /*
 MIT License
 
-This file is part of cupkee project.
+This file is part of cupkee project
 
 Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
 
@@ -24,42 +24,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <stdio.h>
+#include <string.h>
 
 #include "test.h"
 
-int main(int argc, const char *argv[])
+static int test_setup(void)
 {
-    (void) argc;
-    (void) argv;
+    return TU_pre_init();
+}
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
+static int test_clean(void)
+{
+    return TU_pre_deinit();
+}
+
+static void test_register(void)
+{
+    CU_ASSERT(1);
+}
+
+static void test_read(void)
+{
+    CU_ASSERT(1);
+}
+
+CU_pSuite test_sys_object(void)
+{
+    CU_pSuite suite = CU_add_suite("system object", test_setup, test_clean);
+
+    if (suite) {
+        CU_add_test(suite, "object register  ", test_register);
+        CU_add_test(suite, "object read      ", test_read);
     }
 
-    /***********************************************
-     * Test suites register here:
-     ***********************************************/
-    test_hello();
-
-    test_sys_memory();
-    test_sys_event();
-
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_struct();
-
-    test_sys_object();
-    test_sys_timer();
-    test_sys_device();
-
-    /***********************************************
-     * Test running
-     ***********************************************/
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-
-    return CU_get_error();
+    return suite;
 }
 

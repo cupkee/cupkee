@@ -28,7 +28,11 @@ SOFTWARE.
 #define __CUPKEE_OBJECT_INC__
 
 typedef struct cupkee_meta_t {
-    void (*event_handle) (int id, uint8_t event);
+    void             (*event_handle) (int id, uint8_t event);
+    cupkee_stream_t *(*streaming) (int id);
+    void             (*listen) (int id, int event);
+    void             (*ignore) (int id, int event);
+    void             (*destroy) (int id);
 } cupkee_meta_t;
 
 int  cupkee_object_setup(void);
@@ -48,6 +52,13 @@ int  cupkee_object_error_get(int id);
 
 int   cupkee_object_tag(int id);
 void *cupkee_object_data(int id, uint8_t tag);
+
+void cupkee_listen(int id, int event);
+void cupkee_ignore(int id, int event);
+int cupkee_read(int id, size_t n, void *buf);
+int cupkee_read_sync(int id, size_t n, void *buf);
+int cupkee_write(int id, size_t n, const void *data);
+int cupkee_write_sync(int id, size_t n, const void *data);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 

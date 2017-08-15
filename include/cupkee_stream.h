@@ -53,6 +53,8 @@ struct cupkee_stream_t {
     uint16_t rx_buf_size;
     uint16_t tx_buf_size;
 
+    uint32_t last_push;
+
     void *rx_buf;
     void *tx_buf;
 
@@ -80,6 +82,7 @@ void cupkee_stream_resume(cupkee_stream_t *s);
 void cupkee_stream_pause(cupkee_stream_t *s);
 void cupkee_stream_shutdown(cupkee_stream_t *s, uint8_t flags);
 
+void cupkee_stream_sync(cupkee_stream_t *s, uint32_t systicks);
 int cupkee_stream_push(cupkee_stream_t *s, size_t n, const void *data);
 int cupkee_stream_pull(cupkee_stream_t *s, size_t n, void *data);
 

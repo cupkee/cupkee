@@ -198,11 +198,23 @@ int cupkee_stream_push(cupkee_stream_t *s, size_t n, const void *data)
     }
 
     cnt = cupkee_buffer_give(cache, n, data);
-    if (cnt > 0 && cupkee_buffer_is_full(cache) && s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA) {
-        cupkee_object_event_post(s->id, CUPKEE_EVENT_DATA);
+    if (cnt > 0) {
+        if (cupkee_buffer_is_full(cache) && s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA) {
+            cupkee_object_event_post(s->id, CUPKEE_EVENT_DATA);
+        }
+        s->last_push = _cupkee_systicks;
     }
 
     return cnt;
+}
+
+void cupkee_stream_sync(cupkee_stream_t *s, uint32_t systicks)
+{
+    if (s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA
+        && s->rx_buf && !cupkee_buffer_is_empty(s->rx_buf)
+        && (systicks - s->last_push) > 5) {
+        cupkee_object_event_post(s->id, CUPKEE_EVENT_DATA);
+    }
 }
 
 int cupkee_stream_pull(cupkee_stream_t *s, size_t n, void *data)
@@ -272,7 +284,11 @@ int cupkee_stream_read(cupkee_stream_t *s, size_t n, void *buf)
         }
     }
 
-    return cupkee_buffer_take(s->rx_buf, n, buf);
+    if (s->rx_buf) {
+        return cupkee_buffer_take(s->rx_buf, n, buf);
+    } else {
+        return 0;
+    }
 }
 
 int cupkee_stream_write(cupkee_stream_t *s, size_t n, const void *data)

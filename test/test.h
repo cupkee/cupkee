@@ -46,8 +46,9 @@ CU_pSuite test_sys_event(void);
 CU_pSuite test_sys_memory(void);
 CU_pSuite test_sys_timeout(void);
 CU_pSuite test_sys_process(void);
-CU_pSuite test_sys_config(void);
+CU_pSuite test_sys_struct(void);
 CU_pSuite test_sys_stream(void);
+CU_pSuite test_sys_object(void);
 
 CU_pSuite test_sys_device(void);
 CU_pSuite test_sys_timer(void);

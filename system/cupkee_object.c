@@ -63,11 +63,14 @@ static inline cupkee_object_t *id_2_block(int id) {
     return obj_map[id];
 }
 
-static void object_destroy(cupkee_object_t *obj)
-{
-    // Todo call meta.destroy();
+static inline const cupkee_meta_t *object_meta(int id) {
+    cupkee_object_t *obj = id_2_block(id);
 
-    cupkee_free(obj);
+    if (obj && obj->tag < obj_tag_end) {
+        return obj_infos[obj->tag].meta;
+    } else {
+        return NULL;
+    }
 }
 
 int cupkee_object_setup(void)
@@ -91,15 +94,11 @@ int cupkee_object_setup(void)
 
 void cupkee_object_event_dispatch(uint16_t which, uint8_t code)
 {
-    cupkee_object_t *obj = id_2_block(which);
+    const cupkee_meta_t *meta = object_meta(which);
 
     // printf("object[%u, %p] event: %u\n", which, obj, code);
-    if (obj && obj->tag < obj_tag_end) {
-        cupkee_object_info_t *info = &obj_infos[obj->tag];
-
-        if (info && info->meta && info->meta->event_handle) {
-            info->meta->event_handle(which, code);
-        }
+    if (meta && meta->event_handle) {
+        meta->event_handle(which, code);
     }
 }
 
@@ -151,17 +150,19 @@ int cupkee_object_alloc(int tag)
 
 void cupkee_object_release(int id)
 {
+    const cupkee_meta_t *meta = object_meta(id);
     cupkee_object_t *obj = id_2_block(id);
 
-    if (obj) {
-         if (obj_map[obj->id] != obj) {
-             printf("hello!\n");
-         }
+    if (meta && obj) {
+        // assert(obj_map[obj->id] == obj);
+        if (meta->destroy) {
+            meta->destroy(id);
+        }
 
-         obj_map[obj->id] = NULL;
-         list_del(&obj->list);
+        obj_map[obj->id] = NULL;
+        list_del(&obj->list);
 
-         object_destroy(obj);
+        cupkee_free(obj);
     }
 }
 
@@ -206,5 +207,87 @@ int cupkee_object_error_get(int id)
     } else {
         return CUPKEE_EINVAL;
     }
+}
+
+void cupkee_listen(int id, int event)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+
+    if (meta && meta->listen) {
+        meta->listen(id, event);
+    }
+}
+
+void cupkee_ignore(int id, int event)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+
+    if (meta && meta->ignore) {
+        meta->ignore(id, event);
+    }
+}
+
+int cupkee_read(int id, size_t n, void *buf)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+    cupkee_stream_t *s;
+
+    if (!meta || !n || !buf) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!meta->streaming || NULL == (s = meta->streaming(id))) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return cupkee_stream_read(s, n, buf);
+}
+
+int cupkee_read_sync(int id, size_t n, void *buf)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+    cupkee_stream_t *s;
+
+    if (!meta || !n || !buf) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!meta->streaming || NULL == (s = meta->streaming(id))) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return cupkee_stream_read_sync(s, n, buf);
+}
+
+int cupkee_write(int id, size_t n, const void *data)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+    cupkee_stream_t *s;
+
+    if (!meta || !n || !data) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!meta->streaming || NULL == (s = meta->streaming(id))) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return cupkee_stream_write(s, n, data);
+}
+
+int cupkee_write_sync(int id, size_t n, const void *data)
+{
+    const cupkee_meta_t *meta = object_meta(id);
+    cupkee_stream_t *s;
+
+    if (!meta || !n || !data) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!meta->streaming || NULL == (s = meta->streaming(id))) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return cupkee_stream_write_sync(s, n, data);
 }
 

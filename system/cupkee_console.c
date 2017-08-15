@@ -40,7 +40,7 @@ SOFTWARE.
 #define CONSOLE_OUT      1
 #define CONSOLE_BUF_NUM  2
 
-static cupkee_device_t *console_dev = NULL;
+static int console_tty = -1;
 static console_handle_t user_handle = NULL;
 
 static uint32_t console_total_recv = 0;
@@ -259,23 +259,23 @@ static void console_input_handle(int n, void *data)
     }
 }
 
-static void console_do_recv(cupkee_device_t *dev)
+static void console_do_recv(int id)
 {
     int n;
     char buf[4];
 
-    while (0 < (n = cupkee_device_read(dev, 4, buf))) {
+    while (0 < (n = cupkee_read(id, 4, buf))) {
         console_total_recv += n;
         console_input_handle(n, buf);
     }
 }
 
-static void console_do_send(cupkee_device_t *dev)
+static void console_do_send(int id)
 {
     char c;
 
     while (console_buf_read_byte(CONSOLE_OUT, &c)) {
-        if (!cupkee_device_write(dev, 1, &c)) {
+        if (!cupkee_write(id, 1, &c)) {
             console_buf_unread_byte(CONSOLE_OUT, c);
             break;
         } else {
@@ -284,19 +284,21 @@ static void console_do_send(cupkee_device_t *dev)
     }
 }
 
-static void console_device_handle(cupkee_device_t *dev, uint8_t code, intptr_t param)
+static int console_device_handle(int id, int event, intptr_t param)
 {
     (void) param;
 
-    if (code == DEVICE_EVENT_DATA) {
-        console_do_recv(dev);
+    if (event == CUPKEE_EVENT_DATA) {
+        console_do_recv(id);
     } else
-    if (code == DEVICE_EVENT_DRAIN) {
-        console_do_send(dev);
+    if (event == CUPKEE_EVENT_DRAIN) {
+        console_do_send(id);
     }
+
+    return 0;
 }
 
-int cupkee_console_init(cupkee_device_t *con_dev, console_handle_t handle)
+int cupkee_console_init(int tty, console_handle_t handle)
 {
     console_cursor = 0;
     console_total_recv = 0;
@@ -304,15 +306,15 @@ int cupkee_console_init(cupkee_device_t *con_dev, console_handle_t handle)
     rbuff_init(&console_buff[CONSOLE_IN],  CONSOLE_BUF_SIZE);
     rbuff_init(&console_buff[CONSOLE_OUT], CONSOLE_BUF_SIZE);
 
-    if (!con_dev) {
-        return -1;
+    if (0 != cupkee_device_handle_set(tty, console_device_handle, 0)) {
+        return -CUPKEE_EINVAL;
     }
 
-    con_dev->handle = console_device_handle;
-    con_dev->handle_param = 0;
-
     user_handle = handle;
-    console_dev = con_dev;
+    console_tty = tty;
+
+    cupkee_listen(tty, CUPKEE_EVENT_DATA);
+    cupkee_listen(tty, CUPKEE_EVENT_DRAIN);
 
     return 0;
 }
@@ -448,7 +450,7 @@ int console_putc(int c)
 {
     if (rbuff_is_empty(&console_buff[CONSOLE_OUT])) {
         char buf = c;
-        if (cupkee_device_write(console_dev, 1, &buf)) {
+        if (cupkee_write(console_tty, 1, &buf)) {
             console_total_send++;
             return 1;
         }
@@ -463,7 +465,7 @@ int console_puts(const char *s)
     int len = strlen(s);
 
     if (rbuff_is_empty(&console_buff[CONSOLE_OUT])) {
-        int n = cupkee_device_write(console_dev, len, s);
+        int n = cupkee_write(console_tty, len, s);
         if (n > 0) {
             console_total_send += n;
             p += n;
@@ -499,7 +501,7 @@ int console_putc_sync(int c)
 {
     char buf = c;
 
-    return cupkee_device_write_sync(console_dev, 1, &buf);
+    return cupkee_write_sync(console_tty, 1, &buf);
 }
 
 int console_puts_sync(const char *s)
@@ -513,11 +515,11 @@ int console_puts_sync(const char *s)
         if (ch == '\n') {
             if (pos < 2 || s[pos - 2] != '\r') {
                 char cr = '\r';
-                cupkee_device_write_sync(console_dev, 1, &cr);
+                cupkee_write_sync(console_tty, 1, &cr);
             }
         }
 
-        cupkee_device_write_sync(console_dev, 1, &ch);
+        cupkee_write_sync(console_tty, 1, &ch);
     }
 
     return pos;

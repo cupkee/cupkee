@@ -32,8 +32,6 @@ SOFTWARE.
 
 typedef struct cupkee_device_t cupkee_device_t;
 
-typedef void (*cupkee_callback_t)(int id, int event, intptr_t param);
-
 typedef void (*cupkee_handle_t)(cupkee_device_t *, uint8_t event, intptr_t param);
 
 typedef struct cupkee_driver_t {
@@ -44,6 +42,9 @@ typedef struct cupkee_driver_t {
     int (*poll)(int inst);
 
     int (*query)(int inst, int want);
+
+    int (*read )(int inst, size_t n, void *buf);
+    int (*write)(int inst, size_t n, const void *data);
 } cupkee_driver_t;
 
 typedef struct cupkee_device_desc_t {
@@ -55,6 +56,8 @@ typedef struct cupkee_device_desc_t {
 } cupkee_device_desc_t;
 
 struct cupkee_device_t {
+    cupkee_device_t *next;
+
     uint8_t instance;
     uint8_t type;
     uint8_t flags;
@@ -66,10 +69,10 @@ struct cupkee_device_t {
     void             *req;
     void             *res;
 
-    cupkee_struct_t   *conf;
     const cupkee_driver_t *driver;
 
-    cupkee_device_t *next;
+    cupkee_struct_t  *conf;
+    cupkee_stream_t  *s;
 };
 
 int  cupkee_device_setup(void);
@@ -78,14 +81,22 @@ void cupkee_device_poll(void);
 int  cupkee_device_register(const cupkee_device_desc_t *desc);
 
 int cupkee_device_request(const char *name, int instance);
-int cupkee_device_release(int id);
 int cupkee_is_device(int id);
+
+int cupkee_device_handle_set(int id, cupkee_callback_t handle, intptr_t param);
+cupkee_callback_t cupkee_device_handle_fn(int id);
+intptr_t cupkee_device_handle_param(int id);
 
 int cupkee_device_enable(int id);
 int cupkee_device_disable(int id);
 int cupkee_device_is_enabled(int id);
 int cupkee_device_query(int id, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
 int cupkee_device_query2(int id, void *req, int want, cupkee_callback_t cb, intptr_t param);
+
+int cupkee_device_streaming( int id,
+    int (*_read)(cupkee_stream_t *s, size_t n, void *buf),
+    int (*_write)(cupkee_stream_t *s, size_t n, const void *data)
+);
 
 int cupkee_device_read(int id, size_t n, void *buf);
 int cupkee_device_write(int id, size_t n, const uint8_t *data);
@@ -99,6 +110,13 @@ int   cupkee_device_request_load(int id, size_t n, void *data);
 
 void cupkee_device_response_end(int id);
 int  cupkee_device_response_push(int id, size_t n, void *data);
+
+int cupkee_device_push(int id, size_t n, const void *data);
+int cupkee_device_pull(int id, size_t n, void *buf);
+
+static inline void cupkee_device_release(int id) {
+    cupkee_object_release(id);
+}
 
 static inline void cupkee_device_set_error(int id, uint8_t code) {
     cupkee_object_error_set(id, code);

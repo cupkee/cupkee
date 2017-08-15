@@ -40,7 +40,7 @@ typedef struct cupkee_timeout_t {
     void    *param;
 } cupkee_timeout_t;
 
-void cupkee_timeout_init(void);
+void cupkee_timeout_setup(void);
 void cupkee_timeout_sync(uint32_t ticks);
 
 cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int repeat, cupkee_timeout_handle_t handle, void *param);

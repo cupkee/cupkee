@@ -57,11 +57,9 @@ void cupkee_init(void)
 
     cupkee_object_setup();
 
-    cupkee_timeout_init();
+    cupkee_timeout_setup();
 
     cupkee_timer_setup();
-
-    cupkee_buffer_init();
 
     cupkee_event_setup();
 

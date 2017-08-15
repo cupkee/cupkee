@@ -34,10 +34,6 @@ typedef struct cupkee_buffer_t {
     uint8_t  ptr[0];
 } cupkee_buffer_t;
 
-void cupkee_buffer_init(void)
-{
-}
-
 void cupkee_buffer_reset(void *p)
 {
     cupkee_buffer_t *b = (cupkee_buffer_t *)p;

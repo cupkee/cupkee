@@ -31,8 +31,8 @@ typedef struct cupkee_timer_t {
     uint8_t state;
     uint32_t period;
 
-    cupkee_cb_t cb;
-    intptr_t    cb_param;
+    cupkee_callback_t cb;
+    intptr_t          cb_param;
 } cupkee_timer_t;
 
 static int timer_tag = -1;
@@ -94,7 +94,7 @@ int cupkee_timer_setup(void)
     return 0;
 }
 
-int cupkee_timer_request(cupkee_cb_t cb, intptr_t param)
+int cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
 {
     cupkee_timer_t *timer;
     int8_t inst;

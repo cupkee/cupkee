@@ -222,9 +222,9 @@ static void test_struct_bytes(void)
     cupkee_struct_deinit(&conf);
 }
 
-CU_pSuite test_sys_config(void)
+CU_pSuite test_sys_struct(void)
 {
-    CU_pSuite suite = CU_add_suite("system conf", test_setup, test_clean);
+    CU_pSuite suite = CU_add_suite("system struct", test_setup, test_clean);
 
     if (suite) {
         CU_add_test(suite, "conf number      ", test_struct_number);
