@@ -38,10 +38,7 @@ typedef struct cupkee_timer_t {
 static int timer_tag = -1;
 
 static inline cupkee_timer_t *timer_from_object(int id) {
-    if (CUPKEE_OBJECT_HAS_TAG(id, timer_tag)) {
-        return CUPKEE_OBJECT(id, cupkee_timer_t);
-    }
-    return NULL;
+    return cupkee_object_data(id, timer_tag);
 }
 
 static void timer_rewind(cupkee_timer_t *timer, int id)
@@ -109,7 +106,7 @@ int cupkee_timer_request(cupkee_cb_t cb, intptr_t param)
     }
 
     id = cupkee_object_alloc(timer_tag);
-    if (id < 0 || NULL == (timer = CUPKEE_OBJECT(id, cupkee_timer_t))) {
+    if (id < 0 || NULL == (timer = timer_from_object(id))) {
         hw_timer_release(inst);
         return -CUPKEE_ENOMEM;
     }
@@ -218,5 +215,10 @@ intptr_t cupkee_timer_callback_param(int id)
     }
 
     return timer->cb_param;
+}
+
+int cupkee_is_timer(int id)
+{
+    return cupkee_object_tag(id) == timer_tag;
 }
 

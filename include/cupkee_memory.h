@@ -37,7 +37,7 @@ typedef struct cupkee_page_t {
     intptr_t blocks;
 } cupkee_page_t;
 
-int cupkee_memory_init(void);
+int cupkee_memory_setup(void);
 int cupkee_memory_extend(intptr_t base, size_t size);
 
 int cupkee_free_pages(int order);

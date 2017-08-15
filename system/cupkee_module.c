@@ -101,7 +101,7 @@ int cupkee_module_export_number(void *m, const char *key, double n)
         return CUPKEE_OK;
     }
 
-    return -CUPKEE_EFULL;
+    return -CUPKEE_ELIMIT;
 }
 
 int cupkee_module_export_boolean(void *m, const char *key, int b)
@@ -116,7 +116,7 @@ int cupkee_module_export_boolean(void *m, const char *key, int b)
         return 0;
     }
 
-    return -CUPKEE_EFULL;
+    return -CUPKEE_ELIMIT;
 }
 
 int cupkee_module_export_string(void *m, const char *key, const char *s)
@@ -131,7 +131,7 @@ int cupkee_module_export_string(void *m, const char *key, const char *s)
         return 0;
     }
 
-    return -CUPKEE_EFULL;
+    return -CUPKEE_ELIMIT;
 }
 
 int cupkee_module_export_native(void *m, const char *key, void *fn)
@@ -146,7 +146,7 @@ int cupkee_module_export_native(void *m, const char *key, void *fn)
         return 0;
     }
 
-    return -CUPKEE_EFULL;
+    return -CUPKEE_ELIMIT;
 }
 
 int cupkee_module_register(void *m)

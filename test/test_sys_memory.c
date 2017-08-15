@@ -44,7 +44,7 @@ static void test_memory_init(void)
 {
     hw_mock_init(32 * 1024);
 
-    CU_ASSERT(0 == cupkee_memory_init());
+    CU_ASSERT(0 == cupkee_memory_setup());
 
     CU_ASSERT(0 == cupkee_free_pages(0));
     CU_ASSERT(1 == cupkee_free_pages(1));
@@ -66,7 +66,7 @@ static void test_page_alloc(void)
     hw_mock_init(16 * 1024 + 1023);
 
 
-    CU_ASSERT(0 == cupkee_memory_init());
+    CU_ASSERT(0 == cupkee_memory_setup());
 
     CU_ASSERT(1 == cupkee_free_pages(0));
     CU_ASSERT(1 == cupkee_free_pages(1));
@@ -138,7 +138,7 @@ static void test_memory_alloc(void)
 
     hw_mock_init(16 * 1024 + 1023);
 
-    CU_ASSERT(0 == cupkee_memory_init());
+    CU_ASSERT(0 == cupkee_memory_setup());
 
     // Where are 15 Pages can be use
     CU_ASSERT(1 == cupkee_free_pages(0));

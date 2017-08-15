@@ -29,6 +29,8 @@ SOFTWARE.
 #include "cupkee_shell_misc.h"
 #include "cupkee_shell_device.h"
 
+
+#if 0
 typedef union device_handle_set_t {
     intptr_t param;
     uint8_t  handles[DEVICE_EVENT_MAX];
@@ -39,10 +41,6 @@ static void device_op_prop(void *env, intptr_t id, val_t *name, val_t *prop);
 static void device_op_elem(void *env, intptr_t id, val_t *which, val_t *elem);
 static val_t *device_op_elem_ref(void *env, intptr_t id, val_t *key);
 static void device_elem_op_set(void *env, intptr_t id, val_t *val, val_t *res);
-
-static const char *category_names[3] = {
-    "MAP", "STREAM", "BLOCK"
-};
 
 static const char *device_event_names[] = {
     "error", "data", "drain", "ready"
@@ -59,28 +57,14 @@ static const val_foreign_op_t device_elem_op = {
     .set = device_elem_op_set
 };
 
-static const char *device_category_name(uint8_t category)
-{
-    if (category < DEVICE_CATEGORY_MAX) {
-        return category_names[category];
-    } else {
-        return "?";
-    }
-}
-
 static void device_list(void)
 {
     const cupkee_device_desc_t *desc;
     int i = 0;
 
-    console_log_sync("\r\n%8s%6s%6s%6s:%s\r\n", "DEVICE", "CONF", "INST", "TYPE", "CATEGORY");
+    console_log_sync("\r\n%8s%6s%6s%6s:%s\r\n", "DEVICE", "CONF", "INST");
     while ((desc = cupkee_device_query_by_index(i++)) != NULL) {
-        console_log_sync("%8s%6d%6d%6d:%s\r\n",
-                desc->name,
-                desc->conf_num,
-                hw_device_instances(desc->type),
-                desc->type,
-                device_category_name(desc->category));
+        console_log_sync("%8s%6d%6d%6d:%s\r\n", desc->name, desc->conf_num, desc->inst_max);
     }
 }
 
@@ -267,7 +251,7 @@ static int device_read_2_buffer(cupkee_device_t *dev, env_t *env, int n, val_t *
 
     b = buffer_create(env, n);
     if (!b) {
-        err = -CUPKEE_ERESOURCE;
+        err = -CUPKEE_ENOMEM;
     } else {
         err = cupkee_device_read(dev, n, b->buf);
     }
@@ -930,4 +914,6 @@ val_t native_device_create(env_t *env, int ac, val_t *av)
         return VAL_UNDEFINED;
     }
 }
+
+#endif
 

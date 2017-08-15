@@ -39,6 +39,8 @@ int cupkee_timer_setup(void);
 
 int cupkee_timer_request(cupkee_cb_t cb, intptr_t param);
 int cupkee_timer_release(int timer);
+
+int cupkee_is_timer(int id);
 int cupkee_timer_state(int timer);
 
 int cupkee_timer_start(int timer, int us);

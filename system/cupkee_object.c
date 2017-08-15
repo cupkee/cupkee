@@ -34,7 +34,7 @@ typedef struct cupkee_object_t {
 
     uint8_t tag;
     uint8_t err;
-    uint8_t res[2];
+    uint16_t flags;
 
     uint16_t id;
     uint16_t ref;
@@ -165,11 +165,11 @@ void cupkee_object_release(int id)
     }
 }
 
-void *cupkee_object_data(int id)
+void *cupkee_object_data(int id, uint8_t tag)
 {
     cupkee_object_t *obj = id_2_block(id);
 
-    if (obj) {
+    if (obj && obj->tag == tag) {
         return obj->data;
     }
 

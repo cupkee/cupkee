@@ -27,6 +27,10 @@ SOFTWARE.
 #ifndef __CUPKEE_STRUCT_INC__
 #define __CUPKEE_STRUCT_INC__
 
+enum CUPKEE_STRUCT_FLAG {
+    CUPKEE_STRUCT_FL_ALLOC = 1,
+};
+
 enum CUPKEE_STRUCT_TYPE {
     CUPKEE_STRUCT_OPT,    // option
 
@@ -59,12 +63,18 @@ typedef struct cupkee_struct_desc_t {
 
 typedef struct cupkee_struct_t {
     const cupkee_struct_desc_t * item_descs;
-    uint8_t item_num;
+
+    uint8_t  flags;
+    uint8_t  item_num;
     uint8_t  size;
+
     uint8_t *data;
 } cupkee_struct_t;
 
-int  cupkee_struct_init(cupkee_struct_t *conf, int max, const cupkee_struct_desc_t *desc);
+cupkee_struct_t *cupkee_struct_alloc(int item_num, const cupkee_struct_desc_t *desc);
+void cupkee_struct_release(cupkee_struct_t *st);
+
+int  cupkee_struct_init(cupkee_struct_t *conf, int item_num, const cupkee_struct_desc_t *desc);
 void cupkee_struct_deinit(cupkee_struct_t *conf);
 
 void cupkee_struct_clear(cupkee_struct_t *conf);

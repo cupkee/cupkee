@@ -43,10 +43,6 @@ void cupkee_event_poll(void)
         } else
         if (e.type == EVENT_EMITTER) {
             cupkee_event_emitter_dispatch(e.which, e.code);
-        } else
-        if (e.type == EVENT_DEVICE) {
-            cupkee_device_event_handle(e.which, e.code);
-            continue;
         }
     }
 }
@@ -56,23 +52,24 @@ void cupkee_init(void)
     /* Hardware startup */
     hw_setup();
 
-    cupkee_memory_init();
+    /* System module setup */
+    cupkee_memory_setup();
 
     cupkee_object_setup();
 
     cupkee_timeout_init();
 
-    cupkee_device_init();
-
     cupkee_timer_setup();
-
-    cupkee_sysdisk_init();
 
     cupkee_buffer_init();
 
-    cupkee_module_init();
-
     cupkee_event_setup();
+
+    cupkee_device_setup();
+
+    cupkee_sysdisk_init();
+
+    cupkee_module_init();
 }
 
 void cupkee_loop(void)
