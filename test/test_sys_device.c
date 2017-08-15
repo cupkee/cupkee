@@ -327,9 +327,10 @@ static void test_query(void)
 
 static void test_read(void)
 {
-    int id, i;
+    int id;
     uint8_t data;
     char buf[16];
+    int i;
 
     CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 1)));
 

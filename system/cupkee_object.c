@@ -29,18 +29,7 @@ SOFTWARE.
 #define CUPKEE_OBJECT_TAG_MAX   (16)
 #define CUPKEE_OBJECT_NUM_DEF   (32)
 
-typedef struct cupkee_object_t {
-    list_head_t list;
-
-    uint8_t tag;
-    uint8_t err;
-    uint16_t flags;
-
-    uint16_t id;
-    uint16_t ref;
-
-    uint8_t data[0];
-} cupkee_object_t;
+#define ID_INVALID              ((uint16_t)(-1))
 
 typedef struct cupkee_object_info_t {
     size_t size;
@@ -48,14 +37,36 @@ typedef struct cupkee_object_info_t {
 } cupkee_object_info_t;
 
 static list_head_t      obj_list_head;
+
 static cupkee_object_t **obj_map;
 static int              obj_map_size;
-static int              obj_num;
+static int              obj_map_num;
 
 static uint8_t              obj_tag_end;
 static cupkee_object_info_t obj_infos[CUPKEE_OBJECT_TAG_MAX];
 
-static inline cupkee_object_t *id_2_block(int id) {
+static inline const cupkee_meta_t *object_meta(cupkee_object_t *obj) {
+    if (obj && obj->tag < obj_tag_end) {
+        return obj_infos[obj->tag].meta;
+    } else {
+        return NULL;
+    }
+}
+
+static int id_alloc(void)
+{
+    if (obj_map_num < obj_map_size) {
+        int id;
+        for (id = 0; id < obj_map_size; id++) {
+            if (!obj_map[id]) {
+                return id;
+            }
+        }
+    }
+    return -1;
+}
+
+static inline cupkee_object_t *id_object(int id) {
     if (id < 0 || id >= obj_map_size) {
         return NULL;
     }
@@ -63,14 +74,8 @@ static inline cupkee_object_t *id_2_block(int id) {
     return obj_map[id];
 }
 
-static inline const cupkee_meta_t *object_meta(int id) {
-    cupkee_object_t *obj = id_2_block(id);
-
-    if (obj && obj->tag < obj_tag_end) {
-        return obj_infos[obj->tag].meta;
-    } else {
-        return NULL;
-    }
+static inline const cupkee_meta_t *id_meta(int id) {
+    return object_meta(id_object(id));
 }
 
 int cupkee_object_setup(void)
@@ -87,14 +92,14 @@ int cupkee_object_setup(void)
     obj_tag_end = 0;
     memset(obj_infos, 0, CUPKEE_OBJECT_TAG_MAX * sizeof(cupkee_object_info_t));
 
-    obj_num = 0;
+    obj_map_num = 0;
 
     return 0;
 }
 
 void cupkee_object_event_dispatch(uint16_t which, uint8_t code)
 {
-    const cupkee_meta_t *meta = object_meta(which);
+    const cupkee_meta_t *meta = id_meta(which);
 
     // printf("object[%u, %p] event: %u\n", which, obj, code);
     if (meta && meta->event_handle) {
@@ -114,61 +119,70 @@ int cupkee_object_register(size_t size, const cupkee_meta_t *meta)
     return obj_tag_end++;
 }
 
-int cupkee_object_alloc(int tag)
+cupkee_object_t *cupkee_object_create(int tag)
 {
-    cupkee_object_t *obj;
-    int id;
+    if ((unsigned)tag < obj_tag_end) {
+        cupkee_object_t *obj = (cupkee_object_t *)cupkee_malloc(sizeof(cupkee_object_t) + obj_infos[tag].size);
+        if (obj) {
+            obj->tag = tag;
+            obj->ref = 1;
+            obj->id  = ID_INVALID;
 
-    if (tag >= obj_tag_end) {
-        return -1;
-    }
-
-    if (obj_num >= obj_map_size) {
-        return -1;
-    }
-
-    obj = (cupkee_object_t *)cupkee_malloc(sizeof(cupkee_object_t) + obj_infos[tag].size);
-    if (!obj) {
-        return -1;
-    }
-
-    for (id = 0; id < obj_map_size; id++) {
-        if (!obj_map[id]) {
-            obj_map[id] = obj;
-            break;
+            list_add_tail(&obj->list, &obj_list_head);
         }
+        return obj;
     }
 
-    obj->id  = id;
-    obj->tag = tag;
-    obj->ref = 1;
-
-    list_add_tail(&obj->list, &obj_list_head);
-
-    return id;
+    return NULL;
 }
 
-void cupkee_object_release(int id)
+void cupkee_object_destroy(cupkee_object_t *obj)
 {
-    const cupkee_meta_t *meta = object_meta(id);
-    cupkee_object_t *obj = id_2_block(id);
+    const cupkee_meta_t *meta = object_meta(obj);
 
-    if (meta && obj) {
-        // assert(obj_map[obj->id] == obj);
+    if (meta) {
         if (meta->destroy) {
-            meta->destroy(id);
+            meta->destroy(obj->data);
         }
 
-        obj_map[obj->id] = NULL;
         list_del(&obj->list);
 
         cupkee_free(obj);
     }
 }
 
-void *cupkee_object_data(int id, uint8_t tag)
+int cupkee_id(int tag)
 {
-    cupkee_object_t *obj = id_2_block(id);
+    int id;
+    cupkee_object_t *obj;
+
+    if (0 > (id = id_alloc())) {
+        return -CUPKEE_ERESOURCE;
+    }
+
+    if (!(obj = cupkee_object_create(tag))) {
+        return -CUPKEE_ENOMEM;
+    }
+
+    obj->id = id;
+    obj_map[id] = obj;
+
+    return id;
+}
+
+void cupkee_release(int id)
+{
+    cupkee_object_t *obj = id_object(id);
+
+    if (obj) {
+        cupkee_object_destroy(obj);
+        obj_map[id] = NULL;
+    }
+}
+
+void *cupkee_data(int id, uint8_t tag)
+{
+    cupkee_object_t *obj = id_object(id);
 
     if (obj && obj->tag == tag) {
         return obj->data;
@@ -177,9 +191,9 @@ void *cupkee_object_data(int id, uint8_t tag)
     return NULL;
 }
 
-int cupkee_object_tag(int id)
+int cupkee_tag(int id)
 {
-    cupkee_object_t *obj = id_2_block(id);
+    cupkee_object_t *obj = id_object(id);
 
     if (obj) {
         return obj->tag;
@@ -188,9 +202,9 @@ int cupkee_object_tag(int id)
     return -1;
 }
 
-void cupkee_object_error_set(int id, int err)
+void cupkee_error_set(int id, int err)
 {
-    cupkee_object_t *obj = id_2_block(id);
+    cupkee_object_t *obj = id_object(id);
 
     if (obj) {
         obj->err = err;
@@ -198,9 +212,9 @@ void cupkee_object_error_set(int id, int err)
     }
 }
 
-int cupkee_object_error_get(int id)
+int cupkee_error_get(int id)
 {
-    cupkee_object_t *obj = id_2_block(id);
+    cupkee_object_t *obj = id_object(id);
 
     if (obj) {
         return obj->err;
@@ -211,7 +225,7 @@ int cupkee_object_error_get(int id)
 
 void cupkee_listen(int id, int event)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
 
     if (meta && meta->listen) {
         meta->listen(id, event);
@@ -220,7 +234,7 @@ void cupkee_listen(int id, int event)
 
 void cupkee_ignore(int id, int event)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
 
     if (meta && meta->ignore) {
         meta->ignore(id, event);
@@ -229,7 +243,7 @@ void cupkee_ignore(int id, int event)
 
 int cupkee_read(int id, size_t n, void *buf)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
     cupkee_stream_t *s;
 
     if (!meta || !n || !buf) {
@@ -245,7 +259,7 @@ int cupkee_read(int id, size_t n, void *buf)
 
 int cupkee_read_sync(int id, size_t n, void *buf)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
     cupkee_stream_t *s;
 
     if (!meta || !n || !buf) {
@@ -261,7 +275,7 @@ int cupkee_read_sync(int id, size_t n, void *buf)
 
 int cupkee_write(int id, size_t n, const void *data)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
     cupkee_stream_t *s;
 
     if (!meta || !n || !data) {
@@ -277,7 +291,7 @@ int cupkee_write(int id, size_t n, const void *data)
 
 int cupkee_write_sync(int id, size_t n, const void *data)
 {
-    const cupkee_meta_t *meta = object_meta(id);
+    const cupkee_meta_t *meta = id_meta(id);
     cupkee_stream_t *s;
 
     if (!meta || !n || !data) {

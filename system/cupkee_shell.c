@@ -243,17 +243,20 @@ int cupkee_shell_init(int tty, int n, const native_t *natives)
 int cupkee_shell_start(const char *initial)
 {
     const char *app = cupkee_sysdisk_app_script();
-    val_t *res;
-    int   err = 0;
 
     (void) initial;
 
     if (app) {
-        err = interp_execute_stmts(&shell_env, app, &res);
-        //console_log("\r\nrun app: %s\r\n", err < 0 ? "fail" : "ok");
+        val_t *res;
+        return interp_execute_stmts(&shell_env, app, &res);
+    } else {
+        return 0;
     }
+}
 
-    return err;
+int cupkee_execute_string(const char *script, val_t **res)
+{
+    return interp_execute_stmts(&shell_env, script, res);
 }
 
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)

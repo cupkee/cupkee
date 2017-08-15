@@ -37,7 +37,7 @@ static cupkee_device_t      *device_work = NULL;
 
 static inline cupkee_device_t *device_block(int id)
 {
-    return (cupkee_device_t *) cupkee_object_data(id, device_tag);
+    return (cupkee_device_t *) cupkee_data(id, device_tag);
 }
 
 static inline int device_is_enabled(cupkee_device_t *dev) {
@@ -118,7 +118,7 @@ static int device_request(int type, int instance)
         return -CUPKEE_ERESOURCE;
     }
 
-    id = cupkee_object_alloc(device_tag);
+    id = cupkee_id(device_tag);
     if (id >= 0) {
         cupkee_device_t *dev = device_block(id);
 
@@ -142,9 +142,9 @@ static int device_request(int type, int instance)
     return id;
 }
 
-static void device_destroy(int id)
+static void device_destroy(void *data)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = (cupkee_device_t *)data;
 
     if (dev) {
         if (device_is_enabled(dev)) {
@@ -431,7 +431,7 @@ intptr_t cupkee_device_handle_param(int id)
 
 int cupkee_is_device(int id)
 {
-    return cupkee_object_tag(id) == device_tag;
+    return cupkee_tag(id) == device_tag;
 }
 
 int cupkee_device_enable(int id)

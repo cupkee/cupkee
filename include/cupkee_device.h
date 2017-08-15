@@ -115,11 +115,11 @@ int cupkee_device_push(int id, size_t n, const void *data);
 int cupkee_device_pull(int id, size_t n, void *buf);
 
 static inline void cupkee_device_release(int id) {
-    cupkee_object_release(id);
+    cupkee_release(id);
 }
 
 static inline void cupkee_device_set_error(int id, uint8_t code) {
-    cupkee_object_error_set(id, code);
+    cupkee_error_set(id, code);
 }
 
 #endif /* __CUPKEE_DEVICE_INC__ */

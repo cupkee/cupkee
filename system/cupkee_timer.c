@@ -37,8 +37,8 @@ typedef struct cupkee_timer_t {
 
 static int timer_tag = -1;
 
-static inline cupkee_timer_t *timer_from_object(int id) {
-    return cupkee_object_data(id, timer_tag);
+static inline cupkee_timer_t *timer_block(int id) {
+    return cupkee_data(id, timer_tag);
 }
 
 static void timer_rewind(cupkee_timer_t *timer, int id)
@@ -61,7 +61,7 @@ static void timer_event_handle(int id, uint8_t code)
     cupkee_timer_t *timer;
 
     // printf("get timer event\n");
-    if (NULL != (timer = timer_from_object(id))) {
+    if (NULL != (timer = timer_block(id))) {
         switch (code) {
         case CUPKEE_EVENT_STOP:
             timer->state = CUPKEE_TIMER_STATE_IDLE;
@@ -105,8 +105,8 @@ int cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
         return -CUPKEE_ERESOURCE;
     }
 
-    id = cupkee_object_alloc(timer_tag);
-    if (id < 0 || NULL == (timer = timer_from_object(id))) {
+    id = cupkee_id(timer_tag);
+    if (id < 0 || NULL == (timer = timer_block(id))) {
         hw_timer_release(inst);
         return -CUPKEE_ENOMEM;
     }
@@ -124,7 +124,7 @@ int cupkee_timer_release(int id)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -133,7 +133,7 @@ int cupkee_timer_release(int id)
         timer->cb(id, CUPKEE_EVENT_DESTROY, timer->cb_param);
     }
 
-    cupkee_object_release(id);
+    cupkee_release(id);
     return 0;
 }
 
@@ -141,7 +141,7 @@ int cupkee_timer_state(int id)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -152,7 +152,7 @@ int cupkee_timer_start(int id, int us)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -182,7 +182,7 @@ int cupkee_timer_stop(int id)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -199,7 +199,7 @@ int cupkee_timer_duration(int id)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -210,7 +210,7 @@ intptr_t cupkee_timer_callback_param(int id)
 {
     cupkee_timer_t *timer;
 
-    if (NULL == (timer = timer_from_object(id))) {
+    if (NULL == (timer = timer_block(id))) {
         return 0;
     }
 
@@ -219,6 +219,6 @@ intptr_t cupkee_timer_callback_param(int id)
 
 int cupkee_is_timer(int id)
 {
-    return cupkee_object_tag(id) == timer_tag;
+    return cupkee_tag(id) == timer_tag;
 }
 

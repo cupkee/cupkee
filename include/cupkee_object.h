@@ -28,12 +28,27 @@ SOFTWARE.
 #define __CUPKEE_OBJECT_INC__
 
 typedef struct cupkee_meta_t {
-    void             (*event_handle) (int id, uint8_t event);
+    void (*destroy) (void *data);
+
+    void (*event_handle) (int id, uint8_t event);
+    void (*listen) (int id, int event);
+    void (*ignore) (int id, int event);
+
     cupkee_stream_t *(*streaming) (int id);
-    void             (*listen) (int id, int event);
-    void             (*ignore) (int id, int event);
-    void             (*destroy) (int id);
 } cupkee_meta_t;
+
+typedef struct cupkee_object_t {
+    list_head_t list;
+
+    uint8_t tag;
+    uint8_t err;
+    uint16_t flags;
+
+    uint16_t id;
+    uint16_t ref;
+
+    uint8_t data[0];
+} cupkee_object_t;
 
 int  cupkee_object_setup(void);
 void cupkee_object_event_dispatch(uint16_t which, uint8_t code);
@@ -43,22 +58,24 @@ static inline void cupkee_object_event_post(int id, uint8_t code) {
 }
 
 int cupkee_object_register(size_t size, const cupkee_meta_t *meta);
+cupkee_object_t *cupkee_object_create(int tag);
+void cupkee_object_destroy(cupkee_object_t *obj);
 
-int  cupkee_object_alloc(int tag);
-void cupkee_object_release(int id);
+int  cupkee_id(int tag);
+void cupkee_release(int id);
 
-void cupkee_object_error_set(int id, int err);
-int  cupkee_object_error_get(int id);
+void cupkee_error_set(int id, int err);
+int  cupkee_error_get(int id);
 
-int   cupkee_object_tag(int id);
-void *cupkee_object_data(int id, uint8_t tag);
+int   cupkee_tag(int id);
+void *cupkee_data(int id, uint8_t tag);
 
 void cupkee_listen(int id, int event);
 void cupkee_ignore(int id, int event);
-int cupkee_read(int id, size_t n, void *buf);
-int cupkee_read_sync(int id, size_t n, void *buf);
-int cupkee_write(int id, size_t n, const void *data);
-int cupkee_write_sync(int id, size_t n, const void *data);
+int  cupkee_read(int id, size_t n, void *buf);
+int  cupkee_read_sync(int id, size_t n, void *buf);
+int  cupkee_write(int id, size_t n, const void *data);
+int  cupkee_write_sync(int id, size_t n, const void *data);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 

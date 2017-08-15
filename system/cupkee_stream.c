@@ -134,7 +134,7 @@ void cupkee_stream_ignore(cupkee_stream_t *s, int event)
 void cupkee_stream_set_error(cupkee_stream_t *s, uint8_t err)
 {
     if (s) {
-        cupkee_object_error_set(s->id, err);
+        cupkee_error_set(s->id, err);
     }
 }
 

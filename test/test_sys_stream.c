@@ -119,9 +119,9 @@ static void test_stream_init(void)
     int id;
     cupkee_stream_t *s;
 
-    CU_ASSERT(0 <= (id = cupkee_object_alloc(tag)));
+    CU_ASSERT(0 <= (id = cupkee_id(tag)));
 
-    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_object_data(id, tag)));
+    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_data(id, tag)));
 
     CU_ASSERT(0 == cupkee_stream_init(s, id, 32, 32, mock_read, mock_write));
 
@@ -134,8 +134,8 @@ static void test_stream_read(void)
     cupkee_stream_t *s;
     uint8_t buf[32];
 
-    CU_ASSERT(0 <= (id = cupkee_object_alloc(tag)));
-    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_object_data(id, tag)));
+    CU_ASSERT(0 <= (id = cupkee_id(tag)));
+    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_data(id, tag)));
     CU_ASSERT(0 == cupkee_stream_init(s, id, 32, 32, mock_read, mock_write));
 
     mock_read_immediately = 5;
@@ -168,8 +168,8 @@ static void test_stream_write(void)
     cupkee_stream_t *s;
     uint8_t buf[32];
 
-    CU_ASSERT(0 <= (id = cupkee_object_alloc(tag)));
-    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_object_data(id, tag)));
+    CU_ASSERT(0 <= (id = cupkee_id(tag)));
+    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_data(id, tag)));
     CU_ASSERT(0 == cupkee_stream_init(s, id, 32, 32, mock_read, mock_write));
 
     mock_write_trigger = 0;
@@ -193,8 +193,8 @@ static void test_stream_sync(void)
     cupkee_stream_t *s;
     uint8_t buf[64];
 
-    CU_ASSERT(0 <= (id = cupkee_object_alloc(tag)));
-    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_object_data(id, tag)));
+    CU_ASSERT(0 <= (id = cupkee_id(tag)));
+    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_data(id, tag)));
     CU_ASSERT(0 == cupkee_stream_init(s, id, 32, 32, mock_read, mock_write));
 
     memset(buf, 5, 64);
@@ -211,8 +211,8 @@ static void test_stream_event(void)
     cupkee_stream_t *s;
     uint8_t buf[32];
 
-    CU_ASSERT(0 <= (id = cupkee_object_alloc(tag)));
-    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_object_data(id, tag)));
+    CU_ASSERT(0 <= (id = cupkee_id(tag)));
+    CU_ASSERT(NULL != (s = (cupkee_stream_t *) cupkee_data(id, tag)));
     CU_ASSERT(0 == cupkee_stream_init(s, id, 32, 32, mock_read, mock_write));
 
     cupkee_stream_listen(s, CUPKEE_EVENT_DATA);

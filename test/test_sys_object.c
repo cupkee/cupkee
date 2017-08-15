@@ -41,7 +41,7 @@ static int test_clean(void)
 
 static void test_register(void)
 {
-    CU_ASSERT(1);
+    CU_ASSERT((uint8_t)-1 == 0xff);
 }
 
 static void test_read(void)
