@@ -272,9 +272,9 @@ static void device_event_handle(int id, uint8_t event)
     }
 }
 
-static cupkee_stream_t *device_stream(int id)
+static cupkee_stream_t *device_stream(void *entry)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = entry;
 
     if (dev) {
         return dev->s;
@@ -283,9 +283,9 @@ static cupkee_stream_t *device_stream(int id)
     }
 }
 
-static void device_listen(int id, int event)
+static void device_listen(void *entry, int event)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = entry;
 
     if (dev) {
         switch(event) {
@@ -301,9 +301,9 @@ static void device_listen(int id, int event)
     }
 }
 
-static void device_ignore(int id, int event)
+static void device_ignore(void *entry, int event)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = entry;
 
     if (dev) {
         switch(event) {
