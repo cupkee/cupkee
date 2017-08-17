@@ -26,11 +26,8 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define I2C_REQ_BUF_SIZE    64
-#define I2C_RCV_BUF_SIZE    64
 
-#define I2C_REG_BASE(inst)  ((inst) == 0 ? I2C1 : I2C2)
-#define I2C_TOUT_THRESHOLD  20 // 20ms
+#define I2C_REG_BASE(inst)                          ((inst) == 0 ? I2C1 : I2C2)
 
 #define I2C_EVENT_MASTER_MODE_SELECT                ((uint32_t)0x00030001) //           SR2_BUSY | SR2_MASTER | SR1_SB
 #define I2C_EVENT_STOP                              ((uint32_t)0x00000010) //                                   SR1_STOPF
@@ -77,9 +74,9 @@ typedef struct hw_i2c_t {
 
     void   *req_buf;
     void   *rcv_buf;
-
 } hw_i2c_t;
 
+#if 0
 static uint8_t use_map;
 
 static hw_i2c_t i2c_controls[HW_INSTANCES_I2C];
@@ -836,10 +833,9 @@ const hw_driver_t *hw_request_i2c(int instance)
     return &i2c_driver;
 }
 
+#endif
+
 void hw_setup_i2c(void)
 {
-    use_map = 0;
-
-    memset(&i2c_controls, 0, sizeof(i2c_controls));
 }
 

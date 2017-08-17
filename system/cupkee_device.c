@@ -106,13 +106,7 @@ static void device_reset(cupkee_device_t *dev)
 static int device_request(int type, int instance)
 {
     int id;
-    const cupkee_device_desc_t *desc;
-
-    if (type < device_type_num) {
-        desc = device_descs[type];
-    } else {
-        return -CUPKEE_EINVAL;
-    }
+    const cupkee_device_desc_t *desc = device_descs[type];
 
     if (0 != desc->driver->request(instance)) {
         return -CUPKEE_ERESOURCE;
@@ -319,7 +313,7 @@ static void device_ignore(void *entry, int event)
     }
 }
 
-const static cupkee_meta_t device_meta = {
+static const cupkee_meta_t device_meta = {
     .event_handle = device_event_handle,
     .streaming    = device_stream,
     .listen       = device_listen,
@@ -329,10 +323,13 @@ const static cupkee_meta_t device_meta = {
 
 int cupkee_device_setup(void)
 {
-    if (0 > (device_tag = cupkee_object_register(sizeof(cupkee_device_t), &device_meta))) {
+    int tag = cupkee_object_register(sizeof(cupkee_device_t), &device_meta);
+
+    if (tag < 0) {
         return -1;
     }
 
+    device_tag  = tag;
     device_work = NULL;
     device_type_num = 0;
 
@@ -500,6 +497,20 @@ void *cupkee_device_response_take(int id)
     }
 }
 
+int cupkee_device_request_len(int id)
+{
+    cupkee_device_t *dev = device_block(id);
+
+    if (device_is_enabled(dev)) {
+        if (dev->req) {
+            return cupkee_buffer_length(dev->req);
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
+}
 void *cupkee_device_request_ptr(int id)
 {
     cupkee_device_t *dev = device_block(id);
@@ -611,6 +622,17 @@ int cupkee_device_pull(int id, size_t n, void *buf)
     }
 
     return cupkee_stream_pull(dev->s, n, buf);
+}
+
+int cupkee_device_unshift(int id, uint8_t data)
+{
+    cupkee_device_t *dev = device_block(id);
+
+    if (!dev || !dev->s) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return cupkee_stream_unshift(dev->s, data);
 }
 
 int cupkee_device_read(int id, size_t n, void *buf)

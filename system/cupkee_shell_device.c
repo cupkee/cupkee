@@ -885,35 +885,13 @@ val_t native_device_disable(env_t *env, int ac, val_t *av)
     return  cupkee_device_is_enabled(dev) ? VAL_FALSE : VAL_TRUE;
 }
 
+#endif
+
 val_t native_device_create(env_t *env, int ac, val_t *av)
 {
-    cupkee_device_t *dev;
-    const char *name;
-    int inst;
-
-    if (ac == 0) {
-        device_list();
-        return VAL_UNDEFINED;
-    }
-
-    name = val_2_cstring(av);
-    if (!name) {
-        return VAL_UNDEFINED;
-    }
-
-    if (ac > 1 && val_is_number(av + 1)) {
-        inst= val_2_integer(av + 1);
-    } else {
-        inst= 0;
-    }
-
-    dev = cupkee_device_request(name, inst);
-    if (dev) {
-        return cupkee_dev2val(env, dev);
-    } else {
-        return VAL_UNDEFINED;
-    }
+    (void) env;
+    (void) ac;
+    (void) av;
+    return VAL_UNDEFINED;
 }
-
-#endif
 

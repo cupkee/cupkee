@@ -420,6 +420,10 @@ static void test_event(void)
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DATA);
     CU_ASSERT(1 == cupkee_read(id, 32, buf));
 
+    // tirgger nothing (read buffer is empty)
+    cupkee_device_sync(20);
+    CU_ASSERT(0 == TU_object_event_dispatch());
+
     mock_arg_release();
     // trigger event: drain
     cupkee_write(id, 1, &data);

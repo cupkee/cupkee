@@ -29,6 +29,12 @@ SOFTWARE.
 static uint8_t *mock_memory_base = NULL;
 static size_t   mock_memory_size = 0;
 static size_t   mock_memory_off  = 0;
+static int mock_timer_curr_inst = 0;
+static int mock_timer_curr_id   = -1;
+static int mock_timer_curr_period = -1;
+static int mock_timer_curr_duration = -1;
+static int mock_timer_curr_state = -1;  // 0: stop, 1: start, -1: noused
+
 
 void hw_mock_init(size_t mem_size)
 {
@@ -51,6 +57,25 @@ void hw_mock_deinit(void)
     }
 }
 
+int hw_mock_timer_curr_id(void)
+{
+    return mock_timer_curr_id;
+}
+
+void hw_mock_timer_duration_set(int us)
+{
+    mock_timer_curr_duration = us;
+}
+
+int hw_mock_timer_curr_state(void)
+{
+    return mock_timer_curr_state;
+}
+
+int hw_mock_timer_period(void)
+{
+    return mock_timer_curr_period;
+}
 void hw_enter_critical(uint32_t *state)
 {
     (void) state;
@@ -178,12 +203,6 @@ int   hw_pin_map(int id, int port, int pin)
 /* DEVICE */
 
 /* TIMER */
-static int mock_timer_curr_inst = 0;
-static int mock_timer_curr_id   = -1;
-static int mock_timer_curr_period = -1;
-static int mock_timer_curr_duration = -1;
-static int mock_timer_curr_state = -1;  // 0: stop, 1: start, -1: noused
-
 int hw_timer_alloc(void)
 {
     return mock_timer_curr_inst;
@@ -242,22 +261,8 @@ int hw_timer_duration_get(int inst)
     return mock_timer_curr_duration;
 }
 
-int hw_mock_timer_curr_id(void)
+int hw_device_setup(void)
 {
-    return mock_timer_curr_id;
+    return 0;
 }
 
-void hw_mock_timer_duration_set(int us)
-{
-    mock_timer_curr_duration = us;
-}
-
-int hw_mock_timer_curr_state(void)
-{
-    return mock_timer_curr_state;
-}
-
-int hw_mock_timer_period(void)
-{
-    return mock_timer_curr_period;
-}

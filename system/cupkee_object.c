@@ -29,8 +29,6 @@ SOFTWARE.
 #define CUPKEE_OBJECT_TAG_MAX   (16)
 #define CUPKEE_OBJECT_NUM_DEF   (32)
 
-#define ID_INVALID              ((uint16_t)(-1))
-
 typedef struct cupkee_object_info_t {
     size_t size;
     const cupkee_meta_t *meta;
@@ -51,6 +49,13 @@ static inline const cupkee_meta_t *object_meta(cupkee_object_t *obj) {
     } else {
         return NULL;
     }
+}
+
+static inline void object_map(cupkee_object_t *obj, int id)
+{
+    obj->id = id;
+    obj_map[id] = obj;
+    obj_map_num++;
 }
 
 static int id_alloc(void)
@@ -126,7 +131,7 @@ cupkee_object_t *cupkee_object_create(int tag)
         if (obj) {
             obj->tag = tag;
             obj->ref = 1;
-            obj->id  = ID_INVALID;
+            obj->id  = CUPKEE_ID_INVALID;
 
             list_add_tail(&obj->list, &obj_list_head);
         }
@@ -155,7 +160,7 @@ void cupkee_object_error_set(cupkee_object_t *obj, int err)
 {
     if (obj) {
         obj->err = err;
-        if (obj->id != ID_INVALID) {
+        if (obj->id != CUPKEE_ID_INVALID) {
             cupkee_object_event_post(obj->id, CUPKEE_EVENT_ERROR);
         }
     }
@@ -265,8 +270,7 @@ int cupkee_id(int tag)
         return -CUPKEE_ENOMEM;
     }
 
-    obj->id = id;
-    obj_map[id] = obj;
+    object_map(obj, id);
 
     return id;
 }
@@ -278,6 +282,7 @@ void cupkee_release(int id)
     if (obj) {
         cupkee_object_destroy(obj);
         obj_map[id] = NULL;
+        obj_map_num --;
     }
 }
 

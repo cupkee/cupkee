@@ -52,7 +52,7 @@ void cupkee_init(void)
     /* Hardware startup */
     hw_setup();
 
-    /* System module setup */
+    /* System setup */
     cupkee_memory_setup();
 
     cupkee_object_setup();
@@ -68,6 +68,9 @@ void cupkee_init(void)
     cupkee_sysdisk_init();
 
     cupkee_module_init();
+
+    /* Board device setup */
+    hw_device_setup();
 }
 
 void cupkee_loop(void)

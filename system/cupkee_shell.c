@@ -175,7 +175,7 @@ static int shell_console_handle(int type, int ch)
 
     if (!shell_logo_show) {
         shell_logo_show = 1;
-        console_puts_sync(logo);
+        //console_puts_sync(logo);
     }
 
     if (type == CON_CTRL_ENTER) {
@@ -196,10 +196,6 @@ static int shell_console_handle(int type, int ch)
 
 static void shell_console_init(int tty)
 {
-    if (cupkee_device_enable(tty)) {
-        hw_halt();
-    }
-
     cupkee_history_init();
     cupkee_console_init(tty, shell_console_handle);
 

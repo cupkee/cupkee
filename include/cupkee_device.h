@@ -45,6 +45,9 @@ typedef struct cupkee_driver_t {
 
     int (*read )(int inst, size_t n, void *buf);
     int (*write)(int inst, size_t n, const void *data);
+
+    int (*set)(int inst, int id, uint32_t v);
+    int (*get)(int inst, int id, uint32_t *v);
 } cupkee_driver_t;
 
 typedef struct cupkee_device_desc_t {
@@ -105,6 +108,7 @@ int cupkee_device_write_sync(int id, size_t n, const uint8_t *data);
 void *cupkee_device_request_take(int id);
 void *cupkee_device_response_take(int id);
 
+int   cupkee_device_request_len(int id);
 void *cupkee_device_request_ptr(int id);
 int   cupkee_device_request_load(int id, size_t n, void *data);
 
@@ -113,6 +117,7 @@ int  cupkee_device_response_push(int id, size_t n, void *data);
 
 int cupkee_device_push(int id, size_t n, const void *data);
 int cupkee_device_pull(int id, size_t n, void *buf);
+int cupkee_device_unshift(int id, uint8_t data);
 
 static inline void cupkee_device_release(int id) {
     cupkee_release(id);

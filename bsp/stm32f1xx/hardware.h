@@ -54,6 +54,8 @@ SOFTWARE.
 
 #define HW_FL_USED              1
 #define HW_FL_BUSY              2
+#define HW_FL_RXE               4
+#define HW_FL_TXE               8
 
 static inline int hw_use_instance(int instance, uint8_t *use_map) {
     uint8_t bit = 1 << instance;

@@ -26,9 +26,8 @@ SOFTWARE.
 
 #include "hardware.h"
 
-static uint8_t cdc_state = 0;
 static uint8_t cdc_devid = 0;
-static uint8_t cdc_ready = 0;
+static uint8_t cdc_flags = 0;
 
 #ifndef USB_CLASS_MISCELLANEOUS
 #define USB_CLASS_MISCELLANEOUS 0xEF
@@ -209,6 +208,8 @@ static const char *usb_strings[] = {
 /* Buffer to be used for control requests. */
 uint8_t usbd_control_buffer[128];
 
+static usbd_device *usb_hnd;
+
 static int cdcacm_control_request(usbd_device *usbd_dev, struct usb_setup_data *req, uint8_t **buf,
 		uint16_t *len, void (**complete)(usbd_device *usbd_dev, struct usb_setup_data *req))
 {
@@ -228,19 +229,30 @@ static int cdcacm_control_request(usbd_device *usbd_dev, struct usb_setup_data *
     return USBD_REQ_NOTSUPP;
 }
 
+static inline int cdc_send_byte(uint8_t c)
+{
+    return usbd_ep_write_packet(usb_hnd, 0x82, &c, 1);
+}
+
+static inline int cdc_recv_byte(uint8_t *c)
+{
+    return usbd_ep_read_packet(usb_hnd, 0x01, c, 1);
+}
+
 static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
 {
     (void)usbd_dev;
 	(void)ep;
 
-    if (!cdc_ready) {
-        cdc_ready = 1;
-        // Send Ok!
-        cupkee_event_post_device_drain(cdc_devid);
-    }
+    if (cdc_flags & HW_FL_RXE) {
+        uint8_t data;
 
-    if (cdc_state == 2) {
-        cupkee_event_post_device_data(cdc_devid);
+        while (1 == cdc_recv_byte(&data)) {
+            if (1 != cupkee_device_push(cdc_devid, 1, &data)) {
+                cdc_flags &= ~HW_FL_RXE;
+                break;
+            }
+        }
     }
 }
 
@@ -249,8 +261,16 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
     (void)usbd_dev;
 	(void)ep;
 
-    if (cdc_state == 2) {
-        cupkee_event_post_device_drain(cdc_devid);
+    if (cdc_flags & HW_FL_TXE) {
+        uint8_t data;
+
+        while (1 == cupkee_device_pull(cdc_devid, 1, &data)) {
+            if (1 != cdc_send_byte(data)) {
+                cupkee_device_unshift(cdc_devid, data);
+                cdc_flags &= ~HW_FL_TXE;
+                break;
+            }
+        }
     }
 }
 
@@ -269,157 +289,123 @@ static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue)
 				cdcacm_control_request);
 }
 
-static usbd_device *usbd_dev;
-
-static void cdc_release(int instance)
+static int cdc_reset(int instance)
 {
-    if (instance == 0) {
-        cdc_state = 0;
-    }
+    (void) instance;
+    return 0;
 }
 
-static void cdc_reset(int instance)
+static int cdc_setup(int instance, int id)
 {
     if (instance == 0) {
-        cdc_state = 1;
-    }
-}
-
-static int cdc_setup(int instance, uint8_t dev_id, const hw_config_t *conf)
-{
-    (void) conf;
-    if (instance == 0) {
-        cdc_state = 2;
-        cdc_devid = dev_id;
+        cdc_devid = id;
+        cdc_flags |= HW_FL_RXE | HW_FL_TXE;
     }
     return 0;
 }
 
-static int cdc_send_byte(uint8_t c)
+static int cdc_request(int instance)
 {
-    if (cdc_ready) {
-        return usbd_ep_write_packet(usbd_dev, 0x82, &c, 1);
-    } else {
+    if (instance == 0 && cdc_flags == 0) {
+        cdc_flags = HW_FL_USED;
         return 0;
+    } else {
+        return -CUPKEE_ERESOURCE;
     }
 }
 
-static int cdc_recv_byte(uint8_t *c)
+static int cdc_release(int instance)
 {
-    return usbd_ep_read_packet(usbd_dev, 0x01, c, 1);
-}
-
-static int cdc_send(int instance, size_t n, const void *data)
-{
-    const uint8_t *ptr = data;
-    size_t i = 0;
-
-    (void) instance;
-
-    while (i < n && cdc_send_byte(ptr[i])) {
-        i++;
+    if (instance == 0) {
+        cdc_flags = 0;
+        return 0;
+    } else {
+        return -CUPKEE_EINVAL;
     }
-
-    return i;
 }
 
-static int cdc_recv(int instance, size_t n, void *data)
-{
-    (void) instance;
-	return usbd_ep_read_packet(usbd_dev, 0x01, data, n);
-}
-
-static int cdc_send_sync(int instance, size_t n, const void *data)
-{
-    const uint8_t *ptr = data;
-    size_t i;
-
-    (void) instance;
-
-    for (i = 0; i < n; i++) {
-        while (!cdc_send_byte(ptr[i]))
-            ;
-    }
-
-    return i;
-}
-
-static int cdc_recv_sync(int instance, size_t n, void *data)
-{
-    uint8_t *ptr = data;
-    size_t i;
-
-    (void) instance;
-
-    for (i = 0; i < n; i++) {
-        while (!cdc_recv_byte(ptr + i))
-            ;
-    }
-
-    return i;
-}
-
-static int cdc_io_cached(int instance, size_t *in, size_t *out)
+static int cdc_write(int instance, size_t n, const void *data)
 {
     (void) instance;
 
-    //Todo: real counter
-    if (in) {
-        *in = 1;
+    if (n && data) {
+        const uint8_t *ptr = data;
+        size_t i = 0;
+
+        for (i = 0; i < n; i++) {
+            while (!cdc_send_byte(ptr[i]))
+                ;
+        }
+        return i;
     }
-    if (out) {
-        *out = 0;
-    }
+    cdc_flags |= HW_FL_TXE;
+
     return 0;
 }
 
-static const hw_driver_t cdc_driver = {
+static int cdc_read(int instance, size_t n, void *data)
+{
+    (void) instance;
+
+    if (n && data) {
+        uint8_t *ptr = data;
+        size_t i;
+
+        for (i = 0; i < n; i++) {
+            while (!cdc_recv_byte(ptr + i))
+                ;
+        }
+
+        return i;
+    }
+    cdc_flags |= HW_FL_RXE;
+
+	return 0;
+}
+
+static const cupkee_driver_t cdc_driver = {
+    .request = cdc_request,
     .release = cdc_release,
     .reset   = cdc_reset,
     .setup   = cdc_setup,
 
-    .read = cdc_recv,
-    .write = cdc_send,
-    .read_sync = cdc_recv_sync,
-    .write_sync = cdc_send_sync,
-    .io_cached = cdc_io_cached,
+    .read    = cdc_read,
+    .write   = cdc_write,
 };
 
-const hw_driver_t *hw_request_cdc(int instance)
-{
-    if (instance != 0 || cdc_state) {
-        return NULL;
-    }
-    cdc_state = 1;
-
-    return &cdc_driver;
-}
+static const cupkee_device_desc_t hw_device_cdc = {
+    .name = "usb-cdc",
+    .inst_max = 1,
+    .conf_num = 0,
+    .conf_desc = NULL,
+    .driver = &cdc_driver
+};
 
 void hw_setup_usb(void)
 {
-	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
+	usb_hnd = usbd_init(&st_usbfs_v1_usb_driver, &dev, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
 
-	usbd_register_set_config_callback(usbd_dev, cdcacm_set_config);
+	usbd_register_set_config_callback(usb_hnd, cdcacm_set_config);
 
-    cdc_state = 0;
     cdc_devid = 0;
-    cdc_ready = 0;
+    cdc_flags = 0;
 
-    //_usbd_reset(usbd_dev);
+    //_usbd_reset(usb_hnd);
+    cupkee_device_register(&hw_device_cdc);
 }
 
 void hw_poll_usb(void)
 {
-    usbd_poll(usbd_dev);
+    usbd_poll(usb_hnd);
 }
 
 void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
                      int (*read_cb)(uint32_t lba, uint8_t *),
                      int (*write_cb)(uint32_t lba, const uint8_t *))
 {
-    usb_msc_init(usbd_dev, 0x85, 64, 0x04, 64, vendor, product, version,
+    usb_msc_init(usb_hnd, 0x85, 64, 0x04, 64, vendor, product, version,
             blocks, read_cb, write_cb);
 
-    //_usbd_reset(usbd_dev);
+    //_usbd_reset(usb_hnd);
 }
 

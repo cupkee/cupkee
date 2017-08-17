@@ -268,6 +268,7 @@ static void console_do_recv(int id)
         console_total_recv += n;
         console_input_handle(n, buf);
     }
+
 }
 
 static void console_do_send(int id)

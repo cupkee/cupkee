@@ -169,53 +169,6 @@ typedef struct hw_config_spi_t {
     uint32_t speed;      // 1,200,000 default
 } hw_config_spi_t;
 
-typedef struct hw_config_t {
-    union {
-        hw_config_pin_t     pin;
-        hw_config_adc_t     adc;
-        hw_config_pwm_t     pwm;
-        hw_config_pulse_t   pulse;
-        hw_config_timer_t   timer;
-        hw_config_counter_t counter;
-        hw_config_uart_t    uart;
-        hw_config_i2c_t     i2c;
-        hw_config_spi_t     spi;
-    } data;
-} hw_config_t;
-
-typedef struct hw_driver_t {
-    void (*release) (int inst);
-    void (*reset) (int inst);
-    int  (*setup) (int inst, uint8_t devid, const hw_config_t *conf);
-
-    int  (*query) (int inst, size_t post, int want);
-
-    // for stream interface
-    // int (*read) (int inst, size_t want);
-    // cupkee_device_push(dev, n, data)
-    // int (*write)(int inst, size_t want);
-    // cupkee_device_load(dev, n, buf);
-
-    // for vector interface
-    // int (*set) (int inst, int i, uint32_t v);
-    // cupkee_device_updata(dev, i, v);
-
-    void (*sync)  (int inst, uint32_t systicks);         // deprecate
-    void (*poll)  (int inst);                            // deprecate
-
-    int  (*get) (int inst, int offset, uint32_t*data);   // deprecate  
-    int  (*set) (int inst, int offset, uint32_t data);   // deprecate
-    int  (*size)(int inst);                              // deprecate
-
-    int (*read_req)     (int inst, size_t n);                   // deprecate
-    int (*read)         (int inst, size_t n, void *buf);        // deprecate
-    int (*write)        (int inst, size_t n, const void *buf);  // deprecate
-    int (*read_sync)    (int inst, size_t n, void *buf);        // deprecate
-    int (*write_sync)   (int inst, size_t n, const void *buf);  // deprecate
-
-    // Todo: need a suitable name
-    int (*io_cached) (int inst, size_t *in, size_t *out);       // deprecate
-} hw_driver_t;
 
 /****************************************************************/
 /* system utils                                                 */
@@ -263,10 +216,6 @@ void hw_led_toggle(void);
 /* GPIO */
 int   hw_pin_map(int id, int port, int pin);
 
-/* DEVICE */
-const hw_driver_t *hw_device_request(int type, int inst);
-int   hw_device_instances(int type);
-
 /* TIMER */
 int hw_timer_alloc(void);
 void hw_timer_release(int inst);
@@ -275,6 +224,9 @@ int hw_timer_start(int inst, int id, int us);
 int hw_timer_stop(int inst);
 int hw_timer_update(int inst, int us);
 int hw_timer_duration_get(int inst);
+
+/* DEVICE */
+int   hw_device_setup(void);
 
 #endif /* __CUPKEE_BSP_INC__ */
 

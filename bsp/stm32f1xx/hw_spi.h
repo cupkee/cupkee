@@ -27,10 +27,7 @@ SOFTWARE.
 #ifndef __HW_SPI_INC__
 #define __HW_SPI_INC__
 
-#define HW_INSTANCES_SPI    (3)
-
 void  hw_setup_spi(void);
-const hw_driver_t *hw_request_spi(int instance);
 
 #endif /* __HW_SPI_INC__ */
 

@@ -112,20 +112,25 @@ void hw_setup(void)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
+    /* initial resource system depend on */
     hw_memory_init();
 
-    /* initial device resouce */
     hw_setup_gpio();
+    hw_setup_timer();
+    hw_setup_storage();
+    hw_setup_systick();
+}
+
+int hw_device_setup(void)
+{
+    /* initial device resouce */
     hw_setup_usart();
     hw_setup_adc();
     hw_setup_i2c();
-    hw_setup_timer();
+    hw_setup_spi();
     hw_setup_usb();
 
-    /* initial resource system depend on */
-    hw_setup_storage();
-
-    hw_setup_systick();
+    return 0;
 }
 
 void hw_poll(void)
@@ -137,35 +142,5 @@ void hw_halt(void)
 {
     while (1)
         ;
-}
-
-const hw_driver_t *hw_device_request(int type, int instance)
-{
-    switch (type) {
-    case DEVICE_TYPE_PIN:       return hw_request_pin(instance);
-    case DEVICE_TYPE_ADC:       return hw_request_adc(instance);
-    case DEVICE_TYPE_DAC:       return NULL;
-    case DEVICE_TYPE_UART:      return hw_request_uart(instance);
-    case DEVICE_TYPE_I2C:       return hw_request_i2c(instance);
-    case DEVICE_TYPE_SPI:       return hw_request_spi(instance);
-    case DEVICE_TYPE_USART:     return NULL;
-    case DEVICE_TYPE_USB_CDC:   return hw_request_cdc(instance);
-    default:                    return NULL;
-    }
-}
-
-int hw_device_instances(int type)
-{
-    switch (type) {
-    case DEVICE_TYPE_PIN:       return HW_INSTANCES_PIN;
-    case DEVICE_TYPE_ADC:       return HW_INSTANCES_ADC;
-    case DEVICE_TYPE_DAC:       return 0;
-    case DEVICE_TYPE_UART:      return HW_INSTANCES_UART;
-    case DEVICE_TYPE_I2C:       return HW_INSTANCES_I2C;
-    case DEVICE_TYPE_SPI:       return HW_INSTANCES_SPI;
-    case DEVICE_TYPE_USART:     return 0;
-    case DEVICE_TYPE_USB_CDC:   return 1;
-    default:                    return 0;
-    }
 }
 

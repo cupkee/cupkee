@@ -163,7 +163,6 @@ int hw_timer_duration_get(int inst)
 static inline void timer_isr(int x) {
     TIM_SR(device_base[x]) &= ~TIM_SR_UIF;
 
-    hw_led_toggle();
     if (device_controls[x].inused) {
         cupkee_timer_rewind(device_controls[x].timer_id);
     }

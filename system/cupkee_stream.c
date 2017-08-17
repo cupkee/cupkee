@@ -112,7 +112,7 @@ void cupkee_stream_listen(cupkee_stream_t *s, int event)
     if (s) {
         switch (event) {
         case CUPKEE_EVENT_ERROR: s->flags |= CUPKEE_STREAM_FL_NOTIFY_ERROR; break;
-        case CUPKEE_EVENT_DATA:  s->flags |= CUPKEE_STREAM_FL_NOTIFY_DATA;  break;
+        case CUPKEE_EVENT_DATA:  s->flags |= CUPKEE_STREAM_FL_NOTIFY_DATA;  stream_rx_request(s, s->rx_buf_size); break;
         case CUPKEE_EVENT_DRAIN: s->flags |= CUPKEE_STREAM_FL_NOTIFY_DRAIN; break;
         default: break;
         }

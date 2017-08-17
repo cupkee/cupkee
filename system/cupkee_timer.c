@@ -117,7 +117,7 @@ int cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
     timer->cb_param = param;
     timer->period = 0;
 
-    return 0;
+    return id;
 }
 
 int cupkee_timer_release(int id)

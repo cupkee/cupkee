@@ -27,6 +27,8 @@ SOFTWARE.
 #ifndef __CUPKEE_OBJECT_INC__
 #define __CUPKEE_OBJECT_INC__
 
+#define CUPKEE_ID_INVALID       (-1)
+
 #define OBJECT_PTR(p)    CUPKEE_CONTAINER_OF(p, cupkee_object_t, data)
 
 typedef struct cupkee_meta_t {
@@ -46,7 +48,7 @@ typedef struct cupkee_object_t {
     uint8_t err;
     uint16_t flags;
 
-    uint16_t id;
+    int16_t  id;
     uint16_t ref;
 
     uint8_t data[0];
