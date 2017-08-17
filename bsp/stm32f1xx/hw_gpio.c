@@ -26,8 +26,6 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define GROUP_MAX               4
-
 #define BANK_MAX                7
 #define BANK_MASK               7
 
@@ -37,7 +35,6 @@ SOFTWARE.
 #define PIN_MAP_MAX             32
 
 
-static uint8_t  led_map;
 static uint8_t  pin_maps[PIN_MAP_MAX];
 static uint16_t hw_gpio_used[BANK_MAX];
 
@@ -90,37 +87,11 @@ static inline int map_read(uint8_t map) {
     return (GPIO_IDR(bank_base) & (1 << pin)) != 0;
 }
 
-static void maps_write(int start, int n, uint32_t v) {
-    int i;
-
-    for (i = 0; i < n && start + i < PIN_MAP_MAX; i++) {
-        uint8_t map = pin_maps[start + i];
-
-        map_write(map, v & (1 << i));
-    }
-}
-
-static uint32_t maps_read(int start, int n) {
-    int i;
-    uint32_t v = 0;
-
-    for (i = 0; i < n && start + i < PIN_MAP_MAX; i++) {
-        uint8_t map = pin_maps[start + i];
-
-        v |= map_read(map) << i;
-    }
-    return v;
-}
-
 static inline void map_toggle(uint8_t map) {
     uint32_t bank_base = hw_gpio_bank[(map >> 4) & BANK_MAX];
     int pin = map & PIN_MASK;
 
     gpio_toggle(bank_base, 1 << pin);
-}
-
-static inline int map_use(uint8_t map) {
-    return hw_gpio_use(map_bank(map), 1 << map_pin(map));
 }
 
 static inline void map_release(uint8_t map) {
@@ -142,62 +113,70 @@ int hw_setup_gpio(void)
     for (i = 0; i < PIN_MAP_MAX; i++) {
         pin_maps[i] = 0xff;
     }
-    led_map = 0xff;
 
     /* initial pin device control blocks */
 
     return 0;
 }
 
-int hw_pin_map(int id, int bank, int pin)
+int hw_pin_map(int id, uint8_t bank, uint8_t pin, uint8_t dir)
 {
-    if (id < 0 || id >= PIN_MAP_MAX || bank >= BANK_MAX || pin >= PIN_MAX) {
+    uint8_t cnf, mod;
+
+    if ((unsigned)id >= PIN_MAP_MAX || bank >= BANK_MAX || pin >= PIN_MAX) {
         return -CUPKEE_EINVAL;
     }
 
-    pin_maps[id] = map_gpio(bank, pin);
-
-    return CUPKEE_OK;
-}
-
-int hw_led_map(int bank, int pin)
-{
-    uint8_t map;
-
-    if (bank >= BANK_MAX || pin >= PIN_MAX) {
+    switch (dir) {
+    case HW_DIR_IN:
+        mod = GPIO_MODE_INPUT;
+        cnf = GPIO_CNF_INPUT_PULL_UPDOWN;
+        break;
+    case HW_DIR_OUT:
+        mod = GPIO_MODE_OUTPUT_10_MHZ;
+        cnf = GPIO_CNF_OUTPUT_PUSHPULL;
+        break;
+    case HW_DIR_DUPLEX:
+        mod = GPIO_MODE_OUTPUT_2_MHZ;
+        cnf = GPIO_CNF_OUTPUT_OPENDRAIN;
+        break;
+    default:
         return -CUPKEE_EINVAL;
     }
-    map = map_gpio(bank, pin);
 
-    if (CUPKEE_FALSE == map_use(map)) {
-        return -CUPKEE_ERESOURCE;
+    if (hw_gpio_use_setup(bank, 1 << pin, mod, cnf)) {
+        uint8_t map = map_gpio(bank, pin);
+        uint8_t old = pin_maps[id];
+
+        map_release(old);
+        pin_maps[id] = map;
+
+        return CUPKEE_OK;
     }
-    map_set_mode(map, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL);
 
-    map_release(led_map);
-    led_map = map;
-
-    return CUPKEE_OK;
+    return -CUPKEE_ERESOURCE;
 }
 
-void hw_led_set(void)
+void hw_pin_set(int id, int v)
 {
-    if (map_is_valid(led_map)) {
-        map_write(led_map, 1);
-    }
-}
-
-void hw_led_clear(void)
-{
-    if (map_is_valid(led_map)) {
-        map_write(led_map, 0);
+    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+        map_write(pin_maps[id], v);
     }
 }
 
-void hw_led_toggle(void)
+int  hw_pin_get(int id)
 {
-    if (map_is_valid(led_map)) {
-        map_toggle(led_map);
+    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+        return map_read(pin_maps[id]);
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+void hw_pin_toggle(int id)
+{
+    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+        map_toggle(pin_maps[id]);
     }
 }
 

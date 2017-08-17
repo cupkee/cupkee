@@ -386,7 +386,8 @@ val_t native_print(env_t *env, int ac, val_t *av)
 
 val_t native_pin_map(env_t *env, int ac, val_t *av)
 {
-    int id, port, pin;
+    int id, port, pin, dir;
+    const char *str;
     (void) env;
 
     if (ac < 3 || !val_is_number(av) || !val_is_number(av + 1) || !val_is_number(av + 2)) {
@@ -396,47 +397,55 @@ val_t native_pin_map(env_t *env, int ac, val_t *av)
     id   = val_2_integer(av);
     port = val_2_integer(av + 1);
     pin  = val_2_integer(av + 2);
-
-    if (CUPKEE_OK == hw_pin_map(id, port, pin)) {
-        return VAL_TRUE;
-    } else {
-        return VAL_FALSE;
-    }
-}
-
-val_t native_led_map(env_t *env, int ac, val_t *av)
-{
-    int port, pin;
-
-    (void) env;
-
-    if (ac < 2 || !val_is_number(av) || !val_is_number(av + 1)) {
-        return VAL_FALSE;
-    }
-
-    port = val_2_integer(av);
-    pin  = val_2_integer(av + 1);
-
-    if (CUPKEE_OK == hw_led_map(port, pin)) {
-        return VAL_TRUE;
-    } else {
-        return VAL_FALSE;
-    }
-}
-
-val_t native_led(env_t *env, int ac, val_t *av)
-{
-    (void) env;
-
-    if (ac > 0) {
-        if (val_is_true(av)) {
-            hw_led_set();
-        } else {
-            hw_led_clear();
+    dir  = HW_DIR_DUPLEX;
+    if (ac > 3) {
+        str = val_2_cstring(av + 3);
+        if (str) {
+            if (!strcmp(str, "in")) {
+                dir = HW_DIR_IN;
+            } else
+            if (!strcmp(str, "out")) {
+                dir = HW_DIR_OUT;
+            }
         }
-    } else {
-        hw_led_toggle();
     }
+
+    if (CUPKEE_OK == hw_pin_map(id, port, pin, dir)) {
+        return VAL_TRUE;
+    } else {
+        return VAL_FALSE;
+    }
+}
+
+val_t native_pin(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+
+    if (ac > 0 && val_is_number(av)) {
+        int id = val_2_integer(av);
+
+        if (ac > 1) {
+            hw_pin_set(id, val_is_true(av + 1));
+            return VAL_TRUE;
+        } else {
+            return val_mk_number(hw_pin_get(id));
+        }
+    }
+
+    return VAL_UNDEFINED;
+}
+
+val_t native_pin_toggle(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+
+    if (ac > 0 && val_is_number(av)) {
+        int id = val_2_integer(av);
+
+        hw_pin_toggle(id);
+        return VAL_TRUE;
+    }
+
     return VAL_UNDEFINED;
 }
 

@@ -214,10 +214,20 @@ void hw_led_clear(void);
 void hw_led_toggle(void);
 
 /* GPIO */
-int   hw_pin_map(int id, int port, int pin);
+enum HW_DIR {
+    HW_DIR_IN,
+    HW_DIR_OUT,
+    HW_DIR_DUPLEX
+};
+
+int  hw_pin_map(int id, uint8_t port, uint8_t pin, uint8_t dir);
+int  hw_pin_get(int id);
+void hw_pin_set(int id, int v);
+void hw_pin_toggle(int id);
+
 
 /* TIMER */
-int hw_timer_alloc(void);
+int  hw_timer_alloc(void);
 void hw_timer_release(int inst);
 
 int hw_timer_start(int inst, int id, int us);
