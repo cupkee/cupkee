@@ -387,6 +387,10 @@ void hw_setup_usb(void)
 
 	usbd_register_set_config_callback(usb_hnd, cdcacm_set_config);
 
+    usb_msc_init(usb_hnd, 0x85, 64, 0x04, 64,
+        "cupkee", "cupdisk", "0.01", CUPKEE_SYSDISK_SECTOR_COUNT,
+        cupkee_sysdisk_read, cupkee_sysdisk_write);
+
     cdc_devid = 0;
     cdc_flags = 0;
 
@@ -397,15 +401,5 @@ void hw_setup_usb(void)
 void hw_poll_usb(void)
 {
     usbd_poll(usb_hnd);
-}
-
-void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
-                     int (*read_cb)(uint32_t lba, uint8_t *),
-                     int (*write_cb)(uint32_t lba, const uint8_t *))
-{
-    usb_msc_init(usb_hnd, 0x85, 64, 0x04, 64, vendor, product, version,
-            blocks, read_cb, write_cb);
-
-    //_usbd_reset(usb_hnd);
 }
 

@@ -34,7 +34,6 @@ SOFTWARE.
 #define QBVAL(x) ((x) & 0xFF), (((x) >> 8) & 0xFF),\
 		 (((x) >> 16) & 0xFF), (((x) >> 24) & 0xFF)
 
-#define SECTOR_COUNT		1024 * 32
 #define SECTOR_SIZE		    512
 #define BYTES_PER_SECTOR	512
 #define SECTORS_PER_CLUSTER	4
@@ -73,7 +72,7 @@ static const uint8_t boot_sector[] = {
 	WBVAL(RESERVED_SECTORS),		// # of reserved sectors (1 boot sector)
 	FAT_COPIES,						// FAT copies (2)
 	WBVAL(ROOT_ENTRIES),			// root entries (512)
-	WBVAL(SECTOR_COUNT),			// total number of sectors
+	WBVAL(CUPKEE_SYSDISK_SECTOR_COUNT),			// total number of sectors
 	0xF8,							// media descriptor (0xF8 = Fixed disk)
 	0x01, 0x00,						// sectors per FAT (1)
 	0x20, 0x00,						// sectors per track (32)
@@ -299,7 +298,7 @@ static void sysdisk_write_parse(const uint8_t *info)
     }
 }
 
-static int sysdisk_read(uint32_t lba, uint8_t *copy_to)
+int cupkee_sysdisk_read(uint32_t lba, uint8_t *copy_to)
 {
 	switch (lba) {
     case 0: // sector 0 is the boot sector
@@ -320,7 +319,7 @@ static int sysdisk_read(uint32_t lba, uint8_t *copy_to)
 	return 0;
 }
 
-static int sysdisk_write(uint32_t lba, const uint8_t *copy_from)
+int cupkee_sysdisk_write(uint32_t lba, const uint8_t *copy_from)
 {
     if (lba >= ROOT_START_SECTOR && lba < ROOT_END_SECTOR) {
         sysdisk_write_parse(copy_from);
@@ -365,9 +364,8 @@ void cupkee_sysdisk_init(void)
     curr_state = 0;
     curr_bank  = 0;
     curr_offset = 0;
-    sysdisk_scan();
 
-    hw_usb_msc_init("cupkee", "cupdisk", "0.01", SECTOR_COUNT, sysdisk_read, sysdisk_write);
+    sysdisk_scan();
 }
 
 const char *cupkee_sysdisk_app_script(void)

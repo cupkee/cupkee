@@ -97,5 +97,9 @@ static inline void cupkee_poll(void) {
     cupkee_event_poll();
 }
 
+#define CUPKEE_SYSDISK_SECTOR_COUNT		1024 * 32
+int cupkee_sysdisk_read(uint32_t lba, uint8_t *copy_to);
+int cupkee_sysdisk_write(uint32_t lba, const uint8_t *copy_from);
+
 #endif /* __CUPKEE_INC__ */
 

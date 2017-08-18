@@ -196,10 +196,6 @@ size_t hw_boot_memory_size(void);
 size_t hw_memory_left(void);
 size_t hw_malloc_all(void **p, size_t align);
 
-void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
-                     int (*read_cb)(uint32_t lba, uint8_t *),
-                     int (*write_cb)(uint32_t lba, const uint8_t *));
-
 uint32_t hw_storage_size(int bank);
 int hw_storage_erase (int bank);
 int hw_storage_update(int bank, uint32_t offset, const uint8_t *data, int len);
