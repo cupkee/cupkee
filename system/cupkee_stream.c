@@ -212,7 +212,7 @@ void cupkee_stream_sync(cupkee_stream_t *s, uint32_t systicks)
 {
     if (s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA
         && s->rx_buf && !cupkee_buffer_is_empty(s->rx_buf)
-        && (systicks - s->last_push) > 5) {
+        && (systicks - s->last_push) > 20) {
         cupkee_object_event_post(s->id, CUPKEE_EVENT_DATA);
     }
 }

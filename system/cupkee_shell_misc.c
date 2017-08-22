@@ -28,8 +28,8 @@ SOFTWARE.
 
 #include "cupkee_shell_misc.h"
 
-#define VARIABLE_REF_MAX    (16)
-#if VARIABLE_REF_MAX > 255
+#define VARIABLE_REF_MAX (32)
+#if     VARIABLE_REF_MAX > 255
 #error "VARIABLE_REF_MAX should not big than 255"
 #endif
 
@@ -449,3 +449,129 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     return VAL_UNDEFINED;
 }
 
+typedef struct cupkee_pin_map_t {
+    uint8_t num;
+    uint8_t pins[31];
+} cupkee_pin_map_t;
+
+static void map_elem_op_set(void *env, intptr_t id, val_t *val, val_t *res)
+{
+    int v = val_is_true(val);
+
+    (void) env;
+
+    hw_pin_set(id, v);
+    *res = val_mk_number(0);
+}
+
+static const val_foreign_op_t map_elem_op = {
+    .set  = map_elem_op_set,
+};
+
+static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
+{
+    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
+    uint32_t v, i;
+
+    (void) env;
+
+    if (val_is_number(val)) {
+        v = val_2_integer(val);
+    } else
+    if (val_is_true(val)) {
+        v = -1;
+    } else {
+        v = 0;
+    }
+
+    *res = val_mk_number(v);
+
+    for (i = 0; i < map->num; i++) {
+        hw_pin_set(map->pins[i], v & 1);
+        v = v >> 1;
+    }
+}
+
+/*
+static void map_op_get(void *env, intptr_t p, val_t *res)
+{
+    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
+    uint32_t v, i;
+
+    (void) env;
+
+    for (v = 0, i = 0; i < map->num; i++) {
+        if (hw_pin_get(map->pins[i])) {
+            v |= 1 << i;
+        }
+    }
+    val_set_number(res, v);
+}
+*/
+
+static void map_op_elem(void *env, intptr_t p, val_t *which, val_t *elem)
+{
+    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
+
+    (void) env;
+
+    if (map && val_is_number(which)) {
+        unsigned index = val_2_integer(which);
+
+        if (index < map->num) {
+            val_set_number(elem, hw_pin_get(map->pins[index]));
+            return;
+        }
+    }
+    val_set_undefined(elem);
+}
+
+static val_t *map_op_elem_ref(void *env, intptr_t p, val_t *key)
+{
+    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
+    int index;
+
+    if (!map || !val_is_number(key)) {
+        return NULL;
+    }
+    index = val_2_integer(key);
+    if (index < map->num) {
+        *key = val_create(env, &map_elem_op, map->pins[index]);
+    } else {
+        return NULL;
+    }
+
+    return key;
+}
+
+static const val_foreign_op_t map_op = {
+    .set  = map_op_set,
+    .elem = map_op_elem,
+    .elem_ref = map_op_elem_ref
+};
+
+val_t native_map(env_t *env, int ac, val_t *av)
+{
+    cupkee_pin_map_t *map = cupkee_malloc(sizeof(cupkee_pin_map_t));
+    uint8_t n, i;
+
+    if (!map) {
+        return VAL_UNDEFINED;
+    }
+
+    for (n = 0, i = 0; i < ac; i++) {
+        if (val_is_number(av + i)) {
+            uint8_t pin = val_2_integer(av + i);
+
+            map->pins[n++] = pin;
+        }
+    }
+
+    if (n) {
+        map->num = n;
+        return val_create(env, &map_op, (intptr_t)map);
+    } else {
+        cupkee_free(map);
+        return VAL_FALSE;
+    }
+}

@@ -30,7 +30,10 @@ SOFTWARE.
 
 typedef struct hw_timer_t {
     uint8_t inused;
-    int     timer_id;
+    uint8_t ccr_x;
+    uint16_t ccr_hi;
+    uint16_t ccr_lo;
+    int16_t timer_id;
 } hw_timer_t;
 
 static hw_timer_t  device_controls[HW_TIMER_NUM];
@@ -38,22 +41,25 @@ static const uint32_t device_base[] = {TIM2, TIM3, TIM4, TIM5};
 static const uint32_t device_rcc[] = {RCC_TIM2, RCC_TIM3, RCC_TIM4, RCC_TIM5};
 static const uint32_t device_irq[] = {NVIC_TIM2_IRQ, NVIC_TIM3_IRQ, NVIC_TIM4_IRQ, NVIC_TIM5_IRQ};
 
-static inline hw_timer_t *hw_device(int id) {
-    if (0 >= id && id < HW_TIMER_NUM) {
+static inline hw_timer_t *hw_device(unsigned id) {
+    if (id < HW_TIMER_NUM) {
         return &device_controls[id];
     } else {
         return NULL;
     }
 }
 
-void hw_setup_timer(void)
+static void hw_timer_setup(hw_timer_t *timer, uint32_t base, int us)
 {
-    int i;
+    uint16_t ccr_hi, ccr_lo;
 
-    for (i = 0; i < HW_TIMER_NUM; i++) {
-        device_controls[i].inused = 0;
-        device_controls[i].timer_id = -1;
-    }
+    ccr_hi = us / 50000;
+    ccr_lo = us % 50000;
+
+    timer->ccr_hi = ccr_hi;
+    timer->ccr_lo = ccr_lo;
+    timer->ccr_x  = ccr_hi;
+    TIM_ARR(base) = ccr_hi ? 50000 : ccr_lo;
 }
 
 int hw_timer_alloc(void)
@@ -88,25 +94,25 @@ void hw_timer_release(int inst)
 int hw_timer_start(int inst, int id, int us)
 {
     hw_timer_t *timer = hw_device(inst);
-    uint32_t base, arr;
+    uint32_t base;
 
     if (!timer || !timer->inused) {
         return -CUPKEE_EINVAL;
     }
-    timer->timer_id = id;
-    arr = us / 20;
 
-    if (arr < 1) {
-        arr = 1;
+    if (us < 1) {
+        us = 1;
     }
 
-    base = device_base[inst];
+    timer->timer_id = id;
 
+    base = device_base[inst];
     TIM_SR(base) = 0;
     TIM_CNT(base) = 0;
-    TIM_PSC(base) = 1440;
-    TIM_ARR(base) = 50000;
+    TIM_PSC(base) = 72; // 1 us
     TIM_DIER(base) = TIM_DIER_UIE;
+
+    hw_timer_setup(timer, base, us);
 
     nvic_enable_irq(device_irq[inst]);
     TIM_CR1(base) = TIM_CR1_CEN;
@@ -134,15 +140,15 @@ int hw_timer_stop(int inst)
 int hw_timer_update(int inst, int us)
 {
     hw_timer_t *timer = hw_device(inst);
-    uint32_t base, arr;
+    uint32_t base;
 
     if (!timer || !timer->inused) {
         return -CUPKEE_EINVAL;
     }
     base = device_base[inst];
 
-    arr = us / 20;
-    TIM_ARR(base) = arr > 0 ? arr : 1;
+    us = us < 1 ? 1 : us;
+    hw_timer_setup(timer, base, us);
 
     return 0;
 }
@@ -160,10 +166,39 @@ int hw_timer_duration_get(int inst)
     return TIM_CNT(base) * 20;
 }
 
-static inline void timer_isr(int x) {
-    TIM_SR(device_base[x]) &= ~TIM_SR_UIF;
+void hw_setup_timer(void)
+{
+    int i;
 
-    if (device_controls[x].inused) {
+    for (i = 0; i < HW_TIMER_NUM; i++) {
+        device_controls[i].inused = 0;
+        device_controls[i].timer_id = -1;
+    }
+}
+
+static inline void timer_isr(int x) {
+    hw_timer_t *timer = hw_device(x);
+    uint32_t    base = device_base[x];
+
+    TIM_SR(base) &= ~TIM_SR_UIF;
+    if (timer->inused) {
+        if (timer->ccr_x) {
+            if (--timer->ccr_x == 0) {
+                if (timer->ccr_lo) {
+                    TIM_ARR(base) = timer->ccr_lo;
+                    return;
+                } else {
+                    timer->ccr_x = timer->ccr_hi;
+                }
+            } else {
+                return;
+            }
+        } else {
+            if (timer->ccr_hi) {
+                timer->ccr_x = timer->ccr_hi;
+                TIM_ARR(base) = 50000;
+            }
+        }
         cupkee_timer_rewind(device_controls[x].timer_id);
     }
 }

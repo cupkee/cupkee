@@ -190,13 +190,13 @@ static void device_stream_init(cupkee_device_t *dev, int id)
 
     if (dev->driver->read) {
         // todo: get from conf
-        rx_size = 32;
+        rx_size = 128;
     } else {
         rx_size = 0;
     }
 
     if (dev->driver->write) {
-        tx_size = 32;
+        tx_size = 128;
     } else {
         tx_size = 0;
     }
