@@ -162,45 +162,15 @@ const char *hw_storage_data_map(int bank)
     return NULL;
 }
 
-void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
-                     int (*read_cb)(uint32_t lba, uint8_t *),
-                     int (*write_cb)(uint32_t lba, const uint8_t *))
-{
-    (void) vendor;
-    (void) product;
-    (void) version;
-    (void) blocks;
-    (void) read_cb;
-    (void) write_cb;
-}
-
-/* DEBUG LED */
-int  hw_led_map(int port, int pin)
-{
-    (void) port;
-    (void) pin;
-    return 0;
-}
-
-void hw_led_set(void)
-{}
-
-void hw_led_clear(void)
-{}
-
-void hw_led_toggle(void)
-{}
-
 /* GPIO */
-int   hw_pin_map(int id, int port, int pin)
+int   hw_pin_map(int id, uint8_t port, uint8_t pin, uint8_t dir)
 {
     (void) id;
     (void) port;
     (void) pin;
+    (void) dir;
     return 0;
 }
-
-/* DEVICE */
 
 /* TIMER */
 int hw_timer_alloc(void)

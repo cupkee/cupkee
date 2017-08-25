@@ -157,6 +157,18 @@ int hw_pin_map(int id, uint8_t bank, uint8_t pin, uint8_t dir)
     return -CUPKEE_ERESOURCE;
 }
 
+int hw_pin_unmap(int id)
+{
+    uint8_t map;
+
+    if ((unsigned)id >= PIN_MAP_MAX || !map_is_valid(map = pin_maps[id])) {
+        return -CUPKEE_EINVAL;
+    }
+    map_release(map);
+
+    return 0;
+}
+
 void hw_pin_set(int id, int v)
 {
     if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {

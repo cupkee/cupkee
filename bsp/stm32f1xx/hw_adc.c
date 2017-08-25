@@ -42,7 +42,7 @@ typedef struct hw_adc_t {
     uint8_t changed;
     uint16_t sleep;
 
-    uint16_t data[HW_CHN_MAX_ADC];
+    uint16_t data[8];
 } hw_adc_t;
 
 static hw_adc_t adcs[ADC_MAX];

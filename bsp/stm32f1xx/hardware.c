@@ -35,6 +35,8 @@ extern vector_table_t vector_table;
 void *hw_memory_bgn = NULL;
 void *hw_memory_end = NULL;
 
+static int8_t boot_state = HW_BOOT_STATE_NORMAL;
+
 static void hw_memory_init(void)
 {
     hw_memory_bgn = CUPKEE_ADDR_ALIGN(&end, 16);
@@ -108,6 +110,14 @@ void hw_info_get(hw_info_t *info)
     }
 }
 
+static void hw_boot_mode_probe(void)
+{
+    if (0 == hw_pin_map(0, 0, 0, HW_DIR_IN)) {
+        boot_state = hw_pin_get(0) > 0 ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_NORMAL;
+        hw_pin_unmap(0);
+    }
+}
+
 void hw_setup(void)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -119,6 +129,8 @@ void hw_setup(void)
     hw_setup_timer();
     hw_setup_storage();
     hw_setup_systick();
+
+    hw_boot_mode_probe();
 }
 
 int hw_device_setup(void)
@@ -144,3 +156,7 @@ void hw_halt(void)
         ;
 }
 
+int  hw_boot_state(void)
+{
+    return boot_state;
+}
