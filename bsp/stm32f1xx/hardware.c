@@ -26,8 +26,6 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define C_STACK_SIZE 8192
-
 extern char _etext;  // devined in ld scripts
 extern char end;     // defined in ld scripts
 
@@ -37,10 +35,10 @@ void *hw_memory_end = NULL;
 
 static int8_t boot_state = HW_BOOT_STATE_PRODUCT;
 
-static void hw_memory_init(void)
+static void hw_setup_memory(void)
 {
     hw_memory_bgn = CUPKEE_ADDR_ALIGN(&end, 16);
-    hw_memory_end = (char *)(vector_table.initial_sp_value) - C_STACK_SIZE;
+    hw_memory_end = (char *)(vector_table.initial_sp_value) - SYSTEM_STACK_SIZE;
 }
 
 static void hw_setup_systick(void)
@@ -114,6 +112,7 @@ static void hw_boot_mode_probe(void)
 {
     if (0 == hw_pin_map(0, BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
         boot_state = hw_pin_get(0) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
+
         hw_pin_unmap(0);
     }
 }
@@ -122,15 +121,21 @@ void hw_setup(void)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
-    /* initial resource system depend on */
-    hw_memory_init();
+    hw_setup_memory();
 
     hw_setup_gpio();
+
+    hw_boot_mode_probe();
+    if (boot_state == HW_BOOT_STATE_PRODUCT) {
+        rcc_periph_clock_enable(RCC_AFIO);
+
+        // Disable SW and JTAG
+        AFIO_MAPR = (AFIO_MAPR & ~AFIO_MAPR_SWJ_MASK) | AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_OFF;
+    }
+
     hw_setup_timer();
     hw_setup_storage();
     hw_setup_systick();
-
-    hw_boot_mode_probe();
 }
 
 int hw_device_setup(void)
