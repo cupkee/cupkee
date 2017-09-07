@@ -26,22 +26,13 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define BANK_MAX                7
-#define BANK_MASK               7
+static uint8_t  pin_maps[GPIO_MAP_MAX];
+static uint16_t hw_gpio_used[GPIO_BANK_MAX];
 
-#define PIN_MAX                 16
-#define PIN_MASK                15
-
-#define PIN_MAP_MAX             32
-
-
-static uint8_t  pin_maps[PIN_MAP_MAX];
-static uint16_t hw_gpio_used[BANK_MAX];
-
-static const uint32_t hw_gpio_rcc[BANK_MAX] = {
+static const uint32_t hw_gpio_rcc[GPIO_BANK_MAX] = {
     RCC_GPIOA, RCC_GPIOB, RCC_GPIOC, RCC_GPIOD, RCC_GPIOE, RCC_GPIOF, RCC_GPIOF
 };
-static const uint32_t hw_gpio_bank[BANK_MAX] = {
+static const uint32_t hw_gpio_bank[GPIO_BANK_MAX] = {
     GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG
 };
 
@@ -52,15 +43,15 @@ static inline int map_is_valid(uint8_t map)
 
 static inline uint8_t map_gpio(int bank, int pin)
 {
-    return (bank << 4) | (pin & PIN_MASK);
+    return (bank << 4) | (pin & GPIO_PIN_MASK);
 }
 
 static inline int map_bank(uint8_t map) {
-    return (map >> 4) & BANK_MASK;
+    return (map >> 4) & GPIO_BANK_MASK;
 }
 
 static inline int map_pin(uint8_t map) {
-    return map & PIN_MASK;
+    return map & GPIO_PIN_MASK;
 }
 
 static inline void map_set_mode(uint8_t map, uint8_t mode, uint8_t cnf) {
@@ -81,15 +72,15 @@ static inline void map_write(uint8_t map, int v) {
 }
 
 static inline int map_read(uint8_t map) {
-    uint32_t bank_base = hw_gpio_bank[(map >> 4) & BANK_MAX];
-    int pin = map & PIN_MASK;
+    uint32_t bank_base = hw_gpio_bank[(map >> 4) & GPIO_BANK_MAX];
+    int pin = map & GPIO_PIN_MASK;
 
     return (GPIO_IDR(bank_base) & (1 << pin)) != 0;
 }
 
 static inline void map_toggle(uint8_t map) {
-    uint32_t bank_base = hw_gpio_bank[(map >> 4) & BANK_MAX];
-    int pin = map & PIN_MASK;
+    uint32_t bank_base = hw_gpio_bank[(map >> 4) & GPIO_BANK_MAX];
+    int pin = map & GPIO_PIN_MASK;
 
     gpio_toggle(bank_base, 1 << pin);
 }
@@ -105,12 +96,12 @@ int hw_setup_gpio(void)
     int i;
 
     /* initial all pin useable */
-    for (i = 0; i < BANK_MAX; i++) {
+    for (i = 0; i < GPIO_BANK_MAX; i++) {
         hw_gpio_used[i] = 0;
     }
 
     /* initial all pin map invalid */
-    for (i = 0; i < PIN_MAP_MAX; i++) {
+    for (i = 0; i < GPIO_MAP_MAX; i++) {
         pin_maps[i] = 0xff;
     }
 
@@ -123,7 +114,7 @@ int hw_pin_map(int id, uint8_t bank, uint8_t pin, uint8_t dir)
 {
     uint8_t cnf, mod;
 
-    if ((unsigned)id >= PIN_MAP_MAX || bank >= BANK_MAX || pin >= PIN_MAX) {
+    if ((unsigned)id >= GPIO_MAP_MAX || bank >= GPIO_BANK_MAX || pin >= GPIO_PIN_MAX) {
         return -CUPKEE_EINVAL;
     }
 
@@ -161,7 +152,7 @@ int hw_pin_unmap(int id)
 {
     uint8_t map;
 
-    if ((unsigned)id >= PIN_MAP_MAX || !map_is_valid(map = pin_maps[id])) {
+    if ((unsigned)id >= GPIO_MAP_MAX || !map_is_valid(map = pin_maps[id])) {
         return -CUPKEE_EINVAL;
     }
     map_release(map);
@@ -171,14 +162,14 @@ int hw_pin_unmap(int id)
 
 void hw_pin_set(int id, int v)
 {
-    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
         map_write(pin_maps[id], v);
     }
 }
 
 int  hw_pin_get(int id)
 {
-    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
         return map_read(pin_maps[id]);
     } else {
         return -CUPKEE_EINVAL;
@@ -187,14 +178,14 @@ int  hw_pin_get(int id)
 
 void hw_pin_toggle(int id)
 {
-    if ((unsigned)id < PIN_MAP_MAX && map_is_valid(pin_maps[id])) {
+    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
         map_toggle(pin_maps[id]);
     }
 }
 
 int hw_gpio_use(int bank, uint16_t pins)
 {
-    if (bank >= BANK_MAX || (hw_gpio_used[bank] & pins)) {
+    if (bank >= GPIO_BANK_MAX || (hw_gpio_used[bank] & pins)) {
         return CUPKEE_FALSE;
     }
 
@@ -220,7 +211,7 @@ int hw_gpio_use_setup(int bank, uint16_t pins, uint8_t mode, uint8_t cnf)
 
 int hw_gpio_release(int bank, uint16_t pins)
 {
-    if (bank >= BANK_MAX) {
+    if (bank >= GPIO_BANK_MAX) {
         return 0;
     }
 

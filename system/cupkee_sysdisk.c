@@ -208,11 +208,7 @@ static void sysdisk_write_init(const uint8_t *data)
     const uint8_t *type;
     int i;
 
-    if (data[0] != '/') {
-        return;
-    }
-
-    if (data[1] != '/' && data[1] != '*') {
+    if (!(data[0] == '#' || (data[0] == '/' && (data[1] == '/' || data[1] == '*')))) {
         return;
     }
 
@@ -264,6 +260,7 @@ static void sysdisk_write_finish(const uint8_t *entry)
 
     cluster = entry[26] + entry[27] * 256;
     size = entry[28] + entry[29] * 256 + entry[30] * 0x10000 + entry[31] * 0x1000000;
+
     if (bank == HW_STORAGE_BANK_APP) {
         app_start_sector = FILEDATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER;
         max_size = hw_storage_size(bank);
@@ -284,7 +281,7 @@ static void sysdisk_write_finish(const uint8_t *entry)
 
     if (old_size != size) {
         hw_storage_finish(bank, size);
-        console_log_sync("update %s: %dbytes\r\n", target, size);
+        console_log("update %s: %dbytes\r\n", target, size);
     }
 }
 

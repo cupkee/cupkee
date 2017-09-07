@@ -35,7 +35,7 @@ extern vector_table_t vector_table;
 void *hw_memory_bgn = NULL;
 void *hw_memory_end = NULL;
 
-static int8_t boot_state = HW_BOOT_STATE_NORMAL;
+static int8_t boot_state = HW_BOOT_STATE_PRODUCT;
 
 static void hw_memory_init(void)
 {
@@ -112,8 +112,8 @@ void hw_info_get(hw_info_t *info)
 
 static void hw_boot_mode_probe(void)
 {
-    if (0 == hw_pin_map(0, 0, 0, HW_DIR_IN)) {
-        boot_state = hw_pin_get(0) > 0 ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_NORMAL;
+    if (0 == hw_pin_map(0, BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
+        boot_state = hw_pin_get(0) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
         hw_pin_unmap(0);
     }
 }

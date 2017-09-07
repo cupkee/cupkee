@@ -32,8 +32,7 @@ SOFTWARE.
 #include <string.h>
 #include <stdint.h>
 
-/* Todo: need cupkee_config.h ? */
-/* Todo: put to cupkee_type.h ? */
+/* Todo: cupkee_def.h ? */
 #define CUPKEE_TRUE                     1
 #define CUPKEE_FALSE                    0
 
@@ -55,8 +54,7 @@ SOFTWARE.
 
 typedef int (*cupkee_callback_t)(int id, int event, intptr_t param);
 
-/* Todo: put to User configure ? */
-#define APP_DEV_MAX                     8
+/* Todo: cupkee_config.h ? */
 
 /* Cupkee api */
 void cupkee_init(void);

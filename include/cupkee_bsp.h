@@ -43,7 +43,7 @@ SOFTWARE.
 #define HW_STORAGE_BANK_APP                 2
 #define HW_STORAGE_BANK_CFG                 3
 
-#define HW_BOOT_STATE_NORMAL                0
+#define HW_BOOT_STATE_PRODUCT               0
 #define HW_BOOT_STATE_DEVEL                 1
 
 enum HW_DIR {
@@ -94,7 +94,6 @@ int  hw_pin_unmap(int id);
 int  hw_pin_get(int id);
 void hw_pin_set(int id, int v);
 void hw_pin_toggle(int id);
-
 
 /* TIMER */
 int  hw_timer_alloc(void);
