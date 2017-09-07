@@ -406,15 +406,15 @@ val_t native_pin_map(env_t *env, int ac, val_t *av)
     id   = val_2_integer(av);
     port = val_2_integer(av + 1);
     pin  = val_2_integer(av + 2);
-    dir  = HW_DIR_DUPLEX;
+    dir  = HW_DIR_OUT;  // default is output
     if (ac > 3) {
         str = val_2_cstring(av + 3);
         if (str) {
             if (!strcmp(str, "in")) {
                 dir = HW_DIR_IN;
             } else
-            if (!strcmp(str, "out")) {
-                dir = HW_DIR_OUT;
+            if (!strcmp(str, "duplex")) {
+                dir = HW_DIR_DUPLEX;
             }
         }
     }
