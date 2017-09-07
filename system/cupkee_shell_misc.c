@@ -315,28 +315,6 @@ int shell_val_id(val_t *v, int max, const char * const *names)
     }
 }
 
-void *cupkee_val2data(val_t *data, int *size)
-{
-    void *ptr;
-    int len;
-
-    if (val_is_buffer(data)) {
-        ptr = _val_buffer_addr(data);
-        len = _val_buffer_size(data);
-    } else
-    if ((len = string_len(data)) > 0) {
-        ptr = (void *) val_2_cstring(data);
-    } else {
-        ptr = NULL;
-        len = 0;
-    }
-
-    if (size)
-        *size = len;
-
-    return ptr;
-}
-
 val_t native_sysinfos(env_t *env, int ac, val_t *av)
 {
     hw_info_t hw;
@@ -384,6 +362,38 @@ val_t native_print(env_t *env, int ac, val_t *av)
     return VAL_UNDEFINED;
 }
 
+val_t native_erase(env_t *env, int ac, val_t *av)
+{
+    const char *target;
+    int bank;
+
+    (void) env;
+
+    if (ac > 0) {
+        target = val_2_cstring(av);
+    } else {
+        target = "app";
+    }
+
+    if (!strcmp(target, "APP") || !strcmp(target, "app")) {
+        hw_storage_erase(HW_STORAGE_BANK_APP);
+        return VAL_TRUE;
+    } else
+    if (!strcmp(target, "CONFIG") || !strcmp(target, "config")) {
+        hw_storage_erase(HW_STORAGE_BANK_CFG);
+        return VAL_TRUE;
+    } else
+    if (!strcmp(target, "ALL") || !strcmp(target, "all")) {
+        hw_storage_erase(HW_STORAGE_BANK_APP);
+        hw_storage_erase(HW_STORAGE_BANK_CFG);
+        return VAL_TRUE;
+    }
+
+    return VAL_FALSE;
+}
+
+
+/* GPIO */
 val_t native_pin_map(env_t *env, int ac, val_t *av)
 {
     int id, port, pin, dir;
@@ -449,6 +459,7 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     return VAL_UNDEFINED;
 }
 
+/* GPIO MAP */
 typedef struct cupkee_pin_map_t {
     uint8_t num;
     uint8_t pins[31];
@@ -491,23 +502,6 @@ static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
         v = v >> 1;
     }
 }
-
-/*
-static void map_op_get(void *env, intptr_t p, val_t *res)
-{
-    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
-    uint32_t v, i;
-
-    (void) env;
-
-    for (v = 0, i = 0; i < map->num; i++) {
-        if (hw_pin_get(map->pins[i])) {
-            v |= 1 << i;
-        }
-    }
-    val_set_number(res, v);
-}
-*/
 
 static void map_op_elem(void *env, intptr_t p, val_t *which, val_t *elem)
 {

@@ -48,7 +48,5 @@ void   cupkee_ref_dec(val_t *r);
 int   cupkee_execute_string(const char *script, val_t **res);
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
 
-void *cupkee_val2data(val_t *data, int *size);
-
 #endif /* __CUPKEE_SHELL_INC__ */
 
