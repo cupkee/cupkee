@@ -35,7 +35,7 @@ static uint8_t device_type_num = 0;
 static cupkee_device_desc_t const *device_descs[DEVICE_TYPE_MAX];
 static cupkee_device_t      *device_work = NULL;
 
-static inline cupkee_device_t *device_block(int id)
+static inline cupkee_device_t *device_data(int id)
 {
     return (cupkee_device_t *) cupkee_data(id, device_tag);
 }
@@ -114,7 +114,7 @@ static int device_request(int type, int instance)
 
     id = cupkee_id(device_tag);
     if (id >= 0) {
-        cupkee_device_t *dev = device_block(id);
+        cupkee_device_t *dev = device_data(id);
 
         dev->instance = instance;
         dev->type = type;
@@ -155,7 +155,7 @@ static void device_destroy(void *data)
 
 static int device_read(cupkee_stream_t *s, size_t n, void *buf)
 {
-    cupkee_device_t *dev = device_block(s->id);
+    cupkee_device_t *dev = device_data(s->id);
 
     if (!dev) {
         return -CUPKEE_EINVAL;
@@ -170,7 +170,7 @@ static int device_read(cupkee_stream_t *s, size_t n, void *buf)
 
 static int device_write(cupkee_stream_t *s, size_t n, const void *data)
 {
-    cupkee_device_t *dev = device_block(s->id);
+    cupkee_device_t *dev = device_data(s->id);
 
     if (!dev) {
         return -CUPKEE_EINVAL;
@@ -247,7 +247,7 @@ static int device_query_start(cupkee_device_t *dev, void *req, int want, cupkee_
 
 static void device_event_handle(int id, uint8_t event)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (dev) {
         if (dev->handle) {
@@ -394,7 +394,7 @@ int cupkee_device_request(const char *name, int instance)
 
 int cupkee_device_handle_set(int id, cupkee_callback_t handle, intptr_t param)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev) {
         return -1;
@@ -408,7 +408,7 @@ int cupkee_device_handle_set(int id, cupkee_callback_t handle, intptr_t param)
 
 cupkee_callback_t cupkee_device_handle_fn(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev) {
         return NULL;
@@ -418,7 +418,7 @@ cupkee_callback_t cupkee_device_handle_fn(int id)
 
 intptr_t cupkee_device_handle_param(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev) {
         return 0;
@@ -433,7 +433,7 @@ int cupkee_is_device(int id)
 
 int cupkee_device_enable(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
     int err;
 
     if (device_is_enabled(dev)) {
@@ -456,7 +456,7 @@ int cupkee_device_enable(int id)
 
 int cupkee_device_disable(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         device_reset(dev);
@@ -467,12 +467,12 @@ int cupkee_device_disable(int id)
 
 int cupkee_device_is_enabled(int id)
 {
-    return device_is_enabled(device_block(id));
+    return device_is_enabled(device_data(id));
 }
 
 void *cupkee_device_request_take(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         void *req = dev->req;
@@ -485,7 +485,7 @@ void *cupkee_device_request_take(int id)
 
 void *cupkee_device_response_take(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         void *res = dev->res;
@@ -499,7 +499,7 @@ void *cupkee_device_response_take(int id)
 
 int cupkee_device_request_len(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         if (dev->req) {
@@ -513,7 +513,7 @@ int cupkee_device_request_len(int id)
 }
 void *cupkee_device_request_ptr(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         if (dev->req) {
@@ -528,7 +528,7 @@ void *cupkee_device_request_ptr(int id)
 
 int cupkee_device_request_load(int id, size_t n, void *data)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev)) {
         if (dev->req) {
@@ -543,7 +543,7 @@ int cupkee_device_request_load(int id, size_t n, void *data)
 
 int cupkee_device_response_push(int id, size_t n, void *data)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev) && dev->res) {
         return cupkee_buffer_give(dev->res, n, data);
@@ -554,7 +554,7 @@ int cupkee_device_response_push(int id, size_t n, void *data)
 
 void cupkee_device_response_end(int id)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (device_is_enabled(dev) && (dev->flags & DEVICE_FL_BUSY)) {
         cupkee_object_event_post(id, CUPKEE_EVENT_RESPONSE);
@@ -565,7 +565,7 @@ int cupkee_device_query(int id, size_t req_len, void *req_data, int want, cupkee
 {
     int err;
     void *req = NULL;
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!device_is_enabled(dev)) {
         return -CUPKEE_EENABLED;
@@ -589,7 +589,7 @@ int cupkee_device_query(int id, size_t req_len, void *req_data, int want, cupkee
 
 int cupkee_device_query2(int id, void *req, int want, cupkee_callback_t cb, intptr_t param)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!device_is_enabled(dev)) {
         return -CUPKEE_EENABLED;
@@ -604,7 +604,7 @@ int cupkee_device_query2(int id, void *req, int want, cupkee_callback_t cb, intp
 
 int cupkee_device_push(int id, size_t n, const void *data)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev || !dev->s) {
         return -CUPKEE_EINVAL;
@@ -615,7 +615,7 @@ int cupkee_device_push(int id, size_t n, const void *data)
 
 int cupkee_device_pull(int id, size_t n, void *buf)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev || !dev->s) {
         return -CUPKEE_EINVAL;
@@ -626,7 +626,7 @@ int cupkee_device_pull(int id, size_t n, void *buf)
 
 int cupkee_device_unshift(int id, uint8_t data)
 {
-    cupkee_device_t *dev = device_block(id);
+    cupkee_device_t *dev = device_data(id);
 
     if (!dev || !dev->s) {
         return -CUPKEE_EINVAL;

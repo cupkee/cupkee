@@ -71,10 +71,12 @@ int  cupkee_object_error_get(cupkee_object_t *obj);
 
 void cupkee_object_listen(cupkee_object_t *obj, int event);
 void cupkee_object_ignore(cupkee_object_t *obj, int event);
-int  cupkee_object_read(cupkee_object_t *obj, size_t n, void *buf);
-int  cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf);
-int  cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data);
-int  cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data);
+
+int cupkee_object_read(cupkee_object_t *obj, size_t n, void *buf);
+int cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf);
+int cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data);
+int cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data);
+int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data);
 
 
 int  cupkee_id(int tag);

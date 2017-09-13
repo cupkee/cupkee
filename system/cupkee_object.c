@@ -51,13 +51,6 @@ static inline const cupkee_meta_t *object_meta(cupkee_object_t *obj) {
     }
 }
 
-static inline void object_map(cupkee_object_t *obj, int id)
-{
-    obj->id = id;
-    obj_map[id] = obj;
-    obj_map_num++;
-}
-
 static int id_alloc(void)
 {
     if (obj_map_num < obj_map_size) {
@@ -69,6 +62,23 @@ static int id_alloc(void)
         }
     }
     return -1;
+}
+
+static inline void object_map(cupkee_object_t *obj, int id)
+{
+    if (!obj_map[id]) {
+        obj->id = id;
+        obj_map[id] = obj;
+        ++obj_map_num;
+    }
+}
+
+static inline void object_unmap(cupkee_object_t *obj)
+{
+    if (obj->id < obj_map_size && obj == obj_map[obj->id]) {
+        obj_map[obj->id] = NULL;
+        --obj_map_num;
+    }
 }
 
 static inline cupkee_object_t *id_object(int id) {
@@ -225,6 +235,22 @@ int  cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf)
     return cupkee_stream_read_sync(s, n, buf);
 }
 
+int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data)
+{
+    const cupkee_meta_t *meta = object_meta(obj);
+    cupkee_stream_t *s;
+
+    if (!meta) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return cupkee_stream_unshift(s, data);
+}
+
 int  cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data)
 {
     const cupkee_meta_t *meta = object_meta(obj);
@@ -280,9 +306,8 @@ void cupkee_release(int id)
     cupkee_object_t *obj = id_object(id);
 
     if (obj) {
+        object_unmap(obj);
         cupkee_object_destroy(obj);
-        obj_map[id] = NULL;
-        obj_map_num --;
     }
 }
 
