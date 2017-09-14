@@ -101,10 +101,6 @@ int cupkee_device_streaming( int id,
     int (*_write)(cupkee_stream_t *s, size_t n, const void *data)
 );
 
-int cupkee_device_read(int id, size_t n, void *buf);
-int cupkee_device_write(int id, size_t n, const uint8_t *data);
-int cupkee_device_write_sync(int id, size_t n, const uint8_t *data);
-
 void *cupkee_device_request_take(int id);
 void *cupkee_device_response_take(int id);
 

@@ -31,11 +31,9 @@ typedef struct timer_param_t {
     val_t *handle;
 } timer_param_t;
 
-static int  timer_is_true(intptr_t timer);
 static void timer_op_prop(void *env, intptr_t id, val_t *name, val_t *prop);
 
 static const val_foreign_op_t timer_op = {
-    .is_true = timer_is_true,
     .prop    = timer_op_prop,
 };
 
@@ -165,12 +163,6 @@ static val_t native_timer_duration(env_t *env, int ac, val_t *av)
     }
 
     return val_mk_number(cupkee_timer_duration(timer));
-}
-
-
-static int timer_is_true(intptr_t timer)
-{
-    return cupkee_timer_state(timer) == CUPKEE_TIMER_STATE_RUNNING;
 }
 
 static void timer_op_prop(void *env, intptr_t id, val_t *name, val_t *prop)

@@ -266,7 +266,7 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
 
         while (1 == cupkee_device_pull(cdc_devid, 1, &data)) {
             if (1 != cdc_send_byte(data)) {
-                cupkee_device_unshift(cdc_devid, data);
+                cupkee_unshift(cdc_devid, data);
                 cdc_flags &= ~HW_FL_TXE;
                 break;
             }

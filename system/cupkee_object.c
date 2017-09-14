@@ -51,19 +51,6 @@ static inline const cupkee_meta_t *object_meta(cupkee_object_t *obj) {
     }
 }
 
-static int id_alloc(void)
-{
-    if (obj_map_num < obj_map_size) {
-        int id;
-        for (id = 0; id < obj_map_size; id++) {
-            if (!obj_map[id]) {
-                return id;
-            }
-        }
-    }
-    return -1;
-}
-
 static inline void object_map(cupkee_object_t *obj, int id)
 {
     if (!obj_map[id]) {
@@ -81,16 +68,25 @@ static inline void object_unmap(cupkee_object_t *obj)
     }
 }
 
+static int id_alloc(void)
+{
+    if (obj_map_num < obj_map_size) {
+        int id;
+        for (id = 0; id < obj_map_size; id++) {
+            if (!obj_map[id]) {
+                return id;
+            }
+        }
+    }
+    return -1;
+}
+
 static inline cupkee_object_t *id_object(int id) {
     if ((unsigned)id >= (unsigned)obj_map_size) {
         return NULL;
     }
 
     return obj_map[id];
-}
-
-static inline const cupkee_meta_t *id_meta(int id) {
-    return object_meta(id_object(id));
 }
 
 int cupkee_object_setup(void)
@@ -112,13 +108,14 @@ int cupkee_object_setup(void)
     return 0;
 }
 
-void cupkee_object_event_dispatch(uint16_t which, uint8_t code)
+void cupkee_object_event_dispatch(uint16_t id, uint8_t code)
 {
-    const cupkee_meta_t *meta = id_meta(which);
+    cupkee_object_t *obj = id_object(id);
+    const cupkee_meta_t *meta = object_meta(obj);
 
     // printf("object[%u, %p] event: %u\n", which, obj, code);
     if (meta && meta->event_handle) {
-        meta->event_handle(which, code);
+        meta->event_handle(obj->entry, code);
     }
 }
 
@@ -157,7 +154,7 @@ void cupkee_object_destroy(cupkee_object_t *obj)
 
     if (meta) {
         if (meta->destroy) {
-            meta->destroy(obj->data);
+            meta->destroy(obj->entry);
         }
 
         list_del(&obj->list);
@@ -190,7 +187,7 @@ void cupkee_object_listen(cupkee_object_t *obj, int event)
     const cupkee_meta_t *meta = object_meta(obj);
 
     if (meta && meta->listen) {
-        meta->listen(obj->data, event);
+        meta->listen(obj->entry, event);
     }
 }
 
@@ -199,7 +196,7 @@ void cupkee_object_ignore(cupkee_object_t *obj, int event)
     const cupkee_meta_t *meta = object_meta(obj);
 
     if (meta && meta->ignore) {
-        meta->ignore(obj->data, event);
+        meta->ignore(obj->entry, event);
     }
 }
 
@@ -212,7 +209,7 @@ int  cupkee_object_read(cupkee_object_t *obj, size_t n, void *buf)
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -228,7 +225,7 @@ int  cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf)
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -244,7 +241,7 @@ int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data)
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -260,7 +257,7 @@ int  cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data)
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -276,7 +273,7 @@ int  cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data)
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->data))) {
+    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -311,12 +308,12 @@ void cupkee_release(int id)
     }
 }
 
-void *cupkee_data(int id, uint8_t tag)
+void *cupkee_entry(int id, uint8_t tag)
 {
     cupkee_object_t *obj = id_object(id);
 
     if (obj && obj->tag == tag) {
-        return obj->data;
+        return obj->entry;
     }
 
     return NULL;
@@ -382,5 +379,10 @@ int cupkee_write(int id, size_t n, const void *data)
 int cupkee_write_sync(int id, size_t n, const void *data)
 {
     return cupkee_object_write_sync(id_object(id), n, data);
+}
+
+int cupkee_unshift(int id, uint8_t data)
+{
+    return cupkee_object_unshift(id_object(id), data);
 }
 

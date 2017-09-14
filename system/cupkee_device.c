@@ -27,17 +27,15 @@ SOFTWARE.
 #include "cupkee.h"
 #include "cupkee_shell_device.h"
 
-#define DEVICE_TYPE_MAX  16
-
 static uint8_t device_tag = 0xff;
 static uint8_t device_type_num = 0;
 
-static cupkee_device_desc_t const *device_descs[DEVICE_TYPE_MAX];
+static cupkee_device_desc_t const *device_descs[CUPKEE_DEVICE_TYPE_MAX];
 static cupkee_device_t      *device_work = NULL;
 
 static inline cupkee_device_t *device_data(int id)
 {
-    return (cupkee_device_t *) cupkee_data(id, device_tag);
+    return (cupkee_device_t *) cupkee_entry(id, device_tag);
 }
 
 static inline int device_is_enabled(cupkee_device_t *dev) {
@@ -245,13 +243,13 @@ static int device_query_start(cupkee_device_t *dev, void *req, int want, cupkee_
     return err;
 }
 
-static void device_event_handle(int id, uint8_t event)
+static void device_event_handle(void *entry, uint8_t event)
 {
-    cupkee_device_t *dev = device_data(id);
+    cupkee_device_t *dev = (cupkee_device_t *)entry;
 
     if (dev) {
         if (dev->handle) {
-            dev->handle(id, event, dev->handle_param);
+            dev->handle(CUPKEE_ENTRY_ID(entry), event, dev->handle_param);
         }
         if (event == CUPKEE_EVENT_RESPONSE) {
             if (dev->res) {
@@ -342,7 +340,7 @@ int cupkee_device_register(const cupkee_device_desc_t *desc)
         return -CUPKEE_EINVAL;
     }
 
-    if (device_type_num >= DEVICE_TYPE_MAX) {
+    if (device_type_num >= CUPKEE_DEVICE_TYPE_MAX) {
         return -CUPKEE_ELIMIT;
     }
 
@@ -624,6 +622,7 @@ int cupkee_device_pull(int id, size_t n, void *buf)
     return cupkee_stream_pull(dev->s, n, buf);
 }
 
+/*
 int cupkee_device_unshift(int id, uint8_t data)
 {
     cupkee_device_t *dev = device_data(id);
@@ -634,31 +633,5 @@ int cupkee_device_unshift(int id, uint8_t data)
 
     return cupkee_stream_unshift(dev->s, data);
 }
-
-int cupkee_device_read(int id, size_t n, void *buf)
-{
-    (void) id;
-    (void) n;
-    (void) buf;
-
-    return 0;
-}
-
-int cupkee_device_write(int id, size_t n, const uint8_t *data)
-{
-    (void) id;
-    (void) n;
-    (void) data;
-    return 0;
-}
-
-int cupkee_device_write_sync(int id, size_t n, const uint8_t *data)
-{
-    (void) id;
-    (void) n;
-    (void) data;
-
-    return 0;
-}
-
+*/
 

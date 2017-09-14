@@ -36,6 +36,19 @@ SOFTWARE.
 #define CUPKEE_TRUE                     1
 #define CUPKEE_FALSE                    0
 
+#define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
+#define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
+
+#define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
+#define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
+
+typedef int (*cupkee_callback_t)(int id, int event, intptr_t param);
+
+/* Todo: cupkee_config.h ? */
+// Device config
+#define CUPKEE_DEVICE_TYPE_MAX          16
+
+// Memory config
 #define CUPKEE_ZONE_MAX                 2
 
 #define CUPKEE_PAGE_SHIFT               (10)
@@ -46,15 +59,6 @@ SOFTWARE.
 #define CUPKEE_MUNIT_SHIFT              (5)
 #define CUPKEE_MUNIT_SIZE               (1U << CUPKEE_MUNIT_SHIFT)
 
-#define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
-#define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
-
-#define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
-#define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
-
-typedef int (*cupkee_callback_t)(int id, int event, intptr_t param);
-
-/* Todo: cupkee_config.h ? */
 
 /* Cupkee api */
 void cupkee_init(void);

@@ -38,7 +38,7 @@ typedef struct cupkee_timer_t {
 static int timer_tag = -1;
 
 static inline cupkee_timer_t *timer_block(int id) {
-    return cupkee_data(id, timer_tag);
+    return cupkee_entry(id, timer_tag);
 }
 
 static void timer_rewind(cupkee_timer_t *timer, int id)
@@ -56,28 +56,26 @@ static void timer_rewind(cupkee_timer_t *timer, int id)
     }
 }
 
-static void timer_event_handle(int id, uint8_t code)
+static void timer_event_handle(void *entry, uint8_t code)
 {
-    cupkee_timer_t *timer;
+    cupkee_timer_t *timer = (cupkee_timer_t *)entry;
 
     // printf("get timer event\n");
-    if (NULL != (timer = timer_block(id))) {
-        switch (code) {
-        case CUPKEE_EVENT_STOP:
-            timer->state = CUPKEE_TIMER_STATE_IDLE;
-            // no break;
-        case CUPKEE_EVENT_DESTROY:
-        case CUPKEE_EVENT_ERROR:
-        case CUPKEE_EVENT_START:
-            if (timer && timer->cb) {
-                timer->cb(id, code, timer->cb_param);
-            }
-            break;
-        case CUPKEE_EVENT_REWIND:
-            timer_rewind(timer, id); break;
-        default:
-            break;
+    switch (code) {
+    case CUPKEE_EVENT_STOP:
+        timer->state = CUPKEE_TIMER_STATE_IDLE;
+        // no break;
+    case CUPKEE_EVENT_DESTROY:
+    case CUPKEE_EVENT_ERROR:
+    case CUPKEE_EVENT_START:
+        if (timer && timer->cb) {
+            timer->cb(CUPKEE_ENTRY_ID(entry), code, timer->cb_param);
         }
+        break;
+    case CUPKEE_EVENT_REWIND:
+        timer_rewind(timer, CUPKEE_ENTRY_ID(entry)); break;
+    default:
+        break;
     }
 }
 
