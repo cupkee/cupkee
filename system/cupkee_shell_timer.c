@@ -82,7 +82,7 @@ static int timer_callback(int timer, int event, intptr_t data)
     return retval;
 }
 
-static inline int native_arg_id (int *ac, val_t **av)
+static inline void *cupkee_object_entry (int *ac, val_t **av)
 {
     if ((*ac)) {
         val_t *v = *av;
@@ -91,22 +91,23 @@ static inline int native_arg_id (int *ac, val_t **av)
 
             if (fv->op == &timer_op) {
                 (*ac) --; (*av) ++;
-                return fv->data;
+                return (void *)fv->data;
             }
         }
     }
-    return -1;
+    return NULL;
 }
 
 static val_t native_timer_start(env_t *env, int ac, val_t *av)
 {
-    int timer, period;
+    void *timer;
+    int period;
     timer_param_t *param;
     val_t *cb;
 
     (void) env;
 
-    if (0 > (timer = native_arg_id(&ac, &av))) {
+    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
         return VAL_UNDEFINED;
     }
 
@@ -141,11 +142,11 @@ static val_t native_timer_start(env_t *env, int ac, val_t *av)
 
 static val_t native_timer_stop(env_t *env, int ac, val_t *av)
 {
-    int timer;
+    void *timer;
 
     (void) env;
 
-    if (0 > (timer = native_arg_id(&ac, &av))) {
+    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
         return VAL_UNDEFINED;
     }
 
@@ -154,11 +155,11 @@ static val_t native_timer_stop(env_t *env, int ac, val_t *av)
 
 static val_t native_timer_duration(env_t *env, int ac, val_t *av)
 {
-    int timer;
+    void *timer;
 
     (void) env;
 
-    if (0 > (timer = native_arg_id(&ac, &av))) {
+    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
         return VAL_UNDEFINED;
     }
 
@@ -192,7 +193,7 @@ static void timer_op_prop(void *env, intptr_t id, val_t *name, val_t *prop)
 val_t native_timer_create(env_t *env, int ac, val_t *av)
 {
     timer_param_t *param;
-    int timer;
+    void *timer;
 
     (void) ac;
     (void) av;
@@ -203,11 +204,11 @@ val_t native_timer_create(env_t *env, int ac, val_t *av)
     }
 
     timer = cupkee_timer_request(timer_callback, (intptr_t) param);
-    if (timer < 0) {
+    if (!timer) {
         cupkee_free(param);
         return VAL_UNDEFINED;
-    } else {
-        return val_create(env, &timer_op, timer);
     }
+
+    return val_create(env, &timer_op, timer);
 }
 

@@ -113,6 +113,9 @@ void cupkee_object_event_dispatch(uint16_t id, uint8_t code)
     cupkee_object_t *obj = id_object(id);
     const cupkee_meta_t *meta = object_meta(obj);
 
+    if (code == CUPKEE_EVENT_DESTROY) {
+        cupkee_object_destroy(obj);
+    } else
     // printf("object[%u, %p] event: %u\n", which, obj, code);
     if (meta && meta->event_handle) {
         meta->event_handle(obj->entry, code);
@@ -148,6 +151,23 @@ cupkee_object_t *cupkee_object_create(int tag)
     return NULL;
 }
 
+cupkee_object_t *cupkee_object_create_with_id(int tag)
+{
+    int id;
+    cupkee_object_t *obj;
+
+    if (0 > (id = id_alloc())) {
+        return NULL;
+    }
+
+    if (!(obj = cupkee_object_create(tag))) {
+        return NULL;
+    } else {
+        object_map(obj, id);
+        return obj;
+    }
+}
+
 void cupkee_object_destroy(cupkee_object_t *obj)
 {
     const cupkee_meta_t *meta = object_meta(obj);
@@ -156,6 +176,7 @@ void cupkee_object_destroy(cupkee_object_t *obj)
         if (meta->destroy) {
             meta->destroy(obj->entry);
         }
+        object_unmap(obj);
 
         list_del(&obj->list);
 
@@ -303,7 +324,6 @@ void cupkee_release(int id)
     cupkee_object_t *obj = id_object(id);
 
     if (obj) {
-        object_unmap(obj);
         cupkee_object_destroy(obj);
     }
 }

@@ -27,6 +27,15 @@ SOFTWARE.
 #ifndef __CUPKEE_TIMER_INC__
 #define __CUPKEE_TIMER_INC__
 
+typedef struct cupkee_timer_t {
+    uint8_t inst;
+    uint8_t state;
+    uint32_t period;
+
+    cupkee_callback_t cb;
+    intptr_t          cb_param;
+} cupkee_timer_t;
+
 #define CUPKEE_TIMER_KEEP 0
 #define CUPKEE_TIMER_STOP (-1)
 
@@ -37,16 +46,21 @@ enum {
 
 int cupkee_timer_setup(void);
 
-int cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
-int cupkee_timer_release(int timer);
+cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
+int cupkee_timer_release(cupkee_timer_t *timer);
+int cupkee_timer_state(cupkee_timer_t *timer);
 
-int cupkee_is_timer(int id);
-int cupkee_timer_state(int timer);
+int cupkee_timer_start(cupkee_timer_t *timer, int us);
+int cupkee_timer_stop(cupkee_timer_t *timer);
+int cupkee_timer_duration(cupkee_timer_t *timer);
 
-int cupkee_timer_start(int timer, int us);
-int cupkee_timer_stop(int timer);
-int cupkee_timer_duration(int timer);
-intptr_t cupkee_timer_callback_param(int timer);
+int cupkee_is_timer(void *entry);
+
+static inline intptr_t cupkee_timer_callback_param(void *timer) {
+    cupkee_timer_t *t = timer;
+
+    return t->cb_param;
+};
 
 // Should only be call in BSP
 static inline void cupkee_timer_rewind(int id)

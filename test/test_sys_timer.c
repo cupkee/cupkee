@@ -47,9 +47,10 @@ static int test_clean(void)
 static int timer_event = 0;
 static int timer_count = 0;
 static int timer_ctrol = CUPKEE_TIMER_STOP; // CUPKEE_TIMER_KEEP, CUPKEE_TIMER_RELOAD
-static int test_timer_counter(int timer, int event, intptr_t param)
+
+static int test_timer_counter(int id, int event, intptr_t param)
 {
-    (void) timer;
+    (void) id;
     (void) param;
 
     if (event == CUPKEE_EVENT_REWIND) {
@@ -62,18 +63,19 @@ static int test_timer_counter(int timer, int event, intptr_t param)
 
 static void test_timer_request(void)
 {
-    int timer;
+    void *timer;
 
     CU_ASSERT(0 <= (timer = cupkee_timer_request(test_timer_counter, 0)));
     CU_ASSERT(cupkee_timer_state(timer) == CUPKEE_TIMER_STATE_IDLE);
 
     CU_ASSERT(0 == cupkee_timer_release(timer));
+    CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_timer_start(void)
 {
-    int timer;
+    void *timer;
 
     CU_ASSERT(0 <= (timer = cupkee_timer_request(test_timer_counter, 0)));
 
@@ -88,37 +90,39 @@ static void test_timer_start(void)
     CU_ASSERT(timer_event == CUPKEE_EVENT_STOP);
 
     CU_ASSERT(0 == cupkee_timer_release(timer));
+    CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_timer_running(void)
 {
-    int timer;
+    void *timer;
 
     CU_ASSERT(0 <= (timer = cupkee_timer_request(test_timer_counter, 0)));
 
     timer_count = 0;
     CU_ASSERT(0 == cupkee_timer_start(timer, 10));
+    CU_ASSERT(timer_event == CUPKEE_EVENT_START);
     CU_ASSERT(cupkee_timer_state(timer) == CUPKEE_TIMER_STATE_RUNNING);
-    CU_ASSERT(timer == hw_mock_timer_curr_id());
+    CU_ASSERT(CUPKEE_ENTRY_ID(timer) == hw_mock_timer_curr_id());
     CU_ASSERT(10 == hw_mock_timer_period());
 
     timer_ctrol = 0;
-    cupkee_timer_rewind(timer);
+    cupkee_timer_rewind(CUPKEE_ENTRY_ID(timer));
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_REWIND);
     CU_ASSERT(timer_count == 1);
     CU_ASSERT(10 == hw_mock_timer_period());
 
     timer_ctrol = 20;
-    cupkee_timer_rewind(timer);
+    cupkee_timer_rewind(CUPKEE_ENTRY_ID(timer));
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_REWIND);
     CU_ASSERT(timer_count == 2);
     CU_ASSERT(20 == hw_mock_timer_period());
 
     timer_ctrol = -1;
-    cupkee_timer_rewind(timer);
+    cupkee_timer_rewind(CUPKEE_ENTRY_ID(timer));
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_REWIND);
     CU_ASSERT(timer_count == 3);
@@ -128,6 +132,7 @@ static void test_timer_running(void)
     CU_ASSERT(timer_count == 3);
 
     CU_ASSERT(0 == cupkee_timer_release(timer));
+    CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 

@@ -26,29 +26,23 @@ SOFTWARE.
 
 #include "cupkee.h"
 
-typedef struct cupkee_timer_t {
-    uint8_t inst;
-    uint8_t state;
-    uint32_t period;
-
-    cupkee_callback_t cb;
-    intptr_t          cb_param;
-} cupkee_timer_t;
-
 static int timer_tag = -1;
 
-static inline cupkee_timer_t *timer_block(int id) {
-    return cupkee_entry(id, timer_tag);
+static inline int is_timer(void *p)
+{
+    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(p);
+
+    return obj ? obj->tag == timer_tag : 0;
 }
 
-static void timer_rewind(cupkee_timer_t *timer, int id)
+static void timer_do_rewind(cupkee_timer_t *timer)
 {
     // printf("get rewind event\n");
     if (timer && timer->cb) {
-        int res = timer->cb(id, CUPKEE_EVENT_REWIND, timer->cb_param);
+        int res = timer->cb(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_REWIND, timer->cb_param);
 
         if (res < 0) {
-            cupkee_timer_stop(id);
+            cupkee_timer_stop(timer);
         } else
         if (res > 0) {
             hw_timer_update(timer->inst, res);
@@ -73,13 +67,25 @@ static void timer_event_handle(void *entry, uint8_t code)
         }
         break;
     case CUPKEE_EVENT_REWIND:
-        timer_rewind(timer, CUPKEE_ENTRY_ID(entry)); break;
+        timer_do_rewind(timer); break;
     default:
         break;
     }
 }
 
+static void timer_destroy(void *entry)
+{
+    cupkee_timer_t *timer = (cupkee_timer_t *)entry;
+
+    hw_timer_release(timer->inst);
+    if (timer->cb) {
+        timer->cb(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_DESTROY, timer->cb_param);
+    }
+}
+
+
 static const cupkee_meta_t timer_meta = {
+    .destroy      = timer_destroy,
     .event_handle = timer_event_handle
 };
 
@@ -92,65 +98,54 @@ int cupkee_timer_setup(void)
     return 0;
 }
 
-int cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
+cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
 {
     cupkee_timer_t *timer;
+    cupkee_object_t *obj;
     int8_t inst;
-    int id;
 
     inst = hw_timer_alloc();
     if (inst < 0) {
-        return -CUPKEE_ERESOURCE;
+        return NULL;
     }
 
-    id = cupkee_id(timer_tag);
-    if (id < 0 || NULL == (timer = timer_block(id))) {
+    obj = cupkee_object_create_with_id(timer_tag);
+    if (!obj) {
         hw_timer_release(inst);
-        return -CUPKEE_ENOMEM;
+        return NULL;
     }
 
+    timer = (cupkee_timer_t *)obj->entry;
     timer->inst = inst;
     timer->state = CUPKEE_TIMER_STATE_IDLE;
     timer->cb = cb;
     timer->cb_param = param;
     timer->period = 0;
 
-    return id;
+    return timer;
 }
 
-int cupkee_timer_release(int id)
+int cupkee_timer_release(cupkee_timer_t *timer)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
-        return -CUPKEE_EINVAL;
+    if (is_timer(timer)) {
+        cupkee_object_event_post(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_DESTROY);
+        return 0;
     }
-
-    hw_timer_release(timer->inst);
-    if (timer->cb) {
-        timer->cb(id, CUPKEE_EVENT_DESTROY, timer->cb_param);
-    }
-
-    cupkee_release(id);
-    return 0;
+    return -CUPKEE_EINVAL;
 }
 
-int cupkee_timer_state(int id)
+int cupkee_timer_state(cupkee_timer_t *timer)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
+    if (!is_timer(timer)) {
         return -CUPKEE_EINVAL;
     }
 
     return timer->state;
 }
 
-int cupkee_timer_start(int id, int us)
+int cupkee_timer_start(cupkee_timer_t *timer, int us)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
+    if (!is_timer(timer)) {
         return -CUPKEE_EINVAL;
     }
 
@@ -163,60 +158,45 @@ int cupkee_timer_start(int id, int us)
     }
 
     timer->period = us;
-    if (hw_timer_start(timer->inst, id, us)) {
+    if (hw_timer_start(timer->inst, CUPKEE_ENTRY_ID(timer), us)) {
         return -CUPKEE_EHARDWARE;
     }
     timer->state = CUPKEE_TIMER_STATE_RUNNING;
 
     if (timer->cb) {
-        timer->cb(id, CUPKEE_EVENT_START, timer->cb_param);
+        timer->cb(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_START, timer->cb_param);
     }
-    // cupkee_object_event_post(id, CUPKEE_EVENT_START);
+    // cupkee_object_event_post(cupkee_entry_id(timer), CUPKEE_EVENT_START);
 
     return 0;
 }
 
-int cupkee_timer_stop(int id)
+int cupkee_timer_stop(cupkee_timer_t *timer)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
+    if (!is_timer(timer)) {
         return -CUPKEE_EINVAL;
     }
 
     if (0 == hw_timer_stop(timer->inst)) {
-        cupkee_object_event_post(id, CUPKEE_EVENT_STOP);
+        cupkee_object_event_post(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_STOP);
     } else {
-        cupkee_object_event_post(id, CUPKEE_EVENT_ERROR);
+        cupkee_object_event_post(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_ERROR);
     }
 
     return 0;
 }
 
-int cupkee_timer_duration(int id)
+int cupkee_timer_duration(cupkee_timer_t *timer)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
+    if (!is_timer(timer)) {
         return -CUPKEE_EINVAL;
     }
 
     return hw_timer_duration_get(timer->inst);
 }
 
-intptr_t cupkee_timer_callback_param(int id)
+int cupkee_is_timer(void *p)
 {
-    cupkee_timer_t *timer;
-
-    if (NULL == (timer = timer_block(id))) {
-        return 0;
-    }
-
-    return timer->cb_param;
-}
-
-int cupkee_is_timer(int id)
-{
-    return cupkee_tag(id) == timer_tag;
+    return is_timer(p);
 }
 

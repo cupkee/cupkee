@@ -27,10 +27,10 @@ SOFTWARE.
 #ifndef __CUPKEE_OBJECT_INC__
 #define __CUPKEE_OBJECT_INC__
 
-#define OBJECT_PTR(p)    CUPKEE_CONTAINER_OF(p, cupkee_object_t, entry)
+#define CUPKEE_OBJECT_PTR(p)    CUPKEE_CONTAINER_OF(p, cupkee_object_t, entry)
 
 #define CUPKEE_ID_INVALID       (-1)
-#define CUPKEE_ENTRY_ID(p)      (OBJECT_PTR(p)->id)
+#define CUPKEE_ENTRY_ID(p)      (CUPKEE_OBJECT_PTR(p)->id)
 
 typedef struct cupkee_meta_t {
     void (*destroy) (void *entry);
@@ -65,7 +65,9 @@ static inline void cupkee_object_event_post(int id, uint8_t code) {
 
 int cupkee_object_register(size_t size, const cupkee_meta_t *meta);
 
+
 cupkee_object_t *cupkee_object_create(int tag);
+cupkee_object_t *cupkee_object_create_with_id(int tag);
 void cupkee_object_destroy(cupkee_object_t *obj);
 
 void cupkee_object_error_set(cupkee_object_t *obj, int err);
