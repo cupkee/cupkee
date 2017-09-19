@@ -48,9 +48,9 @@ static int timer_event = 0;
 static int timer_count = 0;
 static int timer_ctrol = CUPKEE_TIMER_STOP; // CUPKEE_TIMER_KEEP, CUPKEE_TIMER_RELOAD
 
-static int test_timer_counter(int id, int event, intptr_t param)
+static int test_timer_counter(void *entry, int event, intptr_t param)
 {
-    (void) id;
+    (void) entry;
     (void) param;
 
     if (event == CUPKEE_EVENT_REWIND) {

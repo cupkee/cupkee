@@ -28,16 +28,17 @@ SOFTWARE.
 #define __CUPKEE_OBJECT_INC__
 
 #define CUPKEE_OBJECT_PTR(p)    CUPKEE_CONTAINER_OF(p, cupkee_object_t, entry)
-
-#define CUPKEE_ID_INVALID       (-1)
 #define CUPKEE_ENTRY_ID(p)      (CUPKEE_OBJECT_PTR(p)->id)
+#define CUPKEE_ID_INVALID       (-1)
 
 typedef struct cupkee_meta_t {
     void (*destroy) (void *entry);
+
+    void (*error_handle) (void *entry, int error);
+    void (*event_handle) (void *entry, uint8_t event);
+
     void (*listen) (void *entry, int event);
     void (*ignore) (void *entry, int event);
-
-    void (*event_handle) (void *entry, uint8_t event);
 
     cupkee_stream_t *(*streaming) (void *entry);
 } cupkee_meta_t;
@@ -45,13 +46,9 @@ typedef struct cupkee_meta_t {
 typedef struct cupkee_object_t {
     list_head_t list;
 
-    int16_t  id;
-
-    uint16_t ref;
+    int16_t id;
+    uint8_t ref;
     uint8_t tag;
-
-    uint8_t err;      // depucate
-    uint16_t flags;
 
     uint8_t entry[0];
 } cupkee_object_t;
@@ -71,7 +68,6 @@ cupkee_object_t *cupkee_object_create_with_id(int tag);
 void cupkee_object_destroy(cupkee_object_t *obj);
 
 void cupkee_object_error_set(cupkee_object_t *obj, int err);
-int  cupkee_object_error_get(cupkee_object_t *obj);
 
 void cupkee_object_listen(cupkee_object_t *obj, int event);
 void cupkee_object_ignore(cupkee_object_t *obj, int event);
@@ -83,20 +79,20 @@ int cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data);
 int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data);
 
 int  cupkee_id(int tag);
-void cupkee_release(int id);
-int  cupkee_tag(int id);
 void *cupkee_entry(int id, uint8_t tag);
 
-void cupkee_error_set(int id, int err);
-int  cupkee_error_get(int id);
+void cupkee_release(void *entry);
+int  cupkee_tag(void *entry);
 
-void cupkee_listen(int id, int event);
-void cupkee_ignore(int id, int event);
-int  cupkee_read(int id, size_t n, void *buf);
-int  cupkee_read_sync(int id, size_t n, void *buf);
-int  cupkee_write(int id, size_t n, const void *data);
-int  cupkee_write_sync(int id, size_t n, const void *data);
-int  cupkee_unshift(int id, uint8_t data);
+void cupkee_error_set(void *entry, int err);
+
+void cupkee_listen(void *entry, int event);
+void cupkee_ignore(void *entry, int event);
+int  cupkee_read(void *entry, size_t n, void *buf);
+int  cupkee_read_sync(void *entry, size_t n, void *buf);
+int  cupkee_write(void *entry, size_t n, const void *data);
+int  cupkee_write_sync(void *entry, size_t n, const void *data);
+int  cupkee_unshift(void *entry, uint8_t data);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 

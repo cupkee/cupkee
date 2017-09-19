@@ -28,7 +28,7 @@ enum CONSOLE_HANDLE_RET {
 
 typedef int (*console_handle_t)(int type, int ch);
 
-int cupkee_console_init(int tty, console_handle_t handle);
+int cupkee_console_init(void *tty, console_handle_t handle);
 
 void console_prompt_set(const char *prompt);
 int console_input_clean(void);

@@ -30,6 +30,7 @@ SOFTWARE.
 #include "test.h"
 
 struct mock_data_t {
+    void *entry;
     int inst;
     int id;
     int want;
@@ -44,6 +45,7 @@ struct mock_handle_param_t {
 };
 
 static struct mock_data_t mock_data = {
+    .entry = NULL,
     .inst = -1,
     .id   = -1,
     .want = 0
@@ -67,9 +69,10 @@ static int mock_release(int inst)
     return 0;
 }
 
-static int mock_setup(int inst, int id)
+static int mock_setup(int inst, void *entry)
 {
-    mock_data.id   = id;
+    mock_data.entry = entry;
+    mock_data.id   = CUPKEE_ENTRY_ID(entry);
     mock_data.inst = inst;
 
     return 0;
@@ -117,7 +120,7 @@ static int mock_write(int inst, size_t n, const void *data)
 
 static inline void mock_arg_clean(void)
 {
-    mock_handle_arg.id    = -1;
+    mock_handle_arg.id    = CUPKEE_ID_INVALID;
     mock_handle_arg.event = 0;
     mock_handle_arg.resp  = NULL;
 }
@@ -130,13 +133,13 @@ static void mock_arg_release(void)
     mock_arg_clean();
 }
 
-static int mock_handle(int id, int event, intptr_t param)
+static int mock_handle(void *entry, int event, intptr_t param)
 {
     struct mock_handle_param_t *arg = (struct mock_handle_param_t *)param;
 
-    arg->id = id;
+    arg->id = CUPKEE_ENTRY_ID(entry);
     arg->event = event;
-    arg->resp = cupkee_device_response_take(id);
+    arg->resp = cupkee_device_response_take(entry);
 
     return 0;
 }
@@ -151,6 +154,14 @@ static inline int mock_curr_inst(void) {
 
 static inline size_t mock_curr_want(void) {
     return mock_data.want;
+}
+
+static inline size_t mock_curr_event(void) {
+    return mock_handle_arg.event;
+}
+
+static inline void *mock_curr_entry(void) {
+    return mock_data.entry;
 }
 
 static const cupkee_driver_t mock_driver = {
@@ -189,72 +200,80 @@ static int test_clean(void)
 
 static void test_request(void)
 {
-    int id1, id2;
+    void *d1;
+    void *d2;
 
-    CU_ASSERT(-1 < (id1 = cupkee_device_request("mock", 0)));
+    CU_ASSERT(NULL != (d1 = cupkee_device_request("mock", 0)));
     CU_ASSERT(0 == mock_curr_inst());
 
-    CU_ASSERT(-1 < (id2 = cupkee_device_request("mock", 1)));
+    CU_ASSERT(NULL != (d2 = cupkee_device_request("mock", 1)));
     CU_ASSERT(1 == mock_curr_inst());
 
-    CU_ASSERT(id1 != id2);
-    CU_ASSERT(cupkee_is_device(id1));
-    CU_ASSERT(cupkee_is_device(id2));
+    CU_ASSERT(d1 != d2);
+    CU_ASSERT(cupkee_is_device(d1));
+    CU_ASSERT(cupkee_is_device(d2));
 
-    cupkee_device_release(id1);
-    cupkee_device_release(id2);
+    cupkee_device_release(d1);
+    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
+
+    cupkee_device_release(d2);
+    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_enable(void)
 {
-    int id;
+    void *d;
 
-    CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 0)));
+    CU_ASSERT_FATAL(NULL != (d = cupkee_device_request("mock", 0)));
 
-    CU_ASSERT(cupkee_is_device(id));
-    CU_ASSERT(!cupkee_device_is_enabled(id));
+    CU_ASSERT(cupkee_is_device(d));
+    CU_ASSERT(!cupkee_device_is_enabled(d));
 
-    CU_ASSERT(0 == cupkee_device_enable(id));
-    CU_ASSERT(cupkee_device_is_enabled(id));
+    CU_ASSERT(0 == cupkee_device_enable(d));
+    CU_ASSERT(cupkee_device_is_enabled(d));
 
-    CU_ASSERT(0 == cupkee_device_disable(id));
-    CU_ASSERT(!cupkee_device_is_enabled(id));
+    CU_ASSERT(0 == cupkee_device_disable(d));
+    CU_ASSERT(!cupkee_device_is_enabled(d));
 
-    cupkee_device_release(id);
+    cupkee_device_release(d);
+    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_query(void)
 {
-    int id;
-    uint8_t buf[2];
+    void *d;
     void *req;
+    uint8_t buf[2];
 
     mock_arg_release();
 
-    CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 0)));
+    CU_ASSERT_FATAL(NULL != (d = cupkee_device_request("mock", 0)));
 
-    CU_ASSERT(!cupkee_device_is_enabled(id));
-    CU_ASSERT(0 == cupkee_device_enable(id));
+    CU_ASSERT(!cupkee_device_is_enabled(d));
+    CU_ASSERT(0 == cupkee_device_enable(d));
 
     /*
      * query without request data
      */
-    CU_ASSERT(0 == cupkee_device_query(id, 0, NULL, 8, mock_handle, (intptr_t)&mock_handle_arg));
+    CU_ASSERT(0 == cupkee_device_query(d, 0, NULL, 8, mock_handle, (intptr_t)&mock_handle_arg));
 
     // Bsp driver code start
-    CU_ASSERT(id == mock_curr_id());
+    CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
     CU_ASSERT(8  == mock_curr_want());
     // take request data, there is NULL
-    CU_ASSERT(NULL == (req = cupkee_device_request_take(id)));
+    CU_ASSERT(NULL == (req = cupkee_device_request_take(d)));
     // push reply to device
-    CU_ASSERT(8   == cupkee_device_response_push(id, 8, "12345678"));
+    CU_ASSERT(8   == cupkee_device_response_push(d, 8, "12345678"));
     // Call response_end to complete query
-    cupkee_device_response_end(id);
+    cupkee_device_response_end(d);
     // Bsp driver code end
 
     // handle should be called
     CU_ASSERT(TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
     CU_ASSERT_FATAL(NULL != mock_handle_arg.resp);
     CU_ASSERT(8 == cupkee_buffer_length(mock_handle_arg.resp));
@@ -264,26 +283,27 @@ static void test_query(void)
     /*
      * query with request data
      */
-    CU_ASSERT(0 == cupkee_device_query(id, 5, "hihao", 8, mock_handle, (intptr_t)&mock_handle_arg));
+    CU_ASSERT(0 == cupkee_device_query(d, 5, "hihao", 8, mock_handle, (intptr_t)&mock_handle_arg));
 
     // Bsp driver code start
-    CU_ASSERT(id  == mock_curr_id());
-    CU_ASSERT(8   == mock_curr_want());
+    CU_ASSERT(d == mock_curr_entry());
+    CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
+    CU_ASSERT(8 == mock_curr_want());
     // take request data
-    CU_ASSERT(NULL != (req = cupkee_device_request_take(id)));
+    CU_ASSERT(NULL != (req = cupkee_device_request_take(d)));
     CU_ASSERT(5   == cupkee_buffer_length(req));
     cupkee_buffer_release(req);
 
     // push reply to device
-    CU_ASSERT(8   == cupkee_device_response_push(id, 8, "12345678"));
-    CU_ASSERT(0   == cupkee_device_response_push(id, 8, "12345678"));
+    CU_ASSERT(8   == cupkee_device_response_push(d, 8, "12345678"));
+    CU_ASSERT(0   == cupkee_device_response_push(d, 8, "12345678"));
 
     // Call response_end to complete query
-    cupkee_device_response_end(id);
+    cupkee_device_response_end(d);
     // Bsp driver code end
 
     CU_ASSERT(TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
     CU_ASSERT_FATAL(NULL != mock_handle_arg.resp);
     CU_ASSERT(8 == cupkee_buffer_length(mock_handle_arg.resp));
@@ -293,119 +313,122 @@ static void test_query(void)
      * query without response data
      */
 
-    CU_ASSERT(0 == cupkee_device_query(id, 7, "0123456", 0, mock_handle, (intptr_t)&mock_handle_arg));
+    CU_ASSERT(0 == cupkee_device_query(d, 7, "0123456", 0, mock_handle, (intptr_t)&mock_handle_arg));
 
     // Bsp driver code start
-    CU_ASSERT(id  == mock_curr_id());
+    CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
     CU_ASSERT(0   == mock_curr_want());
     // take request data
-    CU_ASSERT(2   == cupkee_device_request_load(id, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(d, 2, buf));
     CU_ASSERT('0' == buf[0] && '1' == buf[1]);
-    CU_ASSERT(2   == cupkee_device_request_load(id, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(d, 2, buf));
     CU_ASSERT('2' == buf[0] && '3' == buf[1]);
-    CU_ASSERT(2   == cupkee_device_request_load(id, 2, buf));
+    CU_ASSERT(2   == cupkee_device_request_load(d, 2, buf));
     CU_ASSERT('4' == buf[0] && '5' == buf[1]);
-    CU_ASSERT(1   == cupkee_device_request_load(id, 2, buf));
+    CU_ASSERT(1   == cupkee_device_request_load(d, 2, buf));
     CU_ASSERT('6' == buf[0]);
     // push reply to device
-    CU_ASSERT(0   > cupkee_device_response_push(id, 8, "12345678"));
+    CU_ASSERT(0   > cupkee_device_response_push(d, 8, "12345678"));
     // Call response_end to complete query
-    cupkee_device_response_end(id);
+    cupkee_device_response_end(d);
     // Bsp driver code end
 
     CU_ASSERT(TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
     CU_ASSERT(NULL == mock_handle_arg.resp);
     mock_arg_release();
 
-    CU_ASSERT(0 == cupkee_device_disable(id));
-    CU_ASSERT(!cupkee_device_is_enabled(id));
+    CU_ASSERT(0 == cupkee_device_disable(d));
+    CU_ASSERT(!cupkee_device_is_enabled(d));
 
-    cupkee_device_release(id);
+    cupkee_device_release(d);
+    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_read(void)
 {
-    int id;
+    void *dev;
     uint8_t data;
     char buf[16];
     int i;
 
-    CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 1)));
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 1)));
 
-    CU_ASSERT(!cupkee_device_is_enabled(id));
-    CU_ASSERT(0 == cupkee_device_enable(id));
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+    CU_ASSERT(0 == cupkee_device_enable(dev));
 
-    CU_ASSERT(0 == cupkee_read(id, 16, buf));
+    CU_ASSERT(0 == cupkee_read(dev, 16, buf));
 
-    CU_ASSERT(id == mock_curr_id());
+    CU_ASSERT(CUPKEE_ENTRY_ID(dev) == mock_curr_id());
     CU_ASSERT(1  == mock_curr_inst());
     for (i = 0; i < 16; i++) {
         data = i;
-        cupkee_device_push(id, 1, &data);
+        cupkee_device_push(dev, 1, &data);
     }
-    CU_ASSERT(16 == cupkee_read(id, 16, buf));
+    CU_ASSERT(16 == cupkee_read(dev, 16, buf));
     CU_ASSERT(buf[0] == 0 && buf[15] == 15);
 
-    CU_ASSERT(8 == cupkee_read_sync(id, 8, buf));
+    CU_ASSERT(8 == cupkee_read_sync(dev, 8, buf));
     CU_ASSERT(buf[0] == 0x11 && buf[7] == 0x11);
 
-    cupkee_device_release(id);
+    cupkee_release(dev);
 }
 
 static void test_write(void)
 {
-    int id;
+    void *dev;
     char buf[16];
 
-    CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 2)));
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 2)));
 
-    CU_ASSERT(!cupkee_device_is_enabled(id));
-    CU_ASSERT(0 == cupkee_device_enable(id));
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+    CU_ASSERT(0 == cupkee_device_enable(dev));
 
     memset(buf, 3, 16);
-    CU_ASSERT(16 == cupkee_write(id, 16, buf));
+    CU_ASSERT(16 == cupkee_write(dev, 16, buf));
 
-    CU_ASSERT(id == mock_curr_id());
+    CU_ASSERT(CUPKEE_ENTRY_ID(dev) == mock_curr_id());
     CU_ASSERT(2  == mock_curr_inst());
 
     memset(buf, 0, 16);
-    CU_ASSERT(16 == cupkee_device_pull(id, 16, buf));
+    CU_ASSERT(16 == cupkee_device_pull(dev, 16, buf));
     CU_ASSERT(buf[0] == 3 && buf[15] == 3);
 
-    CU_ASSERT(8 == cupkee_write_sync(id, 8, buf));
+    CU_ASSERT(8 == cupkee_write_sync(dev, 8, buf));
 
-    cupkee_device_release(id);
+    cupkee_release(dev);
 }
 
 static void test_event(void)
 {
-    int id, n;
+    void *dev;
+    int n;
     uint8_t data;
     char buf[32];
 
-    CU_ASSERT_FATAL(-1 < (id = cupkee_device_request("mock", 2)));
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 2)));
 
-    CU_ASSERT(!cupkee_device_is_enabled(id));
-    CU_ASSERT(0 == cupkee_device_enable(id));
+    CU_ASSERT(!cupkee_device_is_enabled(dev));
+    CU_ASSERT(0 == cupkee_device_enable(dev));
 
-    CU_ASSERT(0 == cupkee_device_handle_set(id, mock_handle, (intptr_t) &mock_handle_arg));
+    CU_ASSERT(0 == cupkee_device_handle_set(dev, mock_handle, (intptr_t) &mock_handle_arg));
 
-    cupkee_listen(id, CUPKEE_EVENT_DATA);
-    cupkee_listen(id, CUPKEE_EVENT_DRAIN);
+    cupkee_listen(dev, CUPKEE_EVENT_DATA);
+    cupkee_listen(dev, CUPKEE_EVENT_DRAIN);
 
     mock_arg_release();
     // trigger event: data
     data = 0;
-    while (1 == cupkee_device_push(id, 1, &data)) {
+    while (1 == cupkee_device_push(dev, 1, &data)) {
         data++;
     }
 
     CU_ASSERT(TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(dev));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DATA);
-    while (0 < (n = cupkee_read(id, 32, buf))) {
+    while (0 < (n = cupkee_read(dev, 32, buf))) {
         data -= n;
     }
     CU_ASSERT(data == 0);
@@ -414,14 +437,14 @@ static void test_event(void)
     // trigger event: data
     _cupkee_systicks = 0;
     data = 9;
-    CU_ASSERT(1 == cupkee_device_push(id, 1, &data));
+    CU_ASSERT(1 == cupkee_device_push(dev, 1, &data));
     CU_ASSERT(0 == TU_object_event_dispatch());
 
     cupkee_device_sync(30);
     CU_ASSERT(1 == TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(dev));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DATA);
-    CU_ASSERT(1 == cupkee_read(id, 32, buf));
+    CU_ASSERT(1 == cupkee_read(dev, 32, buf));
 
     // tirgger nothing (read buffer is empty)
     cupkee_device_sync(40);
@@ -429,14 +452,14 @@ static void test_event(void)
 
     mock_arg_release();
     // trigger event: drain
-    cupkee_write(id, 1, &data);
-    cupkee_device_pull(id, 1, &data);
+    cupkee_write(dev, 1, &data);
+    cupkee_device_pull(dev, 1, &data);
 
     CU_ASSERT(TU_object_event_dispatch());
-    CU_ASSERT(mock_handle_arg.id    == id);
+    CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(dev));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DRAIN);
 
-    cupkee_device_release(id);
+    cupkee_release(dev);
 }
 
 CU_pSuite test_sys_device(void)

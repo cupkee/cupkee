@@ -32,7 +32,7 @@ SOFTWARE.
 
 typedef struct hw_uart_t {
     uint8_t flags;
-    int16_t id;
+    void   *entry;
 } hw_uart_t;
 
 static hw_uart_t uarts[USART_MAX];
@@ -125,7 +125,7 @@ static int uart_reset(int inst)
 
     if (uart) {
         usart_disable(reg_base[inst]);
-        uart->id = CUPKEE_ID_INVALID;
+        uart->entry = NULL;
 
         return 0;
     } else {
@@ -133,7 +133,7 @@ static int uart_reset(int inst)
     }
 }
 
-static int uart_setup(int inst, int id)
+static int uart_setup(int inst, void *entry)
 {
     hw_uart_t *uart = uart_block(inst);
     uint32_t databits, stopbits, parity;
@@ -164,7 +164,7 @@ static int uart_setup(int inst, int id)
 	usart_set_flow_control(reg_base[inst], USART_FLOWCONTROL_NONE);
     usart_enable(reg_base[inst]);
 
-    uart->id = id;
+    uart->entry = entry;
 
     return 0;
 }
@@ -175,8 +175,8 @@ static int uart_request(int inst)
         return -CUPKEE_EINVAL;
     }
 
-    uarts[inst].flags  = HW_FL_USED;
-    uarts[inst].id =     CUPKEE_ID_INVALID;
+    uarts[inst].flags = HW_FL_USED;
+    uarts[inst].entry = NULL;
 
     return 0;
 }
@@ -204,7 +204,7 @@ static int uart_poll(int inst)
         if (uart->flags & HW_FL_RXE) {
             while (uart_has_data(inst)) {
                 data = uart_data_get(inst);
-                if (1 != cupkee_device_push(uart->id, 1, &data)) {
+                if (1 != cupkee_device_push(uart->entry, 1, &data)) {
                     uart->flags &= ~HW_FL_RXE;
                     break;
                 }
@@ -213,7 +213,7 @@ static int uart_poll(int inst)
 
         if (uart->flags & HW_FL_TXE) {
             while (uart_not_busy(inst)) {
-                if(1 != cupkee_device_pull(uart->id, 1, &data)) {
+                if(1 != cupkee_device_pull(uart->entry, 1, &data)) {
                     uart->flags &= ~HW_FL_TXE;
                     break;
                 }

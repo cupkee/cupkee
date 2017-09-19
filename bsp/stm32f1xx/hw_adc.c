@@ -140,7 +140,7 @@ static int device_reset(int inst)
 
 static uint8_t mock_seq[] = {0, 1, 2, 3};
 
-static int device_setup(int inst, int id)
+static int device_setup(int inst, void *entry)
 {
     hw_adc_t *device = device_block(inst);
     int err = 0;
@@ -172,7 +172,7 @@ static int device_setup(int inst, int id)
     adc_reset_calibration(ADC1);
     adc_calibrate(ADC1);
 
-    device->id = id;
+    device->id = CUPKEE_ENTRY_ID(entry);
     return 0;
 }
 

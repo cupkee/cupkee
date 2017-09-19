@@ -39,7 +39,7 @@ static void timer_do_rewind(cupkee_timer_t *timer)
 {
     // printf("get rewind event\n");
     if (timer && timer->cb) {
-        int res = timer->cb(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_REWIND, timer->cb_param);
+        int res = timer->cb(timer, CUPKEE_EVENT_REWIND, timer->cb_param);
 
         if (res < 0) {
             cupkee_timer_stop(timer);
@@ -63,7 +63,7 @@ static void timer_event_handle(void *entry, uint8_t code)
     case CUPKEE_EVENT_ERROR:
     case CUPKEE_EVENT_START:
         if (timer && timer->cb) {
-            timer->cb(CUPKEE_ENTRY_ID(entry), code, timer->cb_param);
+            timer->cb(entry, code, timer->cb_param);
         }
         break;
     case CUPKEE_EVENT_REWIND:
@@ -79,7 +79,7 @@ static void timer_destroy(void *entry)
 
     hw_timer_release(timer->inst);
     if (timer->cb) {
-        timer->cb(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_DESTROY, timer->cb_param);
+        timer->cb(entry, CUPKEE_EVENT_DESTROY, timer->cb_param);
     }
 }
 
@@ -164,7 +164,7 @@ int cupkee_timer_start(cupkee_timer_t *timer, int us)
     timer->state = CUPKEE_TIMER_STATE_RUNNING;
 
     if (timer->cb) {
-        timer->cb(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_START, timer->cb_param);
+        timer->cb(timer, CUPKEE_EVENT_START, timer->cb_param);
     }
     // cupkee_object_event_post(cupkee_entry_id(timer), CUPKEE_EVENT_START);
 

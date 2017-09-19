@@ -187,19 +187,13 @@ void cupkee_object_destroy(cupkee_object_t *obj)
 void cupkee_object_error_set(cupkee_object_t *obj, int err)
 {
     if (obj) {
-        obj->err = err;
+        const cupkee_meta_t *meta = object_meta(obj);
+        if (meta->error_handle) {
+            meta->error_handle(obj->entry, err);
+        }
         if (obj->id != CUPKEE_ID_INVALID) {
             cupkee_object_event_post(obj->id, CUPKEE_EVENT_ERROR);
         }
-    }
-}
-
-int cupkee_object_error_get(cupkee_object_t *obj)
-{
-    if (obj) {
-        return obj->err;
-    } else {
-        return CUPKEE_EINVAL;
     }
 }
 
@@ -319,9 +313,9 @@ int cupkee_id(int tag)
     return id;
 }
 
-void cupkee_release(int id)
+void cupkee_release(void *entry)
 {
-    cupkee_object_t *obj = id_object(id);
+    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
 
     if (obj) {
         cupkee_object_destroy(obj);
@@ -339,9 +333,9 @@ void *cupkee_entry(int id, uint8_t tag)
     return NULL;
 }
 
-int cupkee_tag(int id)
+int cupkee_tag(void *entry)
 {
-    cupkee_object_t *obj = id_object(id);
+    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
 
     if (obj) {
         return obj->tag;
@@ -350,59 +344,43 @@ int cupkee_tag(int id)
     return -1;
 }
 
-void cupkee_error_set(int id, int err)
+void cupkee_error_set(void *entry, int err)
 {
-    cupkee_object_t *obj = id_object(id);
-
-    if (obj) {
-        obj->err = err;
-        cupkee_object_event_post(id, CUPKEE_EVENT_ERROR);
-    }
+    cupkee_object_error_set(CUPKEE_OBJECT_PTR(entry), err);
 }
 
-int cupkee_error_get(int id)
+void cupkee_listen(void *entry, int event)
 {
-    cupkee_object_t *obj = id_object(id);
-
-    if (obj) {
-        return obj->err;
-    } else {
-        return CUPKEE_EINVAL;
-    }
+    cupkee_object_listen(CUPKEE_OBJECT_PTR(entry), event);
 }
 
-void cupkee_listen(int id, int event)
+void cupkee_ignore(void *entry, int event)
 {
-    cupkee_object_listen(id_object(id), event);
+    cupkee_object_ignore(CUPKEE_OBJECT_PTR(entry), event);
 }
 
-void cupkee_ignore(int id, int event)
+int cupkee_read(void *entry, size_t n, void *buf)
 {
-    cupkee_object_ignore(id_object(id), event);
+    return cupkee_object_read(CUPKEE_OBJECT_PTR(entry), n, buf);
 }
 
-int cupkee_read(int id, size_t n, void *buf)
+int cupkee_read_sync(void *entry, size_t n, void *buf)
 {
-    return cupkee_object_read(id_object(id), n, buf);
+    return cupkee_object_read_sync(CUPKEE_OBJECT_PTR(entry), n, buf);
 }
 
-int cupkee_read_sync(int id, size_t n, void *buf)
+int cupkee_write(void *entry, size_t n, const void *data)
 {
-    return cupkee_object_read_sync(id_object(id), n, buf);
+    return cupkee_object_write(CUPKEE_OBJECT_PTR(entry), n, data);
 }
 
-int cupkee_write(int id, size_t n, const void *data)
+int cupkee_write_sync(void *entry, size_t n, const void *data)
 {
-    return cupkee_object_write(id_object(id), n, data);
+    return cupkee_object_write_sync(CUPKEE_OBJECT_PTR(entry), n, data);
 }
 
-int cupkee_write_sync(int id, size_t n, const void *data)
+int cupkee_unshift(void *entry, uint8_t data)
 {
-    return cupkee_object_write_sync(id_object(id), n, data);
-}
-
-int cupkee_unshift(int id, uint8_t data)
-{
-    return cupkee_object_unshift(id_object(id), data);
+    return cupkee_object_unshift(CUPKEE_OBJECT_PTR(entry), data);
 }
 

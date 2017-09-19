@@ -34,7 +34,7 @@ static char command_buf[COMMAND_BUF_SIZE];
 
 int main(void)
 {
-    int tty;
+    void *tty;
 
     cupkee_init();
 

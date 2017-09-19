@@ -31,7 +31,8 @@ SOFTWARE.
 typedef struct hw_spi_t {
     uint8_t flags;
     uint8_t done;
-    int16_t id;
+
+    void   *entry;
 
     uint16_t rxmax;
     uint16_t txmax;
@@ -130,7 +131,7 @@ static void do_recv(hw_spi_t *spi, uint32_t base_reg)
     uint8_t dat = SPI_DR(base_reg);
 
     if (spi->rxcnt >= spi->txmax) {
-        cupkee_device_response_push(spi->id, 1, &dat);
+        cupkee_device_response_push(spi->entry, 1, &dat);
     }
 
     if (++spi->rxcnt >= spi->rxmax) {
@@ -162,15 +163,15 @@ static int device_query(int inst, int want)
         return -CUPKEE_EBUSY;
     }
 
-    send = cupkee_device_request_len(spi->id);
+    send = cupkee_device_request_len(spi->entry);
     if (send < 0) {
         return -CUPKEE_EINVAL;
     } else
     if (send + want == 0) {
-        cupkee_device_response_end(spi->id);
+        cupkee_device_response_end(spi->entry);
         return 0;
     } else
-    if (send && NULL == (spi->txbuf = cupkee_device_request_ptr(spi->id))) {
+    if (send && NULL == (spi->txbuf = cupkee_device_request_ptr(spi->entry))) {
         return -CUPKEE_EINVAL;
     }
 
@@ -216,7 +217,7 @@ static int device_poll(int inst)
             spi->flags &= ~HW_FL_BUSY;
             spi->done = 0;
 
-            cupkee_device_response_end(spi->id);
+            cupkee_device_response_end(spi->entry);
         }
     }
 
@@ -240,7 +241,7 @@ static int device_reset(int inst)
     return 0;
 }
 
-static int device_setup(int inst, int id)
+static int device_setup(int inst, void *entry)
 {
     hw_spi_t *spi = hw_device(inst);
 
@@ -255,7 +256,7 @@ static int device_setup(int inst, int id)
     }
 
     spi->done = 0;
-    spi->id   = id;
+    spi->entry = entry;
 
     spi_reset(reg_base[inst]);
 
@@ -278,7 +279,7 @@ static int device_request(int inst)
     }
 
     spis[inst].flags = HW_FL_USED;
-    spis[inst].id    = CUPKEE_ID_INVALID;
+    spis[inst].entry = NULL;
     spis[inst].done = 0;
 
     return 0;

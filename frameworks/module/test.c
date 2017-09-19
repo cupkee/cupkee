@@ -24,11 +24,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "module_test.h"
+#include <cupkee.h>
+
+#include "module_example.h"
+
+static const native_t native_entries[] = {
+    /* Panda natives */
+
+    /* Cupkee natives */
+    {"sysinfos",        native_sysinfos},
+    {"systicks",        native_systicks},
+    {"print",           native_print},
+    {"pinMap",          native_pin_map},
+    {"pin",             native_pin},
+
+    {"setTimeout",      native_set_timeout},
+    {"setInterval",     native_set_interval},
+    {"clearTimeout",    native_clear_timeout},
+    {"clearInterval",   native_clear_interval},
+
+    {"require",         native_require},
+};
+
+static void board_setup(void)
+{
+    module_example_init();
+}
+
+static int board_native_number(void)
+{
+    return sizeof(native_entries) / sizeof(native_t);
+}
+
+static const native_t *board_native_entries(void)
+{
+    return native_entries;
+}
 
 int main(void)
 {
-    cupkee_device_t *tty;
+    void *tty;
 
     /**********************************************************
      * Cupkee system initial
@@ -39,23 +74,20 @@ int main(void)
     tty = cupkee_device_request("usb-cdc", 0);
 #else
     tty = cupkee_device_request("uart", 0);
-    tty->config.data.uart.baudrate = 115200;
-    tty->config.data.uart.stop_bits = DEVICE_OPT_STOPBITS_1;
-    tty->config.data.uart.data_bits = 8;
 #endif
     cupkee_device_enable(tty);
 
-    cupkee_shell_init(tty, module_test_native_number(), module_test_native_entries());
+    cupkee_shell_init(tty, board_native_number(), board_native_entries());
 
     /**********************************************************
      * user setup code
      *********************************************************/
-    module_test_setup();
+    board_setup();
 
     /**********************************************************
      * Let's Go!
      *********************************************************/
-    cupkee_shell_loop(module_test_script());
+    cupkee_shell_loop(NULL);
 
     /**********************************************************
      * Let's Go!

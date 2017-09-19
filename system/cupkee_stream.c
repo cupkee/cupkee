@@ -131,13 +131,6 @@ void cupkee_stream_ignore(cupkee_stream_t *s, int event)
     }
 }
 
-void cupkee_stream_set_error(cupkee_stream_t *s, uint8_t err)
-{
-    if (s) {
-        cupkee_error_set(s->id, err);
-    }
-}
-
 int cupkee_stream_readable(cupkee_stream_t *s)
 {
     if (stream_is_readable(s) && s->rx_buf) {

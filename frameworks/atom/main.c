@@ -28,7 +28,7 @@ SOFTWARE.
 
 int main(void)
 {
-    int tty;
+    void *tty;
 
     /**********************************************************
      * Cupkee system initial

@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include "hardware.h"
 
-static uint8_t cdc_devid = 0;
+static void   *cdc_entry = NULL;
 static uint8_t cdc_flags = 0;
 
 #ifndef USB_CLASS_MISCELLANEOUS
@@ -248,7 +248,7 @@ static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
         uint8_t data;
 
         while (1 == cdc_recv_byte(&data)) {
-            if (1 != cupkee_device_push(cdc_devid, 1, &data)) {
+            if (1 != cupkee_device_push(cdc_entry, 1, &data)) {
                 cdc_flags &= ~HW_FL_RXE;
                 break;
             }
@@ -264,9 +264,9 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
     if (cdc_flags & HW_FL_TXE) {
         uint8_t data;
 
-        while (1 == cupkee_device_pull(cdc_devid, 1, &data)) {
+        while (1 == cupkee_device_pull(cdc_entry, 1, &data)) {
             if (1 != cdc_send_byte(data)) {
-                cupkee_unshift(cdc_devid, data);
+                cupkee_unshift(cdc_entry, data);
                 cdc_flags &= ~HW_FL_TXE;
                 break;
             }
@@ -295,10 +295,10 @@ static int cdc_reset(int instance)
     return 0;
 }
 
-static int cdc_setup(int instance, int id)
+static int cdc_setup(int instance, void *entry)
 {
     if (instance == 0) {
-        cdc_devid = id;
+        cdc_entry = entry;
         cdc_flags |= HW_FL_RXE | HW_FL_TXE;
     }
     return 0;
@@ -391,7 +391,7 @@ void hw_setup_usb(void)
         "cupkee", "cupdisk", "0.01", CUPKEE_SYSDISK_SECTOR_COUNT,
         cupkee_sysdisk_read, cupkee_sysdisk_write);
 
-    cdc_devid = 0;
+    cdc_entry = NULL;
     cdc_flags = 0;
 
     //_usbd_reset(usb_hnd);

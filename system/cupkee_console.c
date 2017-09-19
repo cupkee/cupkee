@@ -40,7 +40,7 @@ SOFTWARE.
 #define CONSOLE_OUT      1
 #define CONSOLE_BUF_NUM  2
 
-static int console_tty = -1;
+static void *console_tty = NULL;
 static console_handle_t user_handle = NULL;
 
 static uint32_t console_total_recv = 0;
@@ -259,24 +259,24 @@ static void console_input_handle(int n, void *data)
     }
 }
 
-static void console_do_recv(int id)
+static void console_do_recv(void *tty)
 {
     int n;
     char buf[4];
 
-    while (0 < (n = cupkee_read(id, 4, buf))) {
+    while (0 < (n = cupkee_read(tty, 4, buf))) {
         console_total_recv += n;
         console_input_handle(n, buf);
     }
 
 }
 
-static void console_do_send(int id)
+static void console_do_send(void *tty)
 {
     char c;
 
     while (console_buf_read_byte(CONSOLE_OUT, &c)) {
-        if (!cupkee_write(id, 1, &c)) {
+        if (!cupkee_write(tty, 1, &c)) {
             console_buf_unread_byte(CONSOLE_OUT, c);
             break;
         } else {
@@ -285,21 +285,21 @@ static void console_do_send(int id)
     }
 }
 
-static int console_device_handle(int id, int event, intptr_t param)
+static int console_device_handle(void *tty, int event, intptr_t param)
 {
     (void) param;
 
     if (event == CUPKEE_EVENT_DATA) {
-        console_do_recv(id);
+        console_do_recv(tty);
     } else
     if (event == CUPKEE_EVENT_DRAIN) {
-        console_do_send(id);
+        console_do_send(tty);
     }
 
     return 0;
 }
 
-int cupkee_console_init(int tty, console_handle_t handle)
+int cupkee_console_init(void *tty, console_handle_t handle)
 {
     console_cursor = 0;
     console_total_recv = 0;

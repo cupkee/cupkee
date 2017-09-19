@@ -37,12 +37,12 @@ static const val_foreign_op_t timer_op = {
     .prop    = timer_op_prop,
 };
 
-static int timer_callback(int timer, int event, intptr_t data)
+static int timer_callback(void *entry, int event, intptr_t data)
 {
     timer_param_t *param = (timer_param_t *) data;
     int retval = CUPKEE_TIMER_KEEP;
 
-    (void) timer;
+    (void) entry;
 
     switch (event) {
     case CUPKEE_EVENT_STOP:

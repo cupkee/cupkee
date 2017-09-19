@@ -42,7 +42,7 @@ SOFTWARE.
 #define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
 #define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
 
-typedef int (*cupkee_callback_t)(int id, int event, intptr_t param);
+typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
 /* Todo: cupkee_config.h ? */
 // Device config
