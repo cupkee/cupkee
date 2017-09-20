@@ -176,11 +176,55 @@ static const cupkee_driver_t mock_driver = {
     .write   = mock_write,
 };
 
+static const char *parity_options[] = {
+    "none", "odd", "even"
+};
+
+static const cupkee_struct_desc_t mock_conf_desc[] = {
+    {
+        .name = "baudrate",
+        .type = CUPKEE_STRUCT_UINT32
+    },
+    {
+        .name = "databits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+    {
+        .name = "parity",
+        .type = CUPKEE_STRUCT_OPT,
+        .size = 3,
+        .opt_names = parity_options
+    },
+    {
+        .name = "stopbits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+};
+
+static cupkee_struct_t *mock_conf_init(void *curr)
+{
+    cupkee_struct_t *conf;
+
+    if (curr) {
+        conf = curr;
+    } else {
+        conf = cupkee_struct_alloc(4, mock_conf_desc);
+    }
+
+    if (conf) {
+        cupkee_struct_set_uint(conf, 0, 115200);
+        cupkee_struct_set_uint(conf, 1, 8);
+        cupkee_struct_set_string(conf, 2, "None");
+        cupkee_struct_set_uint(conf, 3, 1);
+    }
+
+    return conf;
+}
+
 static const cupkee_device_desc_t mock_device = {
     .name = "mock",
     .inst_max = 2,
-    .conf_num = 2,
-    .conf_desc = NULL,
+    .conf_init = mock_conf_init,
     .driver = &mock_driver
 };
 
@@ -462,6 +506,35 @@ static void test_event(void)
     cupkee_release(dev);
 }
 
+static void test_config(void)
+{
+    void *dev;
+    int n;
+
+    CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 2)));
+
+    // default config
+    CU_ASSERT(cupkee_device_config_get_num(dev, 0, &n) > 0 && n == 115200);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 1, &n) > 0 && n == 8);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 2, &n) > 0 && n == 0);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 3, &n) > 0 && n == 1);
+
+    // update config
+    CU_ASSERT(cupkee_device_config_set_num(dev, 0, 9600) > 0);
+    CU_ASSERT(cupkee_device_config_set_num(dev, 1, 9) > 0);
+    CU_ASSERT(cupkee_device_config_set_string(dev, 2, "odd") > 0);
+    CU_ASSERT(cupkee_device_config_set_num(dev, 3, 2) > 0);
+
+    CU_ASSERT(cupkee_device_config_get_num(dev, 0, &n) > 0 && n == 9600);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 1, &n) > 0 && n == 9);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 2, &n) > 0 && n == 1);
+    CU_ASSERT(cupkee_device_config_get_num(dev, 3, &n) > 0 && n == 2);
+
+    CU_ASSERT(!strcmp(cupkee_device_config_name(dev, 0), "baudrate"));
+
+    cupkee_release(dev);
+}
+
 CU_pSuite test_sys_device(void)
 {
     CU_pSuite suite = CU_add_suite("system device", test_setup, test_clean);
@@ -475,6 +548,8 @@ CU_pSuite test_sys_device(void)
         CU_add_test(suite, "device write     ", test_write);
 
         CU_add_test(suite, "device event     ", test_event);
+
+        CU_add_test(suite, "device config    ", test_config);
     }
 
     return suite;

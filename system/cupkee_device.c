@@ -89,13 +89,14 @@ static int device_type(const char *name)
 
 static void device_reset(cupkee_device_t *dev)
 {
+    const cupkee_device_desc_t *desc = device_descs[dev->type];
     dev->driver->reset(dev->instance);
 
     device_drop_work_list(dev);
     dev->flags = 0;
 
-    if (dev->conf) {
-        cupkee_struct_clear(dev->conf);
+    if (dev->conf && desc->conf_init) {
+        desc->conf_init(dev->conf);
     }
 
     if (dev->s) {
@@ -128,7 +129,12 @@ static cupkee_device_t *device_request(int type, int instance)
     dev->error = 0;
     dev->driver = desc->driver;
 
-    dev->conf = cupkee_struct_alloc(desc->conf_num, desc->conf_desc);
+    if (desc->conf_init) {
+        dev->conf = desc->conf_init(NULL);
+    } else {
+        dev->conf = NULL;
+    }
+
     dev->s    = NULL;
 
     dev->handle = NULL;
@@ -440,6 +446,66 @@ intptr_t cupkee_device_handle_param(void *entry)
         return 0;
     }
     return dev->handle_param;
+}
+
+const char *cupkee_device_config_name(void *entry, int id)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return NULL;
+    }
+
+    return cupkee_struct_item_name(dev->conf, id);
+}
+
+int cupkee_device_config_id(void *entry, const char *name)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return cupkee_struct_item_id(dev->conf, name);
+}
+
+int cupkee_device_config_get_num(void *entry, int i, int *ptr)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return cupkee_struct_get_int(dev->conf, i, ptr);
+}
+
+int cupkee_device_config_set_num(void *entry, int i, int n)
+{
+    int retval;
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    retval = cupkee_struct_set_int(dev->conf, i, n);
+    if (retval < 0) {
+        retval = cupkee_struct_push(dev->conf, i, n);
+    }
+    return retval;
+}
+
+int cupkee_device_config_set_string(void *entry, int i, const char *s)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return cupkee_struct_set_string(dev->conf, i, s);
 }
 
 int cupkee_is_device(void *entry)

@@ -53,8 +53,7 @@ typedef struct cupkee_driver_t {
 typedef struct cupkee_device_desc_t {
     const char *name;
     uint8_t  inst_max;
-    uint8_t  conf_num;
-    const cupkee_struct_desc_t *conf_desc;
+    cupkee_struct_t *(*conf_init)(void *curr);
     const cupkee_driver_t *driver;
 } cupkee_device_desc_t;
 
@@ -90,6 +89,13 @@ int  cupkee_is_device(void *entry);
 int cupkee_device_handle_set(void *entry, cupkee_callback_t handle, intptr_t param);
 cupkee_callback_t cupkee_device_handle_fn(void *entry);
 intptr_t cupkee_device_handle_param(void *entry);
+
+const char *cupkee_device_config_name(void *entry, int id);
+int cupkee_device_config_id(void *entry, const char *name);
+
+int cupkee_device_config_get_num(void *entry, int i, int *ptr);
+int cupkee_device_config_set_num(void *entry, int i, int n);
+int cupkee_device_config_set_string(void *entry, int i, const char *s);
 
 int cupkee_device_enable(void *entry);
 int cupkee_device_disable(void *entry);
