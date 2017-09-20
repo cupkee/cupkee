@@ -63,7 +63,7 @@ val_t native_device_listen(env_t *env, int ac, val_t *av);
 val_t native_device_ignore(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_timer.c */
-val_t native_timer_create(env_t *env, int ac, val_t *av);
+val_t native_create_timer(env_t *env, int ac, val_t *av);
 
 #endif /* __CUPKEE_NATIVE_INC__ */
 

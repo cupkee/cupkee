@@ -322,7 +322,7 @@ static void device_ignore(void *entry, int event)
     }
 }
 
-static const cupkee_meta_t device_meta = {
+static const cupkee_desc_t device_desc = {
     .error_handle = device_error_handle,
     .event_handle = device_event_handle,
     .streaming    = device_stream,
@@ -333,7 +333,7 @@ static const cupkee_meta_t device_meta = {
 
 int cupkee_device_setup(void)
 {
-    int tag = cupkee_object_register(sizeof(cupkee_device_t), &device_meta);
+    int tag = cupkee_object_register(sizeof(cupkee_device_t), &device_desc);
 
     if (tag < 0) {
         return -1;

@@ -33,7 +33,7 @@ static void timeout_handle(int drop, void *param)
     if (drop) {
         shell_reference_release(param);
     } else {
-        shell_do_callback(cupkee_shell_env(), param, 0, NULL);
+        cupkee_execute_function(param, 0, NULL);
     }
 }
 

@@ -31,7 +31,7 @@ SOFTWARE.
 #define CUPKEE_ENTRY_ID(p)      (CUPKEE_OBJECT_PTR(p)->id)
 #define CUPKEE_ID_INVALID       (-1)
 
-typedef struct cupkee_meta_t {
+typedef struct cupkee_desc_t {
     void (*destroy) (void *entry);
 
     void (*error_handle) (void *entry, int error);
@@ -41,7 +41,7 @@ typedef struct cupkee_meta_t {
     void (*ignore) (void *entry, int event);
 
     cupkee_stream_t *(*streaming) (void *entry);
-} cupkee_meta_t;
+} cupkee_desc_t;
 
 typedef struct cupkee_object_t {
     list_head_t list;
@@ -60,7 +60,8 @@ static inline void cupkee_object_event_post(int id, uint8_t code) {
     cupkee_event_post(EVENT_OBJECT, code, id);
 }
 
-int cupkee_object_register(size_t size, const cupkee_meta_t *meta);
+int  cupkee_object_register(size_t size, const cupkee_desc_t *desc);
+void cupkee_object_set_meta(int tag, void *meta);
 
 
 cupkee_object_t *cupkee_object_create(int tag);
@@ -77,6 +78,8 @@ int cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf);
 int cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data);
 int cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data);
 int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data);
+
+void *cupkee_object_meta(cupkee_object_t *obj);
 
 int  cupkee_id(int tag);
 void *cupkee_entry(int id, uint8_t tag);

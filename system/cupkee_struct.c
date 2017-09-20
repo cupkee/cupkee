@@ -102,7 +102,7 @@ static void *struct_number_data(cupkee_struct_t *st, int id, uint8_t *type)
     }
 
     if (t >= CUPKEE_STRUCT_FLOAT) {
-        return 0;
+        return NULL;
     }
 
     if (type) {
@@ -145,13 +145,13 @@ cupkee_struct_t *cupkee_struct_alloc(int item_num, const cupkee_struct_desc_t *d
 void cupkee_struct_release(cupkee_struct_t *st)
 {
     if (st) {
+        st->size = 0;
         if (st->flags & CUPKEE_STRUCT_FL_ALLOC) {
             cupkee_free(st);
         } else
         if (st->data) {
             cupkee_free(st->data);
             st->data = NULL;
-            st->size = 0;
         }
     }
 }
@@ -366,7 +366,7 @@ int cupkee_struct_get_string(cupkee_struct_t *st, int id, const char **pv)
 
 int cupkee_struct_push(cupkee_struct_t *st, int id, int v)
 {
-    uint8_t t, *p, end;
+    uint8_t t, *p, tail;
     int pos;
 
     pos = struct_item_info(st, id, &t);
@@ -375,9 +375,9 @@ int cupkee_struct_push(cupkee_struct_t *st, int id, int v)
     }
     p = st->data + pos;
 
-    end = p[0];
-    if (end < st->item_descs[id].size) {
-        p[1 + end] = v; p[0] ++;
+    tail = p[0];
+    if (tail < st->item_descs[id].size) {
+        p[1 + tail] = v; p[0] ++;
         return 1;
     }
 

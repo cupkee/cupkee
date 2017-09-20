@@ -84,14 +84,14 @@ static void timer_destroy(void *entry)
 }
 
 
-static const cupkee_meta_t timer_meta = {
+static const cupkee_desc_t timer_desc = {
     .destroy      = timer_destroy,
     .event_handle = timer_event_handle
 };
 
 int cupkee_timer_setup(void)
 {
-    if (0 > (timer_tag = cupkee_object_register(sizeof(cupkee_timer_t), &timer_meta))) {
+    if (0 > (timer_tag = cupkee_object_register(sizeof(cupkee_timer_t), &timer_desc))) {
         return -1;
     }
 
@@ -193,6 +193,11 @@ int cupkee_timer_duration(cupkee_timer_t *timer)
     }
 
     return hw_timer_duration_get(timer->inst);
+}
+
+int cupkee_timer_tag(void)
+{
+    return timer_tag;
 }
 
 int cupkee_is_timer(void *p)

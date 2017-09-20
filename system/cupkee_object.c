@@ -31,7 +31,8 @@ SOFTWARE.
 
 typedef struct cupkee_object_info_t {
     size_t size;
-    const cupkee_meta_t *meta;
+    const cupkee_desc_t *desc;
+    void *meta;
 } cupkee_object_info_t;
 
 static list_head_t      obj_list_head;
@@ -43,9 +44,9 @@ static int              obj_map_num;
 static uint8_t              obj_tag_end;
 static cupkee_object_info_t obj_infos[CUPKEE_OBJECT_TAG_MAX];
 
-static inline const cupkee_meta_t *object_meta(cupkee_object_t *obj) {
+static inline const cupkee_desc_t *object_desc(cupkee_object_t *obj) {
     if (obj && obj->tag < obj_tag_end) {
-        return obj_infos[obj->tag].meta;
+        return obj_infos[obj->tag].desc;
     } else {
         return NULL;
     }
@@ -111,27 +112,43 @@ int cupkee_object_setup(void)
 void cupkee_object_event_dispatch(uint16_t id, uint8_t code)
 {
     cupkee_object_t *obj = id_object(id);
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
 
     if (code == CUPKEE_EVENT_DESTROY) {
         cupkee_object_destroy(obj);
     } else
     // printf("object[%u, %p] event: %u\n", which, obj, code);
-    if (meta && meta->event_handle) {
-        meta->event_handle(obj->entry, code);
+    if (desc && desc->event_handle) {
+        desc->event_handle(obj->entry, code);
     }
 }
 
-int cupkee_object_register(size_t size, const cupkee_meta_t *meta)
+int cupkee_object_register(size_t size, const cupkee_desc_t *desc)
 {
     if (obj_tag_end >= CUPKEE_OBJECT_TAG_MAX) {
         return -1;
     }
 
     obj_infos[obj_tag_end].size = size;
-    obj_infos[obj_tag_end].meta = meta;
+    obj_infos[obj_tag_end].desc = desc;
 
     return obj_tag_end++;
+}
+
+void cupkee_object_set_meta(int tag, void *meta)
+{
+    if (tag < obj_tag_end) {
+        obj_infos[tag].meta = meta;
+    }
+}
+
+void *cupkee_object_meta(cupkee_object_t *obj)
+{
+    if (obj && obj->tag < obj_tag_end) {
+        return obj_infos[obj->tag].meta;
+    } else {
+        return NULL;
+    }
 }
 
 cupkee_object_t *cupkee_object_create(int tag)
@@ -170,11 +187,11 @@ cupkee_object_t *cupkee_object_create_with_id(int tag)
 
 void cupkee_object_destroy(cupkee_object_t *obj)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
 
-    if (meta) {
-        if (meta->destroy) {
-            meta->destroy(obj->entry);
+    if (desc) {
+        if (desc->destroy) {
+            desc->destroy(obj->entry);
         }
         object_unmap(obj);
 
@@ -187,9 +204,9 @@ void cupkee_object_destroy(cupkee_object_t *obj)
 void cupkee_object_error_set(cupkee_object_t *obj, int err)
 {
     if (obj) {
-        const cupkee_meta_t *meta = object_meta(obj);
-        if (meta->error_handle) {
-            meta->error_handle(obj->entry, err);
+        const cupkee_desc_t *desc = object_desc(obj);
+        if (desc->error_handle) {
+            desc->error_handle(obj->entry, err);
         }
         if (obj->id != CUPKEE_ID_INVALID) {
             cupkee_object_event_post(obj->id, CUPKEE_EVENT_ERROR);
@@ -199,32 +216,32 @@ void cupkee_object_error_set(cupkee_object_t *obj, int err)
 
 void cupkee_object_listen(cupkee_object_t *obj, int event)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
 
-    if (meta && meta->listen) {
-        meta->listen(obj->entry, event);
+    if (desc && desc->listen) {
+        desc->listen(obj->entry, event);
     }
 }
 
 void cupkee_object_ignore(cupkee_object_t *obj, int event)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
 
-    if (meta && meta->ignore) {
-        meta->ignore(obj->entry, event);
+    if (desc && desc->ignore) {
+        desc->ignore(obj->entry, event);
     }
 }
 
 int  cupkee_object_read(cupkee_object_t *obj, size_t n, void *buf)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
     cupkee_stream_t *s;
 
-    if (!meta || !n || !buf) {
+    if (!desc || !n || !buf) {
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
+    if (!desc->streaming || NULL == (s = desc->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -233,14 +250,14 @@ int  cupkee_object_read(cupkee_object_t *obj, size_t n, void *buf)
 
 int  cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
     cupkee_stream_t *s;
 
-    if (!meta || !n || !buf) {
+    if (!desc || !n || !buf) {
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
+    if (!desc->streaming || NULL == (s = desc->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -249,14 +266,14 @@ int  cupkee_object_read_sync(cupkee_object_t *obj, size_t n, void *buf)
 
 int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
     cupkee_stream_t *s;
 
-    if (!meta) {
+    if (!desc) {
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
+    if (!desc->streaming || NULL == (s = desc->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -265,14 +282,14 @@ int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data)
 
 int  cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
     cupkee_stream_t *s;
 
-    if (!meta || !n || !data) {
+    if (!desc || !n || !data) {
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
+    if (!desc->streaming || NULL == (s = desc->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 
@@ -281,14 +298,14 @@ int  cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data)
 
 int  cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data)
 {
-    const cupkee_meta_t *meta = object_meta(obj);
+    const cupkee_desc_t *desc = object_desc(obj);
     cupkee_stream_t *s;
 
-    if (!meta || !n || !data) {
+    if (!desc || !n || !data) {
         return -CUPKEE_EINVAL;
     }
 
-    if (!meta->streaming || NULL == (s = meta->streaming(obj->entry))) {
+    if (!desc->streaming || NULL == (s = desc->streaming(obj->entry))) {
         return -CUPKEE_EIMPLEMENT;
     }
 

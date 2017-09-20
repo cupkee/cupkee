@@ -94,7 +94,7 @@ static void stream_event_handle(void *entry, uint8_t event)
     mock_curr_event = event;
 }
 
-static const cupkee_meta_t stream_meta = {
+static const cupkee_desc_t stream_desc = {
     .event_handle = stream_event_handle
 };
 
@@ -102,7 +102,7 @@ static int test_setup(void)
 {
     TU_pre_init();
 
-    if (0 > (tag = cupkee_object_register(sizeof(cupkee_stream_t), &stream_meta))) {
+    if (0 > (tag = cupkee_object_register(sizeof(cupkee_stream_t), &stream_desc))) {
         return -1;
     }
 

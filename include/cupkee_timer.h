@@ -45,6 +45,7 @@ enum {
 };
 
 int cupkee_timer_setup(void);
+int cupkee_timer_tag(void);
 
 cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
 int cupkee_timer_release(cupkee_timer_t *timer);

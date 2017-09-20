@@ -31,12 +31,6 @@ typedef struct timer_param_t {
     val_t *handle;
 } timer_param_t;
 
-static void timer_op_prop(void *env, intptr_t id, val_t *name, val_t *prop);
-
-static const val_foreign_op_t timer_op = {
-    .prop    = timer_op_prop,
-};
-
 static int timer_callback(void *entry, int event, intptr_t data)
 {
     timer_param_t *param = (timer_param_t *) data;
@@ -88,10 +82,11 @@ static inline void *cupkee_object_entry (int *ac, val_t **av)
         val_t *v = *av;
         if (val_is_foreign(v)) {
             val_foreign_t *fv = (val_foreign_t *) val_2_intptr(v);
+            cupkee_object_t *obj = (cupkee_object_t *)fv->data;
 
-            if (fv->op == &timer_op) {
+            if (obj) {
                 (*ac) --; (*av) ++;
-                return (void *)fv->data;
+                return obj->entry;
             }
         }
     }
@@ -153,44 +148,34 @@ static val_t native_timer_stop(env_t *env, int ac, val_t *av)
     return cupkee_timer_stop(timer) == 0 ? VAL_TRUE : VAL_FALSE;
 }
 
-static val_t native_timer_duration(env_t *env, int ac, val_t *av)
+static int timer_prop_get(void *entry, const char *key, val_t *prop)
 {
-    void *timer;
-
-    (void) env;
-
-    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
-        return VAL_UNDEFINED;
+    if (!strcmp(key, "start")) {
+        val_set_native(prop, (intptr_t)native_timer_start);
+        return 1;
+    } else
+    if (!strcmp(key, "stop")) {
+        val_set_native(prop, (intptr_t)native_timer_stop);
+        return 1;
+    } else
+    if (!strcmp(key, "duration")) {
+        val_set_number(prop, cupkee_timer_duration(entry));
+        return 1;
+    } else {
+        return 0;
     }
-
-    return val_mk_number(cupkee_timer_duration(timer));
 }
 
-static void timer_op_prop(void *env, intptr_t id, val_t *name, val_t *prop)
+static const cupkee_meta_t timer_meta = {
+    .prop_get = timer_prop_get
+};
+
+void cupkee_shell_timer_init(void)
 {
-    const char *prop_name = val_2_cstring(name);
-
-    (void) env;
-    (void) id;
-
-    if (prop_name) {
-        if (!strcmp(prop_name, "start")) {
-            val_set_native(prop, (intptr_t)native_timer_start);
-            return;
-        } else
-        if (!strcmp(prop_name, "stop")) {
-            val_set_native(prop, (intptr_t)native_timer_stop);
-            return;
-        } else
-        if (!strcmp(prop_name, "duration")) {
-            val_set_native(prop, (intptr_t)native_timer_duration);
-            return;
-        }
-    }
-    val_set_undefined(prop);
+    cupkee_object_set_meta(cupkee_timer_tag(), (void *)&timer_meta);
 }
 
-val_t native_timer_create(env_t *env, int ac, val_t *av)
+val_t native_create_timer(env_t *env, int ac, val_t *av)
 {
     timer_param_t *param;
     void *timer;
@@ -209,6 +194,6 @@ val_t native_timer_create(env_t *env, int ac, val_t *av)
         return VAL_UNDEFINED;
     }
 
-    return val_create(env, &timer_op, timer);
+    return cupkee_shell_object_create(env, timer);
 }
 

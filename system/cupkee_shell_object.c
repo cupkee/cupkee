@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2016-2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,35 +24,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include "cupkee.h"
+#include "cupkee_shell_misc.h"
 
-#ifndef __CUPKEE_SHELL_INC__
-#define __CUPKEE_SHELL_INC__
+static void op_prop(void *env, intptr_t id, val_t *name, val_t *prop)
+{
+    cupkee_object_t *obj = (cupkee_object_t *)id;
+    cupkee_meta_t   *meta = cupkee_object_meta(obj);
+    const char *prop_name = val_2_cstring(name);
 
-#include <panda.h>
+    (void) env;
 
-typedef struct cupkee_meta_t {
-    int (*prop_get)(void *entry, const char *key, val_t *res);
-} cupkee_meta_t;
+    if (meta && prop_name && meta->prop_get) {
+        if (0 < meta->prop_get(obj->entry, prop_name, prop)) {
+            return;
+        }
+    }
 
-int cupkee_shell_init(void *tty, int n, const native_t *natives);
-int cupkee_shell_start(const char *initial);
-
-static inline void cupkee_shell_loop(const char *initial) {
-    cupkee_shell_start(initial);
-    cupkee_loop();
+    val_set_undefined(prop);
 }
 
-env_t *cupkee_shell_env(void);
-val_t *cupkee_shell_reference_create(val_t *v);
-void cupkee_shell_reference_release(val_t *ref);
 
-val_t *cupkee_ref_inc(val_t *v);
-void   cupkee_ref_dec(val_t *r);
+static const val_foreign_op_t object_op = {
+    .prop    = op_prop,
+};
 
-int   cupkee_execute_string(const char *script, val_t **res);
-val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
-
-val_t cupkee_shell_object_create(env_t *env, void *entry);
-
-#endif /* __CUPKEE_SHELL_INC__ */
+val_t cupkee_shell_object_create(env_t *env, void *entry)
+{
+    if (entry) {
+        return val_create(env, &object_op, (intptr_t)CUPKEE_OBJECT_PTR(entry));
+    } else {
+        return VAL_UNDEFINED;
+    }
+}
 

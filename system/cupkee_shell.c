@@ -233,6 +233,8 @@ int cupkee_shell_init(void *tty, int n, const native_t *natives)
 
     shell_interp_init(heap_mem_sz, stack_mem_sz, n, natives);
 
+    cupkee_shell_timer_init();
+
     return 0;
 }
 
