@@ -136,27 +136,42 @@ static int uart_reset(int inst)
 static int uart_setup(int inst, void *entry)
 {
     hw_uart_t *uart = uart_block(inst);
-    uint32_t databits, stopbits, parity;
+    uint32_t baudrate, databits, stopbits, parity;
+    int n;
 
     if (!uart) {
         return -CUPKEE_EINVAL;
     }
 
-    stopbits = USART_STOPBITS_1;
-    //stopbits = USART_STOPBITS_2;
+    cupkee_device_config_get_num(entry, 0, &n);
+    baudrate = n;
 
-    databits = 8;
+    cupkee_device_config_get_num(entry, 1, &n);
+    databits = n;
 
-    parity = USART_PARITY_NONE;
-    //parity = USART_PARITY_ODD;
-    //parity = USART_PARITY_EVEN;
+    cupkee_device_config_get_num(entry, 2, &n);
+    if (n == 1) {
+        parity = USART_PARITY_ODD;
+    } else
+    if (n == 2) {
+        parity = USART_PARITY_EVEN;
+    } else {
+        parity = USART_PARITY_NONE;
+    }
+
+    cupkee_device_config_get_num(entry, 3, &n);
+    if (n == 2) {
+        stopbits = USART_STOPBITS_2;
+    } else {
+        stopbits = USART_STOPBITS_1;
+    }
 
     if (CUPKEE_OK != uart_gpio_setup(inst)) {
         return -CUPKEE_ERESOURCE;
     }
 
     rcc_periph_clock_enable(rcc_base[inst]);
-	usart_set_baudrate(reg_base[inst], 115200);
+	usart_set_baudrate(reg_base[inst], baudrate);
 	usart_set_databits(reg_base[inst], databits);
 	usart_set_stopbits(reg_base[inst], stopbits);
 	usart_set_parity  (reg_base[inst], parity);
@@ -272,6 +287,51 @@ static int uart_read(int inst, size_t n, void *data)
     }
 }
 
+static const char *parity_options[] = {
+    "none", "odd", "even"
+};
+
+static const cupkee_struct_desc_t conf_desc[] = {
+    {
+        .name = "baudrate",
+        .type = CUPKEE_STRUCT_UINT32
+    },
+    {
+        .name = "databits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+    {
+        .name = "parity",
+        .type = CUPKEE_STRUCT_OPT,
+        .size = 3,
+        .opt_names = parity_options
+    },
+    {
+        .name = "stopbits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+};
+
+static cupkee_struct_t *uart_conf_init(void *curr)
+{
+    cupkee_struct_t *conf;
+
+    if (curr) {
+        conf = curr;
+    } else {
+        conf = cupkee_struct_alloc(4, conf_desc);
+    }
+
+    if (conf) {
+        cupkee_struct_set_uint(conf, 0, 115200);
+        cupkee_struct_set_uint(conf, 1, 8);
+        cupkee_struct_set_string(conf, 2, "None");
+        cupkee_struct_set_uint(conf, 3, 1);
+    }
+
+    return conf;
+}
+
 static const cupkee_driver_t uart_driver = {
     .request = uart_request,
     .release = uart_release,
@@ -286,8 +346,7 @@ static const cupkee_driver_t uart_driver = {
 static const cupkee_device_desc_t hw_device_uart = {
     .name = "uart",
     .inst_max = USART_MAX,
-    .conf_num = 2,
-    .conf_desc = NULL,
+    .conf_init = uart_conf_init,
     .driver = &uart_driver
 };
 

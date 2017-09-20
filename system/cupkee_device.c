@@ -352,6 +352,11 @@ int cupkee_device_setup(void)
     return 0;
 }
 
+int cupkee_device_tag(void)
+{
+    return device_tag;
+}
+
 int cupkee_device_register(const cupkee_device_desc_t *desc)
 {
     if (!desc || !desc->name || !desc->driver) {
@@ -479,6 +484,17 @@ int cupkee_device_config_get_num(void *entry, int i, int *ptr)
     }
 
     return cupkee_struct_get_int(dev->conf, i, ptr);
+}
+
+int cupkee_device_config_get_string(void *entry, int i, const char **ptr)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return cupkee_struct_get_string(dev->conf, i, ptr);
 }
 
 int cupkee_device_config_set_num(void *entry, int i, int n)

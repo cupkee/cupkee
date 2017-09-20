@@ -356,12 +356,24 @@ int cupkee_struct_get_string(cupkee_struct_t *st, int id, const char **pv)
     int pos;
 
     pos = struct_item_info(st, id, &t);
-    if (pos < 0 || t != CUPKEE_STRUCT_STR) {
+    if (pos < 0) {
         return -CUPKEE_EINVAL;
     }
-    *pv = (const char *)(st->data + pos);
 
-    return 1;
+    if (t == CUPKEE_STRUCT_STR) {
+        *pv = (const char *)(st->data + pos);
+        return 1;
+    } else
+    if (t == CUPKEE_STRUCT_OPT) {
+        uint8_t x = st->data[pos];
+        const char **names = st->item_descs[id].opt_names;
+
+        if (names && x < st->item_descs[id].size) {
+            *pv = names[x];
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int cupkee_struct_push(cupkee_struct_t *st, int id, int v)

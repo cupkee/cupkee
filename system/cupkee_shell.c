@@ -27,6 +27,7 @@ SOFTWARE.
 #include <cupkee.h>
 
 #include "cupkee_shell_misc.h"
+#include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
 
 static const char *logo = "\r\n\
@@ -233,7 +234,8 @@ int cupkee_shell_init(void *tty, int n, const native_t *natives)
 
     shell_interp_init(heap_mem_sz, stack_mem_sz, n, natives);
 
-    cupkee_shell_timer_init();
+    cupkee_shell_init_timer();
+    cupkee_shell_init_device();
 
     return 0;
 }
@@ -291,5 +293,22 @@ val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)
         }
     }
     return VAL_UNDEFINED;
+}
+
+void *cupkee_shell_object_entry (int *ac, val_t **av)
+{
+    if ((*ac)) {
+        val_t *v = *av;
+        if (val_is_foreign(v)) {
+            val_foreign_t *fv = (val_foreign_t *) val_2_intptr(v);
+            cupkee_object_t *obj = (cupkee_object_t *)fv->data;
+
+            if (obj) {
+                (*ac) --; (*av) ++;
+                return obj->entry;
+            }
+        }
+    }
+    return NULL;
 }
 

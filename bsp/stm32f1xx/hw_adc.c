@@ -289,8 +289,7 @@ static const cupkee_driver_t device_driver = {
 static const cupkee_device_desc_t hw_device_adc = {
     .name = "adc",
     .inst_max = ADC_MAX,
-    .conf_num = 2,
-    .conf_desc = NULL,
+    .conf_init = NULL,
     .driver = &device_driver
 };
 

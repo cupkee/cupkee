@@ -77,7 +77,8 @@ struct cupkee_device_t {
     cupkee_stream_t  *s;
 };
 
-int  cupkee_device_setup(void);
+int cupkee_device_setup(void);
+int cupkee_device_tag(void);
 void cupkee_device_sync(uint32_t systicks);
 void cupkee_device_poll(void);
 int  cupkee_device_register(const cupkee_device_desc_t *desc);
@@ -94,6 +95,8 @@ const char *cupkee_device_config_name(void *entry, int id);
 int cupkee_device_config_id(void *entry, const char *name);
 
 int cupkee_device_config_get_num(void *entry, int i, int *ptr);
+int cupkee_device_config_get_string(void *entry, int i, const char **ptr);
+
 int cupkee_device_config_set_num(void *entry, int i, int n);
 int cupkee_device_config_set_string(void *entry, int i, const char *s);
 

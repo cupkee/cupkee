@@ -42,6 +42,7 @@ static inline void cupkee_shell_loop(const char *initial) {
     cupkee_loop();
 }
 
+
 env_t *cupkee_shell_env(void);
 val_t *cupkee_shell_reference_create(val_t *v);
 void cupkee_shell_reference_release(val_t *ref);
@@ -53,6 +54,8 @@ int   cupkee_execute_string(const char *script, val_t **res);
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
 
 val_t cupkee_shell_object_create(env_t *env, void *entry);
+
+void *cupkee_shell_object_entry (int *ac, val_t **av);
 
 #endif /* __CUPKEE_SHELL_INC__ */
 

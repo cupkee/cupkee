@@ -376,8 +376,7 @@ static const cupkee_driver_t cdc_driver = {
 static const cupkee_device_desc_t hw_device_cdc = {
     .name = "usb-cdc",
     .inst_max = 1,
-    .conf_num = 0,
-    .conf_desc = NULL,
+    .conf_init = NULL,
     .driver = &cdc_driver
 };
 

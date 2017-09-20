@@ -76,23 +76,6 @@ static int timer_callback(void *entry, int event, intptr_t data)
     return retval;
 }
 
-static inline void *cupkee_object_entry (int *ac, val_t **av)
-{
-    if ((*ac)) {
-        val_t *v = *av;
-        if (val_is_foreign(v)) {
-            val_foreign_t *fv = (val_foreign_t *) val_2_intptr(v);
-            cupkee_object_t *obj = (cupkee_object_t *)fv->data;
-
-            if (obj) {
-                (*ac) --; (*av) ++;
-                return obj->entry;
-            }
-        }
-    }
-    return NULL;
-}
-
 static val_t native_timer_start(env_t *env, int ac, val_t *av)
 {
     void *timer;
@@ -102,7 +85,7 @@ static val_t native_timer_start(env_t *env, int ac, val_t *av)
 
     (void) env;
 
-    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
+    if (NULL == (timer = cupkee_shell_object_entry(&ac, &av))) {
         return VAL_UNDEFINED;
     }
 
@@ -141,7 +124,7 @@ static val_t native_timer_stop(env_t *env, int ac, val_t *av)
 
     (void) env;
 
-    if (NULL == (timer = cupkee_object_entry(&ac, &av))) {
+    if (NULL == (timer = cupkee_shell_object_entry(&ac, &av))) {
         return VAL_UNDEFINED;
     }
 
@@ -170,7 +153,7 @@ static const cupkee_meta_t timer_meta = {
     .prop_get = timer_prop_get
 };
 
-void cupkee_shell_timer_init(void)
+void cupkee_shell_init_timer(void)
 {
     cupkee_object_set_meta(cupkee_timer_tag(), (void *)&timer_meta);
 }

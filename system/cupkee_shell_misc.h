@@ -50,7 +50,7 @@ int shell_str_id(const char *s, int max, const char * const *names);
 int shell_input_data(val_t *data, void **ptr);
 
 // cupkee_shell_timer.c
-void cupkee_shell_timer_init(void);
+void cupkee_shell_init_timer(void);
 
 #endif /* __CUPKEE_SHELL_MISC_INC__ */
 

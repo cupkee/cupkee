@@ -44,7 +44,7 @@ static const native_t native_entries[] = {
     {"clearTimeout",    native_clear_timeout},
     {"clearInterval",   native_clear_interval},
 
-    {"Device",          native_device_create},
+    {"Device",          native_create_device},
     {"Timer",           native_create_timer},
 };
 
