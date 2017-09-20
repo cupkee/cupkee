@@ -72,7 +72,7 @@ SOFTWARE.
 #define BOOT_PROBE_DEV          0  // Low
 
 #include "hw_usb.h"
-#include "hw_misc.h"
+#include "hw_storage.h"
 
 #include "hw_gpio.h"
 #include "hw_timer.h"
