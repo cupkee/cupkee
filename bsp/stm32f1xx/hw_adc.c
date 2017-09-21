@@ -34,14 +34,14 @@ SOFTWARE.
 #define ADC_INVALID     0xffff
 
 typedef struct hw_adc_t {
-    int16_t id;
+    void *entry;
+
     uint8_t flags;
     uint8_t state;
-
     uint8_t current;
-    uint8_t changed;
-    uint16_t sleep;
+    uint8_t chn_num;
 
+    const uint8_t *chn_seq;
     uint16_t data[8];
 } hw_adc_t;
 
@@ -69,17 +69,14 @@ static inline hw_adc_t *device_block(int inst) {
 static inline int device_chn_setup(uint8_t chn)
 {
     if (chn < 16) {
-        int port     = chn_port[chn];
-        uint16_t pin = chn_pin[chn];
+        int      port = chn_port[chn];
+        uint16_t pin  = chn_pin[chn];
 
         if (!hw_gpio_use_setup(port, pin, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG)) {
             return -CUPKEE_ERESOURCE;
         }
     } else
-    if (chn == 16) {
-        return -CUPKEE_EIMPLEMENT;
-    } else
-    if (chn == 17) {
+    if (chn < 18) {
         return -CUPKEE_EIMPLEMENT;
     } else {
         return -CUPKEE_EINVAL;
@@ -128,35 +125,49 @@ static inline int device_convert_ok(int inst) {
 static int device_reset(int inst)
 {
     hw_adc_t *device = device_block(inst);
+    int i;
+
+    for (i = 0; i < device->chn_num; i++) {
+        device_chn_reset(device->chn_seq[i]);
+    }
+    adc_power_off(ADC1);
+    rcc_periph_clock_disable(RCC_ADC1);
 
     if (device) {
-
-        device->id = CUPKEE_ID_INVALID;
+        device->entry = NULL;
         return 0;
     } else {
         return -CUPKEE_EINVAL;
     }
 }
 
-static uint8_t mock_seq[] = {0, 1, 2, 3};
-
 static int device_setup(int inst, void *entry)
 {
     hw_adc_t *device = device_block(inst);
-    int err = 0;
+    cupkee_struct_t *conf;
+    int n = 0;
 
     if (!device) {
         return -CUPKEE_EINVAL;
     }
 
+    conf = cupkee_device_config(entry);
+    if (!conf) {
+        return -CUPKEE_ERROR;
+    }
+
+    n = cupkee_struct_get_bytes(conf, 0, &device->chn_seq);
+    if (n < 1) {
+        return -CUPKEE_EINVAL;
+    }
+
     device->state = ADC_IDLE;
-    device->sleep = 5;
+    device->chn_num = n;
     device->current = 0;
-    device->changed = 0;
 
     /* hardware setup here */
-    if (0 != (err = device_channel_setup(4, mock_seq))) {
-        return err;
+    if (0 != device_channel_setup(n, device->chn_seq)) {
+        return -CUPKEE_EINVAL;
     }
 
     rcc_periph_clock_enable(RCC_ADC1);
@@ -172,7 +183,7 @@ static int device_setup(int inst, void *entry)
     adc_reset_calibration(ADC1);
     adc_calibrate(ADC1);
 
-    device->id = CUPKEE_ENTRY_ID(entry);
+    device->entry = entry;
     return 0;
 }
 
@@ -183,7 +194,7 @@ static int device_request(int inst)
     }
 
     adcs[inst].flags = HW_FL_USED;
-    adcs[inst].id    = CUPKEE_ID_INVALID;
+    adcs[inst].entry = NULL;
 
     return 0;
 }
@@ -203,46 +214,33 @@ static int device_release(int inst)
 
 static int device_poll(int inst)
 {
-    (void) inst;
+    hw_adc_t *device = device_block(inst);
 
-    return 0;
-
-#if 0
     if (device) {
         switch(device->state) {
         case ADC_IDLE:
             if (device_ready(inst)) {
-                adc_set_regular_sequence(ADC1, 4, mock_seq);
+                adc_set_regular_sequence(ADC1, device->chn_num, (uint8_t *)device->chn_seq);
                 device->state = ADC_READY;
             }
             break;
         case ADC_READY:
-            if (device->sleep == 0) {
-                adc_start_conversion_direct(ADC1);
-                device->state = ADC_BUSY;
-            } else {
-                device->sleep--;
-            }
+            adc_start_conversion_direct(ADC1);
+            device->state = ADC_BUSY;
             break;
         case ADC_BUSY:
             if (device_convert_ok(inst)) {
                 uint8_t  curr = device->current;
                 uint16_t data = adc_read_regular(ADC1);
-                uint16_t last = device->data[curr];
 
-                if (curr + 1 >= device->config->chn_num) {
+                device->data[curr++] = data;
+
+                if (curr >= device->chn_num) {
                     device->current = 0;
                 } else {
-                    device->current = curr + 1;
+                    device->current = curr;
                 }
 
-                if (data != last) {
-                    device->data[curr] = data;
-                    device->changed = curr;
-                    cupkee_event_post_device_data(device->dev_id);
-                }
-
-                device->sleep = device->config->interval;
                 device->state = ADC_READY;
             }
             break;
@@ -256,23 +254,38 @@ static int device_poll(int inst)
     } else {
         return -CUPKEE_EINVAL;
     }
-#endif
 }
 
-static int device_get(int inst, int off, uint32_t *data)
+static int device_get(int inst, int i, uint32_t *data)
 {
-    (void) inst;
-    (void) off;
-    (void) data;
+    hw_adc_t *device = device_block(inst);
+
+    if (device && i < device->chn_num) {
+        *data = device->data[i];
+        return 1;
+    }
     return 0;
 }
 
-static int device_set(int inst, int off, uint32_t data)
+static const cupkee_struct_desc_t conf_desc[] = {
+    {
+        .name = "channel",
+        .size = 8,
+        .type = CUPKEE_STRUCT_OCT
+    }
+};
+
+static cupkee_struct_t *device_conf_init(void *curr)
 {
-    (void) inst;
-    (void) off;
-    (void) data;
-    return 0;
+    cupkee_struct_t *conf;
+
+    if (curr) {
+        conf = curr;
+    } else {
+        conf = cupkee_struct_alloc(1, conf_desc);
+    }
+
+    return conf;
 }
 
 static const cupkee_driver_t device_driver = {
@@ -283,13 +296,12 @@ static const cupkee_driver_t device_driver = {
     .poll    = device_poll,
 
     .get    = device_get,
-    .set    = device_set,
 };
 
 static const cupkee_device_desc_t hw_device_adc = {
     .name = "adc",
     .inst_max = ADC_MAX,
-    .conf_init = NULL,
+    .conf_init = device_conf_init,
     .driver = &device_driver
 };
 

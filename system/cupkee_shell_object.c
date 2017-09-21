@@ -37,7 +37,7 @@ static void create_array_by_octstr(env_t *env, uint8_t *seq, val_t *res)
 
         if (a) {
             for (i = 0; i < n; i++) {
-                val_set_number(_array_elem(a, i), seq[i]);
+                val_set_number(_array_elem(a, i), seq[1 + i]);
             }
             val_set_array(res, (intptr_t) a);
             return;
