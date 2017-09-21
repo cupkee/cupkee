@@ -42,40 +42,28 @@ static int device_setup(void *entry, env_t *env, val_t *setting)
     }
 
     while (object_iter_next(&it, &key, &val)) {
-        int id = cupkee_device_config_id(entry, key);
+        if (val_is_number(val)) {
+            cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(val));
+        } else
+        if (val_is_array(val)){
+            array_t *array = (array_t *)val_2_intptr(val);
+            val_t   *elems = array_values(array);
+            int n = array_len(array), i;
 
-        if (id >= 0) {
-            if (val_is_number(val)) {
-                int n = val_2_integer(val);
-                cupkee_device_config_set_num(entry, id, n);
-            } else {
-                const char *s = val_2_cstring(val);
-                cupkee_device_config_set_string(entry, id, s);
+            for (i = 0; i < n; i++, elems++) {
+                if (val_is_number(elems) && cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(elems)) < 1) {
+                    break;
+                }
+            }
+        } else {
+            const char *s = val_2_cstring(val);
+            if (s) {
+                cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_STR, (intptr_t)s);
             }
         }
     }
 
     return CUPKEE_OK;
-}
-
-static int device_conf_get(void *entry, const char *key, val_t *prop)
-{
-    int id = cupkee_device_config_id(entry, key);
-
-    if (id >= 0) {
-        const char *s;
-        int n;
-        if (cupkee_device_config_get_string(entry, id, &s) > 0) {
-            val_set_foreign_string(prop, (intptr_t) s);
-            return 1;
-        } else
-        if (cupkee_device_config_get_num(entry, id, &n) > 0) {
-            val_set_number(prop, n);
-            return 1;
-        }
-    }
-
-    return 0;
 }
 
 static val_t native_device_enable(env_t *env, int ac, val_t *av)
@@ -115,6 +103,8 @@ static val_t native_device_disable(env_t *env, int ac, val_t *av)
 
 static int device_prop_get(void *entry, const char *key, val_t *prop)
 {
+    (void) entry;
+
     if (!strcmp(key, "enable")) {
         val_set_native(prop, (intptr_t)native_device_enable);
         return 1;
@@ -122,12 +112,8 @@ static int device_prop_get(void *entry, const char *key, val_t *prop)
     if (!strcmp(key, "disable")) {
         val_set_native(prop, (intptr_t)native_device_disable);
         return 1;
-    } else
-    if (!strcmp(key, "isEnabled")) {
-        val_set_boolean(prop, cupkee_device_is_enabled(entry));
-        return 1;
     } else {
-        return device_conf_get(entry, key, prop);
+        return 0;
     }
 }
 

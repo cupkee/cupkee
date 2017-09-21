@@ -199,6 +199,11 @@ static const cupkee_struct_desc_t mock_conf_desc[] = {
         .name = "stopbits",
         .type = CUPKEE_STRUCT_UINT8
     },
+    {
+        .name = "channel",
+        .type = CUPKEE_STRUCT_OCT,
+        .size = 8,
+    },
 };
 
 static cupkee_struct_t *mock_conf_init(void *curr)
@@ -207,8 +212,9 @@ static cupkee_struct_t *mock_conf_init(void *curr)
 
     if (curr) {
         conf = curr;
+        cupkee_struct_clear(conf);
     } else {
-        conf = cupkee_struct_alloc(4, mock_conf_desc);
+        conf = cupkee_struct_alloc(5, mock_conf_desc);
     }
 
     if (conf) {
@@ -509,28 +515,41 @@ static void test_event(void)
 static void test_config(void)
 {
     void *dev;
-    int n;
+    intptr_t n;
+    const uint8_t *seq;
 
     CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 2)));
 
     // default config
-    CU_ASSERT(cupkee_device_config_get_num(dev, 0, &n) > 0 && n == 115200);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 1, &n) > 0 && n == 8);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 2, &n) > 0 && n == 0);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 3, &n) > 0 && n == 1);
+    CU_ASSERT(cupkee_prop_get(dev, "baudrate", &n) == CUPKEE_OBJECT_ELEM_INT && n == 115200);
+    CU_ASSERT(cupkee_prop_get(dev, "databits", &n) == CUPKEE_OBJECT_ELEM_INT && n == 8);
+    CU_ASSERT(cupkee_prop_get(dev, "parity",   &n) == CUPKEE_OBJECT_ELEM_STR && (const char *)n == parity_options[0]);
+    CU_ASSERT(cupkee_prop_get(dev, "stopbits", &n) == CUPKEE_OBJECT_ELEM_INT && n == 1);
+    CU_ASSERT(cupkee_prop_get(dev, "channel",  &n) == CUPKEE_OBJECT_ELEM_OCT);
 
     // update config
-    CU_ASSERT(cupkee_device_config_set_num(dev, 0, 9600) > 0);
-    CU_ASSERT(cupkee_device_config_set_num(dev, 1, 9) > 0);
-    CU_ASSERT(cupkee_device_config_set_string(dev, 2, "odd") > 0);
-    CU_ASSERT(cupkee_device_config_set_num(dev, 3, 2) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "baudrate", CUPKEE_OBJECT_ELEM_INT, 9600) > 0);
+    return;
+    CU_ASSERT(cupkee_prop_set(dev, "databits", CUPKEE_OBJECT_ELEM_INT, 9) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "parity",   CUPKEE_OBJECT_ELEM_STR, (intptr_t)"odd") > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "stopbits", CUPKEE_OBJECT_ELEM_INT, 2) > 0);
 
-    CU_ASSERT(cupkee_device_config_get_num(dev, 0, &n) > 0 && n == 9600);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 1, &n) > 0 && n == 9);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 2, &n) > 0 && n == 1);
-    CU_ASSERT(cupkee_device_config_get_num(dev, 3, &n) > 0 && n == 2);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 7) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 6) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 5) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 4) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 3) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 2) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 1) > 0);
+    CU_ASSERT(cupkee_prop_set(dev, "channel", CUPKEE_OBJECT_ELEM_INT, 0) > 0);
 
-    CU_ASSERT(!strcmp(cupkee_device_config_name(dev, 0), "baudrate"));
+    CU_ASSERT(cupkee_prop_get(dev, "baudrate", &n) == CUPKEE_OBJECT_ELEM_INT && n == 9600);
+    CU_ASSERT(cupkee_prop_get(dev, "databits", &n) == CUPKEE_OBJECT_ELEM_INT && n == 9);
+    CU_ASSERT(cupkee_prop_get(dev, "parity",   &n) == CUPKEE_OBJECT_ELEM_STR && (const char *)n == parity_options[1]);
+    CU_ASSERT(cupkee_prop_get(dev, "stopbits", &n) == CUPKEE_OBJECT_ELEM_INT && n == 2);
+    CU_ASSERT(cupkee_prop_get(dev, "channel",  &n) == CUPKEE_OBJECT_ELEM_OCT);
+    seq = (uint8_t *) n;
+    CU_ASSERT(seq[0] == 8 && seq[1] == 7 && seq[8] == 0);
 
     cupkee_release(dev);
 }

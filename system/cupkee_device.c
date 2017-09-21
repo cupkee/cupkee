@@ -328,12 +328,133 @@ static void device_ignore(void *entry, int event)
     }
 }
 
+static int device_conf_get(cupkee_device_t *dev, const char *k, intptr_t *p)
+{
+    int i = cupkee_struct_item_id(dev->conf, k);
+
+    if (i >= 0) {
+        const char *str;
+        const uint8_t *seq;
+        int n;
+
+        if (cupkee_struct_get_string(dev->conf, i, &str) > 0) {
+            *p = (intptr_t) str;
+            return CUPKEE_OBJECT_ELEM_STR;
+        } else
+        if (cupkee_struct_get_int(dev->conf, i, &n) > 0) {
+            *p = n;
+            return CUPKEE_OBJECT_ELEM_INT;
+        } else
+        if ((n = cupkee_struct_get_bytes(dev->conf, i, &seq)) >= 0) {
+            *p = (intptr_t) (seq - 1);
+            return CUPKEE_OBJECT_ELEM_OCT;
+        }
+    }
+
+    return CUPKEE_OBJECT_ELEM_NV;
+}
+
+static int device_conf_set(cupkee_device_t *dev, const char *k, int t, intptr_t v)
+{
+    int i, retval;
+
+    if (device_is_enabled(dev) || (i = cupkee_struct_item_id(dev->conf, k)) < 0) {
+        return 0;
+    }
+
+    if (t == CUPKEE_OBJECT_ELEM_INT) {
+        retval = cupkee_struct_set_int(dev->conf, i, v);
+        if (retval < 0) {
+            retval = cupkee_struct_push(dev->conf, i, v);
+        }
+    } else
+    if (t == CUPKEE_OBJECT_ELEM_STR) {
+        return cupkee_struct_set_string(dev->conf, i, (const char *)v);
+    } else {
+        retval = 0;
+    }
+    return retval;
+}
+
+static int device_prop_get(void *entry, const char *key, intptr_t *p)
+{
+    int retval;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    retval = device_conf_get(entry, key, p);
+    if (retval <= CUPKEE_OBJECT_ELEM_NV) {
+        if (!strcmp("isEnabled", key)) {
+            *p = device_is_enabled(entry);
+            retval = CUPKEE_OBJECT_ELEM_BOOL;
+        }
+    }
+
+    return retval;
+}
+
+static int device_prop_set(void *entry, const char *k, int t, intptr_t v)
+{
+    int retval;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    retval = device_conf_set(entry, k, t, v);
+    if (retval <= CUPKEE_OBJECT_ELEM_NV) {
+        // Nothing
+    }
+
+    return retval;
+}
+
+static int device_elem_get(void *entry, int i, intptr_t *p)
+{
+    cupkee_device_t *dev = entry;
+    uint32_t v;
+
+    if (!is_device(entry) || !device_is_enabled(dev)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (dev->driver->get && dev->driver->get(dev->instance, i, &v) > 0) {
+        *p = v;
+        return CUPKEE_OBJECT_ELEM_INT;
+    }
+
+    return CUPKEE_OBJECT_ELEM_NV;
+}
+
+static int device_elem_set(void *entry, int i, int t, intptr_t v)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry) || !device_is_enabled(dev)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (t == CUPKEE_OBJECT_ELEM_INT && dev->driver->set) {
+        return dev->driver->set(dev->instance, i, v);
+    } else {
+        return 0;
+    }
+}
+
 static const cupkee_desc_t device_desc = {
     .error_handle = device_error_handle,
     .event_handle = device_event_handle,
     .streaming    = device_stream,
     .listen       = device_listen,
     .ignore       = device_ignore,
+
+    .prop_get     = device_prop_get,
+    .prop_set     = device_prop_set,
+    .elem_get     = device_elem_get,
+    .elem_set     = device_elem_set,
+
     .destroy      = device_destroy,
 };
 
@@ -453,7 +574,7 @@ intptr_t cupkee_device_handle_param(void *entry)
     return dev->handle_param;
 }
 
-const char *cupkee_device_config_name(void *entry, int id)
+cupkee_struct_t *cupkee_device_config(void *entry)
 {
     cupkee_device_t *dev = entry;
 
@@ -461,67 +582,7 @@ const char *cupkee_device_config_name(void *entry, int id)
         return NULL;
     }
 
-    return cupkee_struct_item_name(dev->conf, id);
-}
-
-int cupkee_device_config_id(void *entry, const char *name)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return cupkee_struct_item_id(dev->conf, name);
-}
-
-int cupkee_device_config_get_num(void *entry, int i, int *ptr)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return cupkee_struct_get_int(dev->conf, i, ptr);
-}
-
-int cupkee_device_config_get_string(void *entry, int i, const char **ptr)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return cupkee_struct_get_string(dev->conf, i, ptr);
-}
-
-int cupkee_device_config_set_num(void *entry, int i, int n)
-{
-    int retval;
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    retval = cupkee_struct_set_int(dev->conf, i, n);
-    if (retval < 0) {
-        retval = cupkee_struct_push(dev->conf, i, n);
-    }
-    return retval;
-}
-
-int cupkee_device_config_set_string(void *entry, int i, const char *s)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return cupkee_struct_set_string(dev->conf, i, s);
+    return dev->conf;
 }
 
 int cupkee_is_device(void *entry)

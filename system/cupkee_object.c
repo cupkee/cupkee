@@ -142,7 +142,16 @@ void cupkee_object_set_meta(int tag, void *meta)
     }
 }
 
-void *cupkee_object_meta(cupkee_object_t *obj)
+const void *cupkee_object_desc(cupkee_object_t *obj)
+{
+    if (obj && obj->tag < obj_tag_end) {
+        return obj_infos[obj->tag].desc;
+    } else {
+        return NULL;
+    }
+}
+
+const void *cupkee_object_meta(cupkee_object_t *obj)
 {
     if (obj && obj->tag < obj_tag_end) {
         return obj_infos[obj->tag].meta;
@@ -399,5 +408,66 @@ int cupkee_write_sync(void *entry, size_t n, const void *data)
 int cupkee_unshift(void *entry, uint8_t data)
 {
     return cupkee_object_unshift(CUPKEE_OBJECT_PTR(entry), data);
+}
+
+int  cupkee_elem_set(void *entry, int i, int t, intptr_t data)
+{
+    const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (!desc) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!desc->elem_set) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return desc->elem_set(entry, i, t, data);
+}
+
+int  cupkee_prop_set(void *entry, const char *k, int t, intptr_t data)
+{
+    const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (!desc || !k) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!desc->prop_set) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return desc->prop_set(entry, k, t, data);
+}
+
+
+int  cupkee_elem_get(void *entry, int i, intptr_t *p)
+{
+    const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (!desc || !p) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!desc->elem_get) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return desc->elem_get(entry, i, p);
+}
+
+int  cupkee_prop_get(void *entry, const char *k, intptr_t *p)
+{
+    const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (!desc || !k || !p) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!desc->prop_get) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return desc->prop_get(entry, k, p);
 }
 

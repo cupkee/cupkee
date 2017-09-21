@@ -136,20 +136,25 @@ static int uart_reset(int inst)
 static int uart_setup(int inst, void *entry)
 {
     hw_uart_t *uart = uart_block(inst);
+    cupkee_struct_t *conf;
     uint32_t baudrate, databits, stopbits, parity;
     int n;
 
     if (!uart) {
         return -CUPKEE_EINVAL;
     }
+    conf = cupkee_device_config(entry);
+    if (!conf) {
+        return -CUPKEE_ERROR;
+    }
 
-    cupkee_device_config_get_num(entry, 0, &n);
+    cupkee_struct_get_int(conf, 0, &n);
     baudrate = n;
 
-    cupkee_device_config_get_num(entry, 1, &n);
+    cupkee_struct_get_int(conf, 1, &n);
     databits = n;
 
-    cupkee_device_config_get_num(entry, 2, &n);
+    cupkee_struct_get_int(conf, 2, &n);
     if (n == 1) {
         parity = USART_PARITY_ODD;
     } else
@@ -159,7 +164,7 @@ static int uart_setup(int inst, void *entry)
         parity = USART_PARITY_NONE;
     }
 
-    cupkee_device_config_get_num(entry, 3, &n);
+    cupkee_struct_get_int(conf, 3, &n);
     if (n == 2) {
         stopbits = USART_STOPBITS_2;
     } else {

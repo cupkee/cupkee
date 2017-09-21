@@ -174,7 +174,7 @@ static int module_is_true(intptr_t ptr)
     return 1;
 }
 
-static void module_op_prop(void *env, intptr_t id, val_t *key, val_t *prop)
+static void module_prop_get(void *env, intptr_t id, val_t *key, val_t *prop)
 {
     cupkee_module_t *mod = (cupkee_module_t *)id;
     const char *prop_key = val_2_cstring(key);
@@ -198,8 +198,7 @@ static void module_op_prop(void *env, intptr_t id, val_t *key, val_t *prop)
 
 static const val_foreign_op_t module_op = {
     .is_true = module_is_true,
-    .prop = module_op_prop,
-    .elem = module_op_prop,
+    .elem_get = module_prop_get,
 };
 
 val_t native_require(env_t *env, int ac, val_t *av)

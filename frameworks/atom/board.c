@@ -37,7 +37,8 @@ static const native_t native_entries[] = {
     {"print",           native_print},
     {"pinMap",          native_pin_map},
     {"pin",             native_pin},
-    {"pinToggle",       native_pin_toggle},
+    {"map",             native_map},
+    {"toggle",          native_pin_toggle},
 
     {"setTimeout",      native_set_timeout},
     {"setInterval",     native_set_interval},

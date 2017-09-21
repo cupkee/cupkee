@@ -464,20 +464,6 @@ typedef struct cupkee_pin_map_t {
     uint8_t pins[31];
 } cupkee_pin_map_t;
 
-static void map_elem_op_set(void *env, intptr_t id, val_t *val, val_t *res)
-{
-    int v = val_is_true(val);
-
-    (void) env;
-
-    hw_pin_set(id, v);
-    *res = val_mk_number(0);
-}
-
-static const val_foreign_op_t map_elem_op = {
-    .set  = map_elem_op_set,
-};
-
 static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
 {
     cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
@@ -502,7 +488,7 @@ static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
     }
 }
 
-static void map_op_elem(void *env, intptr_t p, val_t *which, val_t *elem)
+static void map_elem_get(void *env, intptr_t p, val_t *which, val_t *elem)
 {
     cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
 
@@ -519,28 +505,25 @@ static void map_op_elem(void *env, intptr_t p, val_t *which, val_t *elem)
     val_set_undefined(elem);
 }
 
-static val_t *map_op_elem_ref(void *env, intptr_t p, val_t *key)
+static void map_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
 {
     cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
-    int index;
 
-    if (!map || !val_is_number(key)) {
-        return NULL;
-    }
-    index = val_2_integer(key);
-    if (index < map->num) {
-        *key = val_create(env, &map_elem_op, map->pins[index]);
-    } else {
-        return NULL;
-    }
+    (void) env;
 
-    return key;
+    if (map && val_is_number(k)) {
+        int i = val_2_integer(k);
+
+        if ((unsigned) i < map->num) {
+            hw_pin_set(map->pins[i], val_is_true(v));
+        }
+    }
 }
 
 static const val_foreign_op_t map_op = {
     .set  = map_op_set,
-    .elem = map_op_elem,
-    .elem_ref = map_op_elem_ref
+    .elem_get = map_elem_get,
+    .elem_set = map_elem_set,
 };
 
 val_t native_map(env_t *env, int ac, val_t *av)

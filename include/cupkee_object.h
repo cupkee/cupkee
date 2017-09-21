@@ -31,6 +31,15 @@ SOFTWARE.
 #define CUPKEE_ENTRY_ID(p)      (CUPKEE_OBJECT_PTR(p)->id)
 #define CUPKEE_ID_INVALID       (-1)
 
+enum cupkee_object_elem_type {
+    CUPKEE_OBJECT_ELEM_NV,
+    CUPKEE_OBJECT_ELEM_INT,
+    CUPKEE_OBJECT_ELEM_STR,
+    CUPKEE_OBJECT_ELEM_OCT,
+    CUPKEE_OBJECT_ELEM_BOOL,
+    CUPKEE_OBJECT_ELEM_ENTRY,
+};
+
 typedef struct cupkee_desc_t {
     void (*destroy) (void *entry);
 
@@ -39,6 +48,12 @@ typedef struct cupkee_desc_t {
 
     void (*listen) (void *entry, int event);
     void (*ignore) (void *entry, int event);
+
+    int (*elem_set) (void *entry, int i, int t, intptr_t v);
+    int (*elem_get) (void *entry, int i, intptr_t *p);
+
+    int (*prop_set) (void *entry, const char *k, int t, intptr_t v);
+    int (*prop_get) (void *entry, const char *k, intptr_t *p);
 
     cupkee_stream_t *(*streaming) (void *entry);
 } cupkee_desc_t;
@@ -79,7 +94,8 @@ int cupkee_object_write(cupkee_object_t *obj, size_t n, const void *data);
 int cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data);
 int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data);
 
-void *cupkee_object_meta(cupkee_object_t *obj);
+const void *cupkee_object_meta(cupkee_object_t *obj);
+const void *cupkee_object_desc(cupkee_object_t *obj);
 
 int  cupkee_id(int tag);
 void *cupkee_entry(int id, uint8_t tag);
@@ -96,6 +112,12 @@ int  cupkee_read_sync(void *entry, size_t n, void *buf);
 int  cupkee_write(void *entry, size_t n, const void *data);
 int  cupkee_write_sync(void *entry, size_t n, const void *data);
 int  cupkee_unshift(void *entry, uint8_t data);
+
+int  cupkee_elem_set(void *entry, int i, int t, intptr_t data);
+int  cupkee_prop_set(void *entry, const char *k, int t, intptr_t data);
+
+int  cupkee_elem_get(void *entry, int i, intptr_t *p);
+int  cupkee_prop_get(void *entry, const char *k, intptr_t *p);
 
 #endif /* __CUPKEE_OBJECT_INC__ */
 

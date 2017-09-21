@@ -91,14 +91,7 @@ int cupkee_device_handle_set(void *entry, cupkee_callback_t handle, intptr_t par
 cupkee_callback_t cupkee_device_handle_fn(void *entry);
 intptr_t cupkee_device_handle_param(void *entry);
 
-const char *cupkee_device_config_name(void *entry, int id);
-int cupkee_device_config_id(void *entry, const char *name);
-
-int cupkee_device_config_get_num(void *entry, int i, int *ptr);
-int cupkee_device_config_get_string(void *entry, int i, const char **ptr);
-
-int cupkee_device_config_set_num(void *entry, int i, int n);
-int cupkee_device_config_set_string(void *entry, int i, const char *s);
+cupkee_struct_t *cupkee_device_config(void *entry);
 
 int cupkee_device_enable(void *entry);
 int cupkee_device_disable(void *entry);
