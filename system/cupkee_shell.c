@@ -30,6 +30,9 @@ SOFTWARE.
 #include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
 
+#define CONSOLE_INPUT_LINE  0
+#define CONSOLE_INPUT_MULTI 1
+
 static const char *logo = "\r\n\
     ______               __                  \r\n\
   /   ___ \\ __ ________ |  | __ ____   ____  \r\n\
@@ -44,7 +47,7 @@ static int   core_mem_sz;
 static char *input_mem_ptr;
 static int   input_mem_sz;
 static int   input_cached;
-static uint8_t   shell_mode;
+static uint8_t   shell_console_mode;
 static uint8_t   shell_logo_show;
 static env_t shell_env;
 
@@ -73,13 +76,23 @@ static void shell_memory_location(int *heap_mem_sz, int *stack_mem_sz)
     *stack_mem_sz = core_blocks / 8 * block_size;
 }
 
+static void shell_error_proc(env_t *env, int err)
+{
+    shell_print_error(err);
+
+    // Todo: stack dump
+
+    // resume env, after error occuried
+    env_set_error(env, 0);
+}
+
 static int shell_do_complete(const char *sym, void *param)
 {
     cupkee_auto_complete_update(param, sym);
     return 0;
 }
 
-static int shell_auto_complete(void)
+static int shell_console_complete(void)
 {
     // To used the free space of input buffer as auto_complete buffer
     void *buf = input_mem_ptr + input_cached;
@@ -95,67 +108,62 @@ static int shell_auto_complete(void)
     return CON_EXECUTE_DEF;
 }
 
-static char *shell_parser_cb(void)
+// Would be call, when more token need by parser
+static char *shell_console_parser_cb(void)
 {
-    shell_mode = 1;
+    shell_console_mode = CONSOLE_INPUT_MULTI;
     return NULL;
 }
 
-static void shell_error_proc(env_t *env, int err)
-{
-    shell_print_error(err);
-
-    // Todo: stack dump
-
-    env_set_error(env, 0);
-}
-
-static void shell_execute_input(env_t *env, int len, char *script)
+static void shell_console_execute(env_t *env, int len, char *script)
 {
     val_t *res;
     int    err;
 
-    err = interp_execute_interactive(env, script, shell_parser_cb, &res);
-    if (err < 0) {
-        if (shell_mode == 0 || err != -ERR_InvalidToken) {
-            shell_mode = 0;
-            shell_error_proc(env, -err);
-        }
-    } else
+    shell_console_mode = CONSOLE_INPUT_LINE;
+    err = interp_execute_interactive(env, script, shell_console_parser_cb, &res);
     if (err > 0) {
-        if (res) shell_print_value(res);
-
-        shell_mode = 0;
-        input_cached = 0;
         cupkee_history_push(len, script);
-    }
 
-    if (shell_mode == 1) {
-        input_cached = len;
-        console_prompt_set(". ");
+        if (res)
+            shell_print_value(res);
+
+        shell_console_mode = CONSOLE_INPUT_LINE;
+        input_cached = 0;
+    } else
+    if (err < 0) {
+        if (shell_console_mode == CONSOLE_INPUT_MULTI && err == -ERR_InvalidToken) {
+            input_cached = len;
+            console_prompt_set(". ");
+        } else {
+            shell_error_proc(env, -err);
+            input_cached = 0;
+        }
     }
 }
 
-static int shell_execute(void)
+static int shell_console_load(void)
 {
     int len;
 
-    if (shell_mode != 0) {
+    if (shell_console_mode == CONSOLE_INPUT_MULTI) {
         if (input_cached >= input_mem_sz) {
-            console_puts("Warning! input over flow... \r\n");
+            //console_puts("Warning! input over flow... \r\n");
 
-            shell_mode = 0;
+            shell_console_mode = CONSOLE_INPUT_LINE;
             input_cached = 0;
             console_prompt_set(NULL);
+
             return CON_EXECUTE_DEF;
         }
 
         len = console_input_load(input_mem_sz - input_cached, input_mem_ptr + input_cached);
         if (len > 1) {
+            // load more
             input_cached += len;
             return CON_EXECUTE_DEF;
         } else {
-            // input end
+            // load finish, if meet empty line
             len += input_cached;
             console_prompt_set(NULL);
         }
@@ -165,7 +173,7 @@ static int shell_execute(void)
 
     input_mem_ptr[len] = 0;
 
-    shell_execute_input(&shell_env, len, input_mem_ptr);
+    shell_console_execute(&shell_env, len, input_mem_ptr);
 
     return CON_EXECUTE_DEF;
 }
@@ -180,10 +188,10 @@ static int shell_console_handle(int type, int ch)
     }
 
     if (type == CON_CTRL_ENTER) {
-        return shell_execute();
+        return shell_console_load();
     } else
     if (type == CON_CTRL_TABLE) {
-        return shell_auto_complete();
+        return shell_console_complete();
     } else
     if (type == CON_CTRL_UP) {
         return cupkee_history_load(-1);
@@ -216,7 +224,7 @@ static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const na
 
     env_native_set(&shell_env, entrys, n);
 
-    shell_mode = 0;
+    shell_console_mode = CONSOLE_INPUT_LINE;
 }
 
 env_t *cupkee_shell_env(void)
