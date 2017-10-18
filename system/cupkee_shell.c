@@ -120,8 +120,13 @@ static void shell_console_execute(env_t *env, int len, char *script)
     val_t *res;
     int    err;
 
+    input_cached = 0;
     shell_console_mode = CONSOLE_INPUT_LINE;
+
+    //console_log_sync("\r\nexecute: '%s'\r\n", script);
+
     err = interp_execute_interactive(env, script, shell_console_parser_cb, &res);
+    //console_log_sync("state: %d\r\n", err);
     if (err > 0) {
         cupkee_history_push(len, script);
 
@@ -129,16 +134,13 @@ static void shell_console_execute(env_t *env, int len, char *script)
             shell_print_value(res);
 
         shell_console_mode = CONSOLE_INPUT_LINE;
-        input_cached = 0;
+    } else
+    if (shell_console_mode == CONSOLE_INPUT_MULTI && (err == -ERR_InvalidToken || err == 0)) {
+        input_cached = len;
+        console_prompt_set(". ");
     } else
     if (err < 0) {
-        if (shell_console_mode == CONSOLE_INPUT_MULTI && err == -ERR_InvalidToken) {
-            input_cached = len;
-            console_prompt_set(". ");
-        } else {
-            shell_error_proc(env, -err);
-            input_cached = 0;
-        }
+        shell_error_proc(env, -err);
     }
 }
 
@@ -148,7 +150,7 @@ static int shell_console_load(void)
 
     if (shell_console_mode == CONSOLE_INPUT_MULTI) {
         if (input_cached >= input_mem_sz) {
-            //console_puts("Warning! input over flow... \r\n");
+            console_puts("Warning! input over flow... \r\n");
 
             shell_console_mode = CONSOLE_INPUT_LINE;
             input_cached = 0;
@@ -158,13 +160,14 @@ static int shell_console_load(void)
         }
 
         len = console_input_load(input_mem_sz - input_cached, input_mem_ptr + input_cached);
-        if (len > 1) {
+        if (len >= 1) {
             // load more
             input_cached += len;
             return CON_EXECUTE_DEF;
         } else {
             // load finish, if meet empty line
             len += input_cached;
+
             console_prompt_set(NULL);
         }
     } else {

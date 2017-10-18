@@ -252,6 +252,8 @@ static void console_input_handle(int n, void *data)
     int pos = 0;
     int ch = '.'; // Give a initial value to make gcc happy
 
+    console_total_recv += n;
+
     while (pos < n) {
         int type = console_input_parse(data, n, &pos, &ch);
 
@@ -265,7 +267,6 @@ static void console_do_recv(void *tty)
     char buf[4];
 
     while (0 < (n = cupkee_read(tty, 4, buf))) {
-        console_total_recv += n;
         console_input_handle(n, buf);
     }
 
