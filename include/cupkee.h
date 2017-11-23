@@ -90,6 +90,9 @@ void cupkee_event_poll(void);
 #include "cupkee_module.h"
 #include "cupkee_native.h"
 
+// core module
+#include "cupkee_rcci.h"
+
 static inline void cupkee_start(void) {
     _cupkee_systicks = 0;
 }

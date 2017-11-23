@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,44 +24,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef __CUPKEE_RCCI_INC__
+#define __CUPKEE_RCCI_INC__
 
-#include "test.h"
+int cupkee_rcci_setup(void *stream, const char *uuid, cupkee_callback_t cb, intptr_t param);
 
-int main(int argc, const char *argv[])
-{
-    (void) argc;
-    (void) argv;
+int cupkee_rcci_service_id(void *entry);              // call in cb
+int cupkee_rcci_service_pull_int(void *entry, int *); // call in cb, with event service_set
+int cupkee_rcci_service_push_int(void *entry, int);   // call in cb, with event service_get
+int cupkee_rcci_service_update(int id);
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
-    }
+int cupkee_rcci_stream_size(void *stream);
+void *cupkee_rcci_create_istream(int id, cupkee_callback_t cb, intptr_t param);
+void *cupkee_rcci_create_ostream(int id, cupkee_callback_t cb, intptr_t param);
 
-    /***********************************************
-     * Test suites register here:
-     ***********************************************/
-    test_hello();
-
-    test_sys_memory();
-    test_sys_event();
-
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_struct();
-
-    test_sys_object();
-    test_sys_timer();
-    test_sys_device();
-
-    test_sys_rcci();
-
-    /***********************************************
-     * Test running
-     ***********************************************/
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-
-    return CU_get_error();
-}
+#endif /* __CUPKEE_RCCI_INC__ */
 
