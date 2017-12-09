@@ -43,22 +43,22 @@ int TU_pre_deinit(void)
     return 0;
 }
 
-int TU_emitter_event_dispatch(void)
+int TU_object_event_dispatch(void)
 {
     cupkee_event_t e;
-    if (cupkee_event_take(&e) && e.type == EVENT_EMITTER) {
-        cupkee_event_emitter_dispatch(e.which, e.code);
+    if (cupkee_event_take(&e) && e.type == EVENT_OBJECT) {
+        cupkee_object_event_dispatch(e.which, e.code);
         return 1;
     } else {
         return 0;
     }
 }
 
-int TU_object_event_dispatch(void)
+int TU_pin_event_dispatch(void)
 {
     cupkee_event_t e;
     if (cupkee_event_take(&e) && e.type == EVENT_OBJECT) {
-        cupkee_object_event_dispatch(e.which, e.code);
+        cupkee_pin_event_dispatch(e.which, e.code);
         return 1;
     } else {
         return 0;

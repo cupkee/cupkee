@@ -50,6 +50,7 @@ int main(int argc, const char *argv[])
     test_sys_struct();
 
     test_sys_object();
+    test_sys_pin();
     test_sys_timer();
     test_sys_device();
 

@@ -33,7 +33,6 @@ void cupkee_event_poll(void)
     cupkee_event_t e;
 
     while (cupkee_event_take(&e)) {
-        /* Cupkee process */
         if (e.type == EVENT_SYSTICK) {
             cupkee_device_sync(_cupkee_systicks);
             cupkee_timeout_sync(_cupkee_systicks);
@@ -41,8 +40,8 @@ void cupkee_event_poll(void)
         if (e.type == EVENT_OBJECT) {
             cupkee_object_event_dispatch(e.which, e.code);
         } else
-        if (e.type == EVENT_EMITTER) {
-            cupkee_event_emitter_dispatch(e.which, e.code);
+        if (e.type == EVENT_PIN) {
+            cupkee_pin_event_dispatch(e.which, e.code);
         }
     }
 }
@@ -62,6 +61,8 @@ void cupkee_init(void)
     cupkee_timer_setup();
 
     cupkee_event_setup();
+
+    cupkee_pin_setup();
 
     cupkee_device_setup();
 

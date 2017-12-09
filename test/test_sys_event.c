@@ -74,6 +74,7 @@ static void test_post_take(void)
     cupkee_event_reset();
 }
 
+#if 0
 static uint8_t emitter1_storage;
 static uint8_t emitter2_storage;
 static void emitter1_event_handle(cupkee_event_emitter_t *emitter, uint8_t e)
@@ -147,6 +148,7 @@ static void test_emitter_emit(void)
 
     cupkee_event_reset();
 }
+#endif
 
 CU_pSuite test_sys_event(void)
 {
@@ -154,8 +156,8 @@ CU_pSuite test_sys_event(void)
 
     if (suite) {
         CU_add_test(suite, "post & take      ", test_post_take);
-        CU_add_test(suite, "emitter          ", test_emitter);
-        CU_add_test(suite, "emitter emit     ", test_emitter_emit);
+//        CU_add_test(suite, "emitter          ", test_emitter);
+//        CU_add_test(suite, "emitter emit     ", test_emitter_emit);
     }
 
     return suite;

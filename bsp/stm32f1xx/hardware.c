@@ -110,10 +110,10 @@ void hw_info_get(hw_info_t *info)
 
 static void hw_boot_mode_probe(void)
 {
-    if (0 == hw_pin_map(0, BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
-        boot_state = hw_pin_get(0) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
+    if (0 == hw_gpio_enable(BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
+        boot_state = hw_gpio_get(BOOT_PROBE_BANK, BOOT_PROBE_PIN) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
 
-        hw_pin_unmap(0);
+        hw_gpio_disable(BOOT_PROBE_BANK, BOOT_PROBE_PIN);
     }
 }
 

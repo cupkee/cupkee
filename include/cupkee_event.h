@@ -27,14 +27,13 @@ SOFTWARE.
 #ifndef __CUPKEE_EVENT_INC__
 #define __CUPKEE_EVENT_INC__
 
-enum {
+enum CUPKEE_EVENT_TYPE {
     EVENT_SYSTICK = 0,
     EVENT_OBJECT  = 1,
-    EVENT_EMITTER = 2,
-    EVENT_DEVICE  = 3,
+    EVENT_PIN     = 2,
 };
 
-enum CUPKEE_EVENT_CODE {
+enum CUPKEE_EVENT_OBJECT {
     CUPKEE_EVENT_DESTROY = 0,
     CUPKEE_EVENT_ERROR,
     CUPKEE_EVENT_READY,
@@ -57,12 +56,9 @@ enum CUPKEE_EVENT_CODE {
     CUPKEE_EVENT_USER = 128,
 };
 
-enum {
-    EVENT_DEVICE_ERR = 0,
-    EVENT_DEVICE_DATA,
-    EVENT_DEVICE_DRAIN,
-    EVENT_DEVICE_READY,
-    EVENT_DEVICE_MAX
+enum CUPKEE_EVENT_PIN {
+    CUPKEE_EVENT_PIN_RISING  = 0x01,
+    CUPKEE_EVENT_PIN_FALLING = 0x02,
 };
 
 typedef struct cupkee_event_t {
@@ -71,49 +67,16 @@ typedef struct cupkee_event_t {
     uint16_t which;
 } cupkee_event_t;
 
-typedef struct cupkee_event_emitter_t cupkee_event_emitter_t;
 typedef int  (*cupkee_event_handle_t)(cupkee_event_t *);
-typedef void (*cupkee_event_emitter_handle_t)(cupkee_event_emitter_t *emitter, uint8_t code);
-
-struct cupkee_event_emitter_t {
-    cupkee_event_emitter_t *next;
-    cupkee_event_emitter_handle_t handle;
-    uint32_t id;
-};
 
 void cupkee_event_setup(void);
 void cupkee_event_reset(void);
 
-int cupkee_event_emitter_init(cupkee_event_emitter_t *emitter, cupkee_event_emitter_handle_t handle);
-int cupkee_event_emitter_deinit(cupkee_event_emitter_t *emitter);
-
 int cupkee_event_post(uint8_t type, uint8_t code, uint16_t which);
 int cupkee_event_take(cupkee_event_t *event);
 
-void cupkee_event_emitter_dispatch(uint16_t which, uint8_t code);
-
-static inline int cupkee_event_emitter_emit(cupkee_event_emitter_t *emitter, uint8_t code) {
-    return cupkee_event_post(EVENT_EMITTER, code, emitter->id);
-}
-
 static inline int cupkee_event_post_systick(void) {
     return cupkee_event_post(EVENT_SYSTICK, 0, 0);
-}
-
-static inline int cupkee_event_post_device_error(uint16_t which) {
-    return cupkee_event_post(EVENT_DEVICE, EVENT_DEVICE_ERR, which);
-}
-
-static inline int cupkee_event_post_device_data(uint16_t which) {
-    return cupkee_event_post(EVENT_DEVICE, EVENT_DEVICE_DATA, which);
-}
-
-static inline int cupkee_event_post_device_drain(uint16_t which) {
-    return cupkee_event_post(EVENT_DEVICE, EVENT_DEVICE_DRAIN, which);
-}
-
-static inline int cupkee_event_post_device_ready(uint16_t which) {
-    return cupkee_event_post(EVENT_DEVICE, EVENT_DEVICE_READY, which);
 }
 
 #endif /* __CUPKEE_EVENT_INC__ */

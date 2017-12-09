@@ -26,7 +26,6 @@ SOFTWARE.
 
 #include "hardware.h"
 
-static uint8_t  pin_maps[GPIO_MAP_MAX];
 static uint16_t hw_gpio_used[GPIO_BANK_MAX];
 
 static const uint32_t hw_gpio_rcc[GPIO_BANK_MAX] = {
@@ -35,61 +34,6 @@ static const uint32_t hw_gpio_rcc[GPIO_BANK_MAX] = {
 static const uint32_t hw_gpio_bank[GPIO_BANK_MAX] = {
     GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG
 };
-
-static inline int map_is_valid(uint8_t map)
-{
-    return map != 0xff;
-}
-
-static inline uint8_t map_gpio(int bank, int pin)
-{
-    return (bank << 4) | (pin & GPIO_PIN_MASK);
-}
-
-static inline int map_bank(uint8_t map) {
-    return (map >> 4) & GPIO_BANK_MASK;
-}
-
-static inline int map_pin(uint8_t map) {
-    return map & GPIO_PIN_MASK;
-}
-
-static inline void map_set_mode(uint8_t map, uint8_t mode, uint8_t cnf) {
-    uint32_t bank_base = hw_gpio_bank[map_bank(map)];
-    int pins = 1 << map_pin(map);
-
-    gpio_set_mode(bank_base, mode, cnf, pins);
-}
-
-static inline void map_write(uint8_t map, int v) {
-    uint32_t bank_base = hw_gpio_bank[map_bank(map)];
-    int pin = map_pin(map);
-
-    if (v)
-        GPIO_BSRR(bank_base) = 1 << pin;
-    else
-        GPIO_BSRR(bank_base) = 1 << (pin + 16);
-}
-
-static inline int map_read(uint8_t map) {
-    uint32_t bank_base = hw_gpio_bank[(map >> 4) & GPIO_BANK_MAX];
-    int pin = map & GPIO_PIN_MASK;
-
-    return (GPIO_IDR(bank_base) & (1 << pin)) != 0;
-}
-
-static inline void map_toggle(uint8_t map) {
-    uint32_t bank_base = hw_gpio_bank[(map >> 4) & GPIO_BANK_MAX];
-    int pin = map & GPIO_PIN_MASK;
-
-    gpio_toggle(bank_base, 1 << pin);
-}
-
-static inline void map_release(uint8_t map) {
-    if (map_is_valid(map)) {
-        hw_gpio_release(map_bank(map), 1 << map_pin(map));
-    }
-}
 
 int hw_setup_gpio(void)
 {
@@ -100,87 +44,9 @@ int hw_setup_gpio(void)
         hw_gpio_used[i] = 0;
     }
 
-    /* initial all pin map invalid */
-    for (i = 0; i < GPIO_MAP_MAX; i++) {
-        pin_maps[i] = 0xff;
-    }
-
     /* initial pin device control blocks */
 
     return 0;
-}
-
-int hw_pin_map(int id, uint8_t bank, uint8_t pin, uint8_t dir)
-{
-    uint8_t cnf, mod;
-
-    if ((unsigned)id >= GPIO_MAP_MAX || bank >= GPIO_BANK_MAX || pin >= GPIO_PIN_MAX) {
-        return -CUPKEE_EINVAL;
-    }
-
-    switch (dir) {
-    case HW_DIR_IN:
-        mod = GPIO_MODE_INPUT;
-        cnf = GPIO_CNF_INPUT_PULL_UPDOWN;
-        break;
-    case HW_DIR_OUT:
-        mod = GPIO_MODE_OUTPUT_10_MHZ;
-        cnf = GPIO_CNF_OUTPUT_PUSHPULL;
-        break;
-    case HW_DIR_DUPLEX:
-        mod = GPIO_MODE_OUTPUT_2_MHZ;
-        cnf = GPIO_CNF_OUTPUT_OPENDRAIN;
-        break;
-    default:
-        return -CUPKEE_EINVAL;
-    }
-
-    if (hw_gpio_use_setup(bank, 1 << pin, mod, cnf)) {
-        uint8_t map = map_gpio(bank, pin);
-        uint8_t old = pin_maps[id];
-
-        map_release(old);
-        pin_maps[id] = map;
-
-        return CUPKEE_OK;
-    }
-
-    return -CUPKEE_ERESOURCE;
-}
-
-int hw_pin_unmap(int id)
-{
-    uint8_t map;
-
-    if ((unsigned)id >= GPIO_MAP_MAX || !map_is_valid(map = pin_maps[id])) {
-        return -CUPKEE_EINVAL;
-    }
-    map_release(map);
-
-    return 0;
-}
-
-void hw_pin_set(int id, int v)
-{
-    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
-        map_write(pin_maps[id], v);
-    }
-}
-
-int  hw_pin_get(int id)
-{
-    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
-        return map_read(pin_maps[id]);
-    } else {
-        return -CUPKEE_EINVAL;
-    }
-}
-
-void hw_pin_toggle(int id)
-{
-    if ((unsigned)id < GPIO_MAP_MAX && map_is_valid(pin_maps[id])) {
-        map_toggle(pin_maps[id]);
-    }
 }
 
 int hw_gpio_use(int bank, uint16_t pins)
@@ -220,5 +86,78 @@ int hw_gpio_release(int bank, uint16_t pins)
         rcc_periph_clock_disable(hw_gpio_rcc[bank]);
     }
     return 1;
+}
+
+int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
+{
+    uint8_t cnf, mod;
+
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PIN_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    switch (dir) {
+    case HW_DIR_IN:
+        mod = GPIO_MODE_INPUT;
+        cnf = GPIO_CNF_INPUT_PULL_UPDOWN;
+        break;
+    case HW_DIR_OUT:
+        mod = GPIO_MODE_OUTPUT_10_MHZ;
+        cnf = GPIO_CNF_OUTPUT_PUSHPULL;
+        break;
+    case HW_DIR_DUPLEX:
+        mod = GPIO_MODE_OUTPUT_2_MHZ;
+        cnf = GPIO_CNF_OUTPUT_OPENDRAIN;
+        break;
+    default:
+        return -CUPKEE_EINVAL;
+    }
+
+    if (hw_gpio_use_setup(bank, 1 << port, mod, cnf)) {
+        return CUPKEE_OK;
+    }
+
+    return -CUPKEE_ERESOURCE;
+}
+
+int hw_gpio_disable(uint8_t bank, uint8_t port)
+{
+    hw_gpio_release(bank, 1 << port);
+
+    return 0;
+}
+
+int hw_gpio_set(uint8_t bank, uint8_t port, int v)
+{
+    if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX) {
+        uint32_t bank_base = hw_gpio_bank[bank];
+
+        GPIO_BSRR(bank_base) = v ? (1 << port) : (1 << (port + 16));
+        return v != 0;
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int hw_gpio_get(uint8_t bank, uint8_t port)
+{
+    if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX) {
+        uint32_t bank_base = hw_gpio_bank[bank];
+        return (GPIO_IDR(bank_base) & (1 << port)) != 0;
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int hw_gpio_toggle(uint8_t bank, uint8_t port)
+{
+    if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX) {
+        uint32_t bank_base = hw_gpio_bank[bank];
+
+        gpio_toggle(bank_base, 1 << port);
+        return 0;
+    } else {
+        return -CUPKEE_EINVAL;
+    }
 }
 

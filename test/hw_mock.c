@@ -163,12 +163,69 @@ const char *hw_storage_data_map(int bank)
 }
 
 /* GPIO */
-int   hw_pin_map(int id, uint8_t port, uint8_t pin, uint8_t dir)
+#define GPIO_BANK_MAX 8
+#define GPIO_PORT_MAX 32
+static uint32_t gpio_state[GPIO_BANK_MAX];
+static uint32_t gpio_value[GPIO_BANK_MAX];
+
+int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
 {
-    (void) id;
-    (void) port;
-    (void) pin;
     (void) dir;
+
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_state[bank] |= 1 << port;
+
+    return 0;
+}
+
+int hw_gpio_disable(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_state[bank] &= ~(1 << port);
+
+    return 0;
+}
+
+int hw_gpio_get(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return (gpio_value[bank] >> port) & 1;
+
+    return 0;
+}
+
+int hw_gpio_set(uint8_t bank, uint8_t port, int v)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (v) {
+        gpio_value[bank] |= (1 << port);
+    } else {
+        gpio_value[bank] &= ~(1 << port);
+    }
+
+    return 0;
+}
+
+int hw_gpio_toggle(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_value[bank] ^= (1 << port);
+
     return 0;
 }
 

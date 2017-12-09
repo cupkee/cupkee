@@ -114,9 +114,9 @@ int  cupkee_write_sync(void *entry, size_t n, const void *data);
 int  cupkee_unshift(void *entry, uint8_t data);
 
 int  cupkee_elem_set(void *entry, int i, int t, intptr_t data);
-int  cupkee_prop_set(void *entry, const char *k, int t, intptr_t data);
-
 int  cupkee_elem_get(void *entry, int i, intptr_t *p);
+
+int  cupkee_prop_set(void *entry, const char *k, int t, intptr_t data);
 int  cupkee_prop_get(void *entry, const char *k, intptr_t *p);
 
 #endif /* __CUPKEE_OBJECT_INC__ */

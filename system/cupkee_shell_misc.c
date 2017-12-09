@@ -392,23 +392,31 @@ val_t native_erase(env_t *env, int ac, val_t *av)
 }
 
 
-/* GPIO */
-val_t native_pin_map(env_t *env, int ac, val_t *av)
+/* PIN */
+val_t native_pin_enable(env_t *env, int ac, val_t *av)
 {
-    int id, port, pin, dir;
+    int pin, dir;
     const char *str;
     (void) env;
 
-    if (ac < 3 || !val_is_number(av) || !val_is_number(av + 1) || !val_is_number(av + 2)) {
+    if (ac < 1 || !val_is_number(av)) {
         return VAL_FALSE;
     }
+    pin  = val_2_integer(av);
 
-    id   = val_2_integer(av);
-    port = val_2_integer(av + 1);
-    pin  = val_2_integer(av + 2);
-    dir  = HW_DIR_OUT;  // default is output
-    if (ac > 3) {
-        str = val_2_cstring(av + 3);
+    if (ac > 2 && val_is_number(av + 1) && val_is_number(av + 2)) {
+        int bank = val_2_integer(av + 1);
+        int port = val_2_integer(av + 2);
+
+        if (0 != cupkee_pin_map(pin, bank, port)) {
+            return VAL_FALSE;
+        }
+        ac -= 2; av += 2;
+    }
+
+    dir = HW_DIR_OUT;  // default is output
+    if (ac > 1) {
+        str = val_2_cstring(av + 1);
         if (str) {
             if (!strcmp(str, "in")) {
                 dir = HW_DIR_IN;
@@ -419,7 +427,7 @@ val_t native_pin_map(env_t *env, int ac, val_t *av)
         }
     }
 
-    if (CUPKEE_OK == hw_pin_map(id, port, pin, dir)) {
+    if (CUPKEE_OK == cupkee_pin_enable(pin, dir)) {
         return VAL_TRUE;
     } else {
         return VAL_FALSE;
@@ -431,13 +439,12 @@ val_t native_pin(env_t *env, int ac, val_t *av)
     (void) env;
 
     if (ac > 0 && val_is_number(av)) {
-        int id = val_2_integer(av);
+        int pin = val_2_integer(av);
 
         if (ac > 1) {
-            hw_pin_set(id, val_is_true(av + 1));
-            return VAL_TRUE;
+            return cupkee_pin_set(pin, val_is_true(av + 1)) > 0 ? VAL_TRUE : VAL_FALSE;
         } else {
-            return val_mk_number(hw_pin_get(id));
+            return val_mk_number(cupkee_pin_get(pin));
         }
     }
 
@@ -449,25 +456,16 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     (void) env;
 
     if (ac > 0 && val_is_number(av)) {
-        int id = val_2_integer(av);
-
-        hw_pin_toggle(id);
-        return VAL_TRUE;
+        return cupkee_pin_toggle(val_2_integer(av)) == 0 ? VAL_TRUE : VAL_FALSE;
     }
 
     return VAL_UNDEFINED;
 }
 
-/* GPIO MAP */
-typedef struct cupkee_pin_map_t {
-    uint8_t num;
-    uint8_t pins[31];
-} cupkee_pin_map_t;
-
-static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
+/* pin group */
+static void grp_op_set(void *env, intptr_t p, val_t *val, val_t *res)
 {
-    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
-    uint32_t v, i;
+    uint32_t v;
 
     (void) env;
 
@@ -482,72 +480,61 @@ static void map_op_set(void *env, intptr_t p, val_t *val, val_t *res)
 
     *res = val_mk_number(v);
 
-    for (i = 0; i < map->num; i++) {
-        hw_pin_set(map->pins[i], v & 1);
-        v = v >> 1;
-    }
+    cupkee_pin_group_set((void*)p, v);
 }
 
-static void map_elem_get(void *env, intptr_t p, val_t *which, val_t *elem)
+static void grp_elem_get(void *env, intptr_t p, val_t *k, val_t *elem)
 {
-    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
+    int v;
 
     (void) env;
 
-    if (map && val_is_number(which)) {
-        unsigned index = val_2_integer(which);
-
-        if (index < map->num) {
-            val_set_number(elem, hw_pin_get(map->pins[index]));
+    if (p && val_is_number(k)) {
+        v = cupkee_pin_group_elem_get((void*)p, val_2_integer(k));
+        if (v >= 0) {
+            val_set_number(elem, v);
             return;
         }
     }
     val_set_undefined(elem);
 }
 
-static void map_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
+static void grp_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
 {
-    cupkee_pin_map_t *map = (cupkee_pin_map_t *) p;
-
     (void) env;
 
-    if (map && val_is_number(k)) {
-        int i = val_2_integer(k);
-
-        if ((unsigned) i < map->num) {
-            hw_pin_set(map->pins[i], val_is_true(v));
-        }
+    if (p && val_is_number(k)) {
+        cupkee_pin_group_elem_set((void*)p, val_2_integer(k), val_is_true(v));
     }
 }
 
-static const val_foreign_op_t map_op = {
-    .set  = map_op_set,
-    .elem_get = map_elem_get,
-    .elem_set = map_elem_set,
+static const val_foreign_op_t grp_op = {
+    .set  = grp_op_set,
+    .elem_get = grp_elem_get,
+    .elem_set = grp_elem_set,
 };
 
-val_t native_map(env_t *env, int ac, val_t *av)
+val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
-    cupkee_pin_map_t *map = cupkee_malloc(sizeof(cupkee_pin_map_t));
-    uint8_t n, i;
+    void *grp = cupkee_pin_group_create();
+    uint8_t i;
 
-    if (!map) {
+    if (!grp) {
         return VAL_UNDEFINED;
     }
 
-    for (n = 0, i = 0; i < ac; i++) {
+    for (i = 0; i < ac; i++) {
         if (val_is_number(av + i)) {
             uint8_t pin = val_2_integer(av + i);
-
-            map->pins[n++] = pin;
+            cupkee_pin_group_push(grp, pin);
         }
     }
 
-    if (n) {
-        map->num = n;
-        return val_create(env, &map_op, (intptr_t)map);
+    if (cupkee_pin_group_size(grp) > 0) {
+        return val_create(env, &grp_op, (intptr_t)grp);
     } else {
-        cupkee_free(map);
+        cupkee_pin_group_destroy(grp);
         return VAL_FALSE;
     }
 }
+

@@ -100,6 +100,7 @@ int cupkee_device_is_enabled(void *entry);
 int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
 int cupkee_device_query2(void *entry, void *req, int want, cupkee_callback_t cb, intptr_t param);
 
+/* used by driver */
 void *cupkee_device_request_take(void *entry);
 void *cupkee_device_response_take(void *entry);
 

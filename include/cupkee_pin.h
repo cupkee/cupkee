@@ -24,48 +24,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "board.h"
+#ifndef __CUPKEE_PIN_INC__
+#define __CUPKEE_PIN_INC__
 
-static const native_t native_entries[] = {
-    /* Panda natives */
-    {"Buffer",          buffer_native_create},
+#define CUPKEE_PIN_OUT      HW_DIR_OUT
+#define CUPKEE_PIN_IN       HW_DIR_IN
+#define CUPKEE_PIN_DUPLEX   HW_DIR_DUPLEX
 
-    /* Cupkee natives */
-    {"sysinfos",        native_sysinfos},
-    {"systicks",        native_systicks},
-    {"require",         native_require},
-    {"print",           native_print},
-    {"pinEnable",       native_pin_enable},
-    {"pinGroup",        native_pin_group},
-    {"pin",             native_pin},
-    {"toggle",          native_pin_toggle},
+int cupkee_pin_setup(void);
+void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
 
-    {"setTimeout",      native_set_timeout},
-    {"setInterval",     native_set_interval},
-    {"clearTimeout",    native_clear_timeout},
-    {"clearInterval",   native_clear_interval},
+int cupkee_pin_map(int pin, int bank, int port);
 
-    {"Device",          native_create_device},
-    {"Timer",           native_create_timer},
-};
+int cupkee_pin_enable(int pin, int dir);
+int cupkee_pin_disable(int pin);
 
-int board_native_number(void)
-{
-    return sizeof(native_entries) / sizeof(native_t);
-}
+int cupkee_pin_set(int pin, int v);
+int cupkee_pin_get(int pin);
+int cupkee_pin_toggle(int pin);
 
-const native_t *board_native_entries(void)
-{
-    return native_entries;
-}
+int cupkee_pin_event_handle_set(cupkee_callback_t handle);
 
-void board_setup(void)
-{
-    // Setup code here
-}
+void *cupkee_pin_group_create(void);
+int cupkee_pin_group_destroy(void *grp);
+int cupkee_pin_group_size(void *grp);
+int cupkee_pin_group_push(void *grp, int pin);
+int cupkee_pin_group_pop(void *grp);
 
-const char *board_initial_script(void)
-{
-    return "";
-}
+int cupkee_pin_group_get(void *grp);
+int cupkee_pin_group_set(void *grp, uint32_t v);
+int cupkee_pin_group_elem_get(void *grp, int id);
+int cupkee_pin_group_elem_set(void *grp, int id, int v);
+
+#endif /* __CUPKEE_PIN_INC__ */
 

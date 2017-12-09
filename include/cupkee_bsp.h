@@ -89,11 +89,12 @@ int hw_storage_update(int bank, uint32_t offset, const uint8_t *data, int len);
 int hw_storage_finish(int bank, uint32_t end);
 
 /* GPIO */
-int  hw_pin_map(int id, uint8_t port, uint8_t pin, uint8_t dir);
-int  hw_pin_unmap(int id);
-int  hw_pin_get(int id);
-void hw_pin_set(int id, int v);
-void hw_pin_toggle(int id);
+int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir);
+int hw_gpio_disable(uint8_t bank, uint8_t port);
+int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t flag, uint8_t which);
+int hw_gpio_get(uint8_t bank, uint8_t port);
+int hw_gpio_set(uint8_t bank, uint8_t port, int v);
+int hw_gpio_toggle(uint8_t bank, uint8_t port);
 
 /* TIMER */
 int  hw_timer_alloc(void);

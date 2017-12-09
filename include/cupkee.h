@@ -48,6 +48,9 @@ typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 // Device config
 #define CUPKEE_DEVICE_TYPE_MAX          16
 
+// Pin
+#define CUPKEE_PIN_MAX                  32
+
 // Memory config
 #define CUPKEE_ZONE_MAX                 2
 
@@ -78,6 +81,7 @@ void cupkee_event_poll(void);
 #include "cupkee_struct.h"
 #include "cupkee_object.h"
 
+#include "cupkee_pin.h"
 #include "cupkee_timer.h"
 
 #include "cupkee_timeout.h"
@@ -85,7 +89,9 @@ void cupkee_event_poll(void);
 #include "cupkee_console.h"
 #include "cupkee_auto_complete.h"
 #include "cupkee_history.h"
+
 #include "cupkee_command.h"
+
 #include "cupkee_shell.h"
 #include "cupkee_module.h"
 #include "cupkee_native.h"

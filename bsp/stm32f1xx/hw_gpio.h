@@ -28,11 +28,10 @@ SOFTWARE.
 #define __HW_GPIO_INC__
 
 int hw_setup_gpio(void);
-int hw_gpio_probe(uint8_t bank, uint8_t pin);
 
-int hw_gpio_use(int port, uint16_t pins);
+int hw_gpio_use(int bank, uint16_t pins);
 int hw_gpio_use_setup(int bank, uint16_t pins, uint8_t mode, uint8_t cnf);
-int hw_gpio_release(int port, uint16_t pins);
+int hw_gpio_release(int bank, uint16_t pins);
 
 #endif /* __HW_GPIO_INC__ */
 
