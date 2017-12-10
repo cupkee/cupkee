@@ -57,7 +57,7 @@ int TU_object_event_dispatch(void)
 int TU_pin_event_dispatch(void)
 {
     cupkee_event_t e;
-    if (cupkee_event_take(&e) && e.type == EVENT_OBJECT) {
+    if (cupkee_event_take(&e) && e.type == EVENT_PIN) {
         cupkee_pin_event_dispatch(e.which, e.code);
         return 1;
     } else {

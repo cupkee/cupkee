@@ -91,7 +91,8 @@ int hw_storage_finish(int bank, uint32_t end);
 /* GPIO */
 int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir);
 int hw_gpio_disable(uint8_t bank, uint8_t port);
-int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t flag, uint8_t which);
+int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which);
+int hw_gpio_ignore(uint8_t bank, uint8_t port);
 int hw_gpio_get(uint8_t bank, uint8_t port);
 int hw_gpio_set(uint8_t bank, uint8_t port, int v);
 int hw_gpio_toggle(uint8_t bank, uint8_t port);

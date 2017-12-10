@@ -115,8 +115,79 @@ static void test_group(void)
     CU_ASSERT(0 == cupkee_pin_group_destroy(grp));
 }
 
+static int changed_pin;
+static int change_type;
+
+static int test_event_handler(void *entry, int event, intptr_t which)
+{
+    (void) entry;
+    changed_pin = which;
+    change_type = event;
+
+    return 0;
+}
+
 static void test_event(void)
 {
+    hw_gpio_set(0, 0, 0);
+    hw_gpio_set(0, 1, 0);
+    hw_gpio_set(0, 2, 0);
+    hw_gpio_set(0, 3, 0);
+
+    cupkee_pin_event_handle_set(test_event_handler, NULL);
+
+    CU_ASSERT(0 == cupkee_pin_listen(0, CUPKEE_EVENT_PIN_RISING));
+    CU_ASSERT(0 == cupkee_pin_listen(1, CUPKEE_EVENT_PIN_FALLING));
+    CU_ASSERT(0 == cupkee_pin_listen(2, CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING));
+
+    /* pin 0 listen RISING event */
+    hw_gpio_set(0, 0, 1);
+    CU_ASSERT(1 == TU_pin_event_dispatch());
+    CU_ASSERT(0 == changed_pin && CUPKEE_EVENT_PIN_RISING == change_type);
+
+    hw_gpio_set(0, 0, 0);
+    CU_ASSERT(0 == TU_pin_event_dispatch());
+
+    /* pin 1 listen FALLING event*/
+    hw_gpio_set(0, 1, 1);
+    CU_ASSERT(0 == TU_pin_event_dispatch());
+
+    hw_gpio_set(0, 1, 0);
+    CU_ASSERT(1 == TU_pin_event_dispatch());
+    CU_ASSERT(1 == changed_pin && CUPKEE_EVENT_PIN_FALLING == change_type);
+
+    /* pin 2 listen RISING & FALLING event */
+    hw_gpio_set(0, 2, 1);
+    CU_ASSERT(1 == TU_pin_event_dispatch());
+    CU_ASSERT(2 == changed_pin && CUPKEE_EVENT_PIN_RISING == change_type);
+    hw_gpio_set(0, 2, 0);
+    CU_ASSERT(1 == TU_pin_event_dispatch());
+    CU_ASSERT(2 == changed_pin && CUPKEE_EVENT_PIN_FALLING == change_type);
+
+    /* pin 3 listen nothing */
+    hw_gpio_set(0, 3, 1);
+    CU_ASSERT(0 == TU_pin_event_dispatch());
+    hw_gpio_set(0, 3, 0);
+    CU_ASSERT(0 == TU_pin_event_dispatch());
+
+    cupkee_pin_ignore(0);
+    cupkee_pin_ignore(1);
+    cupkee_pin_ignore(2);
+
+    /* pin all listen nothing */
+    hw_gpio_set(0, 0, 0);
+    hw_gpio_set(0, 1, 0);
+    hw_gpio_set(0, 2, 0);
+
+    hw_gpio_set(0, 1, 1);
+    hw_gpio_set(0, 2, 1);
+    hw_gpio_set(0, 0, 1);
+
+    hw_gpio_set(0, 0, 0);
+    hw_gpio_set(0, 1, 0);
+    hw_gpio_set(0, 2, 0);
+
+    CU_ASSERT(0 == TU_pin_event_dispatch());
 }
 
 CU_pSuite test_sys_pin(void)

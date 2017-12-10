@@ -79,5 +79,9 @@ static inline int cupkee_event_post_systick(void) {
     return cupkee_event_post(EVENT_SYSTICK, 0, 0);
 }
 
+static inline int cupkee_event_post_pin(uint8_t which, uint8_t event) {
+    return cupkee_event_post(EVENT_PIN, event, which);
+}
+
 #endif /* __CUPKEE_EVENT_INC__ */
 

@@ -39,6 +39,8 @@ typedef struct cupkee_pin_group_t {
 } cupkee_pin_group_t;
 
 static uint8_t  pin_map_table[CUPKEE_PIN_MAX];
+static cupkee_callback_t pin_event_handler;
+static void * pin_event_entry;
 
 static inline int pin_is_invalid(int pin) {
     return pin >= CUPKEE_PIN_MAX || pin_map_table[pin] == 0xFF;
@@ -47,6 +49,9 @@ static inline int pin_is_invalid(int pin) {
 int cupkee_pin_setup(void)
 {
     memset(pin_map_table, 0xff, sizeof(pin_map_table));
+    pin_event_handler = NULL;
+    pin_event_entry   = NULL;
+
     return 0;
 }
 
@@ -246,8 +251,34 @@ int cupkee_pin_group_elem_set(void *grp, int i, int v)
 
 void cupkee_pin_event_dispatch(uint16_t id, uint8_t code)
 {
-    (void) id;
-    (void) code;
+    if (pin_event_handler) {
+        pin_event_handler(pin_event_entry, code, id);
+    }
 }
 
+void cupkee_pin_event_handle_set(cupkee_callback_t handler, void *entry)
+{
+    pin_event_handler = handler;
+    pin_event_entry   = entry;
+}
+
+int cupkee_pin_listen(int pin, int events)
+{
+    events &= CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING;
+
+    if (events && !pin_is_invalid(pin)) {
+        return hw_gpio_listen(BANK_OF(pin), PORT_OF(pin), events, pin);
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int cupkee_pin_ignore(int pin)
+{
+    if (!pin_is_invalid(pin)) {
+        return hw_gpio_ignore(BANK_OF(pin), PORT_OF(pin));
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
 

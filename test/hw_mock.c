@@ -165,6 +165,9 @@ const char *hw_storage_data_map(int bank)
 /* GPIO */
 #define GPIO_BANK_MAX 8
 #define GPIO_PORT_MAX 32
+static uint8_t  gpio_event_id[GPIO_BANK_MAX * GPIO_PORT_MAX];
+static uint32_t gpio_listen_rising[GPIO_BANK_MAX];
+static uint32_t gpio_listen_falling[GPIO_BANK_MAX];
 static uint32_t gpio_state[GPIO_BANK_MAX];
 static uint32_t gpio_value[GPIO_BANK_MAX];
 
@@ -192,6 +195,18 @@ int hw_gpio_disable(uint8_t bank, uint8_t port)
     return 0;
 }
 
+static void gpio_changed(uint8_t bank, uint8_t port)
+{
+    uint16_t pin = gpio_event_id[bank * GPIO_PORT_MAX + port];
+
+    if ((gpio_value[bank] & (1 << port)) && (gpio_listen_rising[bank] & (1 << port))) {
+        cupkee_event_post_pin(pin, CUPKEE_EVENT_PIN_RISING);
+    }
+    if (!(gpio_value[bank] & (1 << port)) && (gpio_listen_falling[bank] & (1 << port))) {
+        cupkee_event_post_pin(pin, CUPKEE_EVENT_PIN_FALLING);
+    }
+}
+
 int hw_gpio_get(uint8_t bank, uint8_t port)
 {
     if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
@@ -215,6 +230,8 @@ int hw_gpio_set(uint8_t bank, uint8_t port, int v)
         gpio_value[bank] &= ~(1 << port);
     }
 
+    gpio_changed(bank, port);
+
     return 0;
 }
 
@@ -225,6 +242,41 @@ int hw_gpio_toggle(uint8_t bank, uint8_t port)
     }
 
     gpio_value[bank] ^= (1 << port);
+
+    gpio_changed(bank, port);
+
+    return 0;
+}
+
+int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t pin)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_event_id[bank * GPIO_PORT_MAX + port] = pin;
+
+    if (events & CUPKEE_EVENT_PIN_RISING) {
+        gpio_listen_rising[bank] |= 1 << port;
+    }
+
+    if (events & CUPKEE_EVENT_PIN_FALLING) {
+        gpio_listen_falling[bank] |= 1 << port;
+    }
+
+    gpio_value[bank] ^= (1 << port);
+
+    return 0;
+}
+
+int hw_gpio_ignore(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_listen_rising[bank] &= ~(1 << port);
+    gpio_listen_falling[bank] &= ~(1 << port);
 
     return 0;
 }

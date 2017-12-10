@@ -33,17 +33,19 @@ SOFTWARE.
 
 int cupkee_pin_setup(void);
 void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
+void cupkee_pin_event_handle_set(cupkee_callback_t handler, void *entry);
 
 int cupkee_pin_map(int pin, int bank, int port);
 
 int cupkee_pin_enable(int pin, int dir);
 int cupkee_pin_disable(int pin);
+int cupkee_pin_listen(int pin, int events);
+int cupkee_pin_ignore(int pin);
 
 int cupkee_pin_set(int pin, int v);
 int cupkee_pin_get(int pin);
 int cupkee_pin_toggle(int pin);
 
-int cupkee_pin_event_handle_set(cupkee_callback_t handle);
 
 void *cupkee_pin_group_create(void);
 int cupkee_pin_group_destroy(void *grp);
