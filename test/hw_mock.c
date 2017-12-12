@@ -200,10 +200,10 @@ static void gpio_changed(uint8_t bank, uint8_t port)
     uint16_t pin = gpio_event_id[bank * GPIO_PORT_MAX + port];
 
     if ((gpio_value[bank] & (1 << port)) && (gpio_listen_rising[bank] & (1 << port))) {
-        cupkee_event_post_pin(pin, CUPKEE_EVENT_PIN_RISING);
+        cupkee_event_post_pin(pin, 1);
     }
     if (!(gpio_value[bank] & (1 << port)) && (gpio_listen_falling[bank] & (1 << port))) {
-        cupkee_event_post_pin(pin, CUPKEE_EVENT_PIN_FALLING);
+        cupkee_event_post_pin(pin, 0);
     }
 }
 

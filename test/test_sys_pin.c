@@ -134,11 +134,11 @@ static void test_event(void)
     hw_gpio_set(0, 2, 0);
     hw_gpio_set(0, 3, 0);
 
-    cupkee_pin_event_handle_set(test_event_handler, NULL);
+//    cupkee_pin_event_handle_set(test_event_handler, NULL);
 
-    CU_ASSERT(0 == cupkee_pin_listen(0, CUPKEE_EVENT_PIN_RISING));
-    CU_ASSERT(0 == cupkee_pin_listen(1, CUPKEE_EVENT_PIN_FALLING));
-    CU_ASSERT(0 == cupkee_pin_listen(2, CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING));
+    CU_ASSERT(0 == cupkee_pin_listen(0, CUPKEE_EVENT_PIN_RISING, test_event_handler, NULL));
+    CU_ASSERT(0 == cupkee_pin_listen(1, CUPKEE_EVENT_PIN_FALLING, test_event_handler, NULL));
+    CU_ASSERT(0 == cupkee_pin_listen(2, CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING, test_event_handler, NULL));
 
     /* pin 0 listen RISING event */
     hw_gpio_set(0, 0, 1);
