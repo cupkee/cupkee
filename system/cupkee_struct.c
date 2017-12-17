@@ -405,7 +405,7 @@ int cupkee_struct_clear(cupkee_struct_t *st, int id)
     if (pos < 0 || t != CUPKEE_STRUCT_OCT) {
         return -CUPKEE_EINVAL;
     }
-    p = st->data[pos];
+    p = &st->data[pos];
     p[0] = 0;
 
     return 0;
