@@ -212,7 +212,7 @@ static cupkee_struct_t *mock_conf_init(void *curr)
 
     if (curr) {
         conf = curr;
-        cupkee_struct_clear(conf);
+        cupkee_struct_reset(conf);
     } else {
         conf = cupkee_struct_alloc(5, mock_conf_desc);
     }

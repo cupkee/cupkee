@@ -112,7 +112,7 @@ int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
     switch (dir) {
     case HW_DIR_IN:
         mod = GPIO_MODE_INPUT;
-        cnf = GPIO_CNF_INPUT_PULL_UPDOWN;
+        cnf = GPIO_CNF_INPUT_FLOAT;
         break;
     case HW_DIR_OUT:
         mod = GPIO_MODE_OUTPUT_10_MHZ;
@@ -181,7 +181,7 @@ int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which)
         uint32_t exti;
         enum exti_trigger_type type;
 
-        console_log("exti %u:%u %u\r\n", bank, port, isr_info->pin);
+        //console_log("exti %u:%u %u\r\n", bank, port, isr_info->pin);
         if ((isr_info->pin & PIN_MASK)) {
             return -CUPKEE_ERESOURCE;
         }
@@ -213,7 +213,7 @@ int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which)
         exti_set_trigger(exti, type);
         exti_enable_request(exti);
 
-        console_log("exti %u:%u enable\r\n", bank, port);
+        //console_log("exti %u:%u enable\r\n", bank, port);
 
         return 0;
     } else {

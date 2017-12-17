@@ -77,13 +77,14 @@ void cupkee_struct_release(cupkee_struct_t *st);
 int  cupkee_struct_init(cupkee_struct_t *conf, int item_num, const cupkee_struct_desc_t *desc);
 void cupkee_struct_deinit(cupkee_struct_t *conf);
 
-void cupkee_struct_clear(cupkee_struct_t *conf);
+void cupkee_struct_reset(cupkee_struct_t *conf);
 int cupkee_struct_item_id(cupkee_struct_t *conf, const char *name);
 
 static inline const char *cupkee_struct_item_name(cupkee_struct_t *conf, int id) {
     return (conf && id >= 0 && id < conf->item_num) ? conf->item_descs[id].name : NULL;
 };
 
+int cupkee_struct_clear(cupkee_struct_t *conf, int id);
 int cupkee_struct_set_int(cupkee_struct_t *conf, int id, int v);
 int cupkee_struct_get_int(cupkee_struct_t *conf, int id, int *pv);
 
@@ -98,6 +99,10 @@ int cupkee_struct_get_string(cupkee_struct_t *conf, int id, const char **pv);
 
 int cupkee_struct_push(cupkee_struct_t *conf, int id, int v);
 int cupkee_struct_get_bytes(cupkee_struct_t *conf, int id, const uint8_t **pv);
+
+static inline int cupkee_struct_clear2(cupkee_struct_t *conf, int id) {
+    return cupkee_struct_clear(conf, id);
+}
 
 static inline int cupkee_struct_set_int2(cupkee_struct_t *conf, const char *name, int v) {
     return cupkee_struct_set_int(conf, cupkee_struct_item_id(conf, name), v);

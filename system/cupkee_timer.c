@@ -83,7 +83,6 @@ static void timer_destroy(void *entry)
     }
 }
 
-
 static const cupkee_desc_t timer_desc = {
     .destroy      = timer_destroy,
     .event_handle = timer_event_handle

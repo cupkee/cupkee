@@ -69,6 +69,17 @@ static void object_elem_set(void *env, intptr_t o, val_t *key, val_t *val)
             } else
             if (val_is_string(val)) {
                 cupkee_prop_set(obj->entry, name, CUPKEE_OBJECT_ELEM_STR, (intptr_t)val_2_cstring(val));
+            } else
+            if (val_is_array(val)){
+                array_t *array = (array_t *)val_2_intptr(val);
+                val_t   *elems = array_values(array);
+                int n = array_len(array), i;
+
+                for (i = 0; i < n; i++, elems++) {
+                    if (val_is_number(elems) && cupkee_prop_set(obj->entry, name, CUPKEE_OBJECT_ELEM_INT, val_2_integer(elems)) < 1) {
+                        break;
+                    }
+                }
             }
         }
     }

@@ -203,7 +203,7 @@ int cupkee_struct_item_id(cupkee_struct_t *st, const char *name)
     return -1;
 }
 
-void cupkee_struct_clear(cupkee_struct_t *st)
+void cupkee_struct_reset(cupkee_struct_t *st)
 {
     if (st) {
         memset(st->data, 0, st->size);
@@ -392,6 +392,21 @@ int cupkee_struct_push(cupkee_struct_t *st, int id, int v)
         p[1 + tail] = v; p[0] ++;
         return 1;
     }
+
+    return 0;
+}
+
+int cupkee_struct_clear(cupkee_struct_t *st, int id)
+{
+    uint8_t t, *p;
+    int pos;
+
+    pos = struct_item_info(st, id, &t);
+    if (pos < 0 || t != CUPKEE_STRUCT_OCT) {
+        return -CUPKEE_EINVAL;
+    }
+    p = st->data[pos];
+    p[0] = 0;
 
     return 0;
 }
