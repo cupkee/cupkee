@@ -138,6 +138,11 @@ void hw_setup(void)
     hw_setup_systick();
 }
 
+void hw_reset(void)
+{
+    scb_reset_system();
+}
+
 int hw_device_setup(void)
 {
     /* initial device resouce */
