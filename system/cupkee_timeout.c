@@ -68,7 +68,7 @@ static int timeout_with_id(cupkee_timeout_t *t, int id)
     return t->id == id;
 }
 
-void cupkee_timeout_init(void)
+void cupkee_timeout_setup(void)
 {
     timeout_head = NULL;
     timeout_next = 0;

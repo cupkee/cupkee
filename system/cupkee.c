@@ -33,17 +33,15 @@ void cupkee_event_poll(void)
     cupkee_event_t e;
 
     while (cupkee_event_take(&e)) {
-        /* Cupkee process */
         if (e.type == EVENT_SYSTICK) {
             cupkee_device_sync(_cupkee_systicks);
             cupkee_timeout_sync(_cupkee_systicks);
         } else
-        if (e.type == EVENT_DEVICE) {
-            cupkee_device_event_handle(e.which, e.code);
-            continue;
+        if (e.type == EVENT_OBJECT) {
+            cupkee_object_event_dispatch(e.which, e.code);
         } else
-        if (e.type == EVENT_EMITTER) {
-            cupkee_event_emitter_dispatch(e.which, e.code);
+        if (e.type == EVENT_PIN) {
+            cupkee_pin_event_dispatch(e.which, e.code);
         }
     }
 }
@@ -53,27 +51,27 @@ void cupkee_init(void)
     /* Hardware startup */
     hw_setup();
 
-    /* Memory pool initial */
-    cupkee_memory_init();
+    /* System setup */
+    cupkee_memory_setup();
 
-    /* System timer initial */
-    cupkee_timeout_init();
+    cupkee_object_setup();
 
-    /* Devices initial */
-    cupkee_device_init();
+    cupkee_timeout_setup();
 
-    /* Sysdisk initial */
-    cupkee_sysdisk_init();
+    cupkee_timer_setup();
 
-    /* Buffer initial */
-    cupkee_buffer_init();
-
-    /* Module initial */
-    cupkee_module_init();
-
-    /* Event initial */
     cupkee_event_setup();
 
+    cupkee_pin_setup();
+
+    cupkee_device_setup();
+
+    cupkee_sysdisk_init();
+
+    cupkee_module_init();
+
+    /* Board device setup */
+    hw_device_setup();
 }
 
 void cupkee_loop(void)

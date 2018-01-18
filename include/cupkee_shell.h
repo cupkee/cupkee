@@ -30,24 +30,32 @@ SOFTWARE.
 
 #include <panda.h>
 
-env_t *cupkee_shell_env(void);
-val_t *cupkee_shell_reference_create(val_t *v);
-void cupkee_shell_reference_release(val_t *ref);
+typedef struct cupkee_meta_t {
+    int (*prop_get)(void *entry, const char *key, val_t *res);
+} cupkee_meta_t;
 
-int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives);
+int cupkee_shell_init(void *tty, int n, const native_t *natives);
 int cupkee_shell_start(const char *initial);
-
-void cupkee_execute_function(val_t *fn, int ac, val_t *av);
-
-void *cupkee_val2data(val_t *data, int *size);
-cupkee_device_t *cupkee_val2device(val_t *v);
-
-val_t cupkee_dev2val(env_t *env, cupkee_device_t *dev);
 
 static inline void cupkee_shell_loop(const char *initial) {
     cupkee_shell_start(initial);
     cupkee_loop();
 }
+
+
+env_t *cupkee_shell_env(void);
+val_t *cupkee_shell_reference_create(val_t *v);
+void cupkee_shell_reference_release(val_t *ref);
+
+val_t *cupkee_ref_inc(val_t *v);
+void   cupkee_ref_dec(val_t *r);
+
+int   cupkee_execute_string(const char *script, val_t **res);
+val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
+
+val_t cupkee_shell_object_create(env_t *env, void *entry);
+
+void *cupkee_shell_object_entry (int *ac, val_t **av);
 
 #endif /* __CUPKEE_SHELL_INC__ */
 

@@ -72,5 +72,7 @@ val_t cupkee_device_config_get_one(cupkee_device_t *dev, env_t *env, val_t *whic
 int   cupkee_device_config_set_all(cupkee_device_t *dev, env_t *env, val_t *settings);
 val_t cupkee_device_config_get_all(cupkee_device_t *dev);
 
+void cupkee_shell_init_device(void);
+
 #endif /* __CUPKEE_SHELL_DEVICE_INC__ */
 

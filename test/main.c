@@ -37,17 +37,28 @@ int main(int argc, const char *argv[])
     }
 
     /***********************************************
-     * Test suites here:
+     * Test suites register here:
      ***********************************************/
     test_hello();
 
     test_sys_memory();
     test_sys_event();
+
     test_sys_timeout();
     test_sys_process();
     test_sys_stream();
+    test_sys_struct();
+
+    test_sys_object();
+    test_sys_pin();
+    test_sys_timer();
     test_sys_device();
 
+    test_sys_rcci();
+
+    /***********************************************
+     * Test running
+     ***********************************************/
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();
     CU_cleanup_registry();

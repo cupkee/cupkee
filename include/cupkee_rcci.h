@@ -24,38 +24,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "module_test.h"
+#ifndef __CUPKEE_RCCI_INC__
+#define __CUPKEE_RCCI_INC__
 
-static const native_t native_entries[] = {
-    {"print",   native_print},
-    {"require", native_require},
-};
+int cupkee_rcci_setup(void *stream, const char *uuid, cupkee_callback_t cb, intptr_t param);
 
-void module_test_setup(void)
-{
-    module_example_init();
-}
+int cupkee_rcci_service_id(void *entry);              // call in cb
+int cupkee_rcci_service_pull_int(void *entry, int *); // call in cb, with event service_set
+int cupkee_rcci_service_push_int(void *entry, int);   // call in cb, with event service_get
+int cupkee_rcci_service_update(int id);
 
-int module_test_native_number(void)
-{
-    return sizeof(native_entries) / sizeof(native_t);
-}
+int cupkee_rcci_stream_size(void *stream);
+void *cupkee_rcci_create_istream(int id, cupkee_callback_t cb, intptr_t param);
+void *cupkee_rcci_create_ostream(int id, cupkee_callback_t cb, intptr_t param);
 
-const native_t *module_test_native_entries(void)
-{
-    return native_entries;
-}
-
-const char *module_test_script(void)
-{
-    return "\
-var mod = require('example');   \
-                                \
-if (mod.number == 0)            \
-    print('module number ok')   \
-if (mod.boolean)                \
-    print('module boolean ok')  \
-mod.native()                    \
-";
-}
+#endif /* __CUPKEE_RCCI_INC__ */
 

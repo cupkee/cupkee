@@ -27,7 +27,11 @@ SOFTWARE.
 #include <cupkee.h>
 
 #include "cupkee_shell_misc.h"
+#include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
+
+#define CONSOLE_INPUT_LINE  0
+#define CONSOLE_INPUT_MULTI 1
 
 static const char *logo = "\r\n\
     ______               __                  \r\n\
@@ -43,7 +47,7 @@ static int   core_mem_sz;
 static char *input_mem_ptr;
 static int   input_mem_sz;
 static int   input_cached;
-static uint8_t   shell_mode;
+static uint8_t   shell_console_mode;
 static uint8_t   shell_logo_show;
 static env_t shell_env;
 
@@ -72,13 +76,23 @@ static void shell_memory_location(int *heap_mem_sz, int *stack_mem_sz)
     *stack_mem_sz = core_blocks / 8 * block_size;
 }
 
+static void shell_error_proc(env_t *env, int err)
+{
+    shell_print_error(err);
+
+    // Todo: stack dump
+
+    // resume env, after error occuried
+    env_set_error(env, 0);
+}
+
 static int shell_do_complete(const char *sym, void *param)
 {
     cupkee_auto_complete_update(param, sym);
     return 0;
 }
 
-static int shell_auto_complete(void)
+static int shell_console_complete(void)
 {
     // To used the free space of input buffer as auto_complete buffer
     void *buf = input_mem_ptr + input_cached;
@@ -94,68 +108,66 @@ static int shell_auto_complete(void)
     return CON_EXECUTE_DEF;
 }
 
-static char *shell_parser_cb(void)
+// Would be call, when more token need by parser
+static char *shell_console_parser_cb(void)
 {
-    shell_mode = 1;
+    shell_console_mode = CONSOLE_INPUT_MULTI;
     return NULL;
 }
 
-static void shell_error_proc(env_t *env, int err)
-{
-    shell_print_error(err);
-
-    // Todo: stack dump
-
-    env_set_error(env, 0);
-}
-
-static void shell_execute_input(env_t *env, int len, char *script)
+static void shell_console_execute(env_t *env, int len, char *script)
 {
     val_t *res;
     int    err;
 
-    err = interp_execute_interactive(env, script, shell_parser_cb, &res);
-    if (err < 0) {
-        if (shell_mode == 0 || err != -ERR_InvalidToken) {
-            shell_mode = 0;
-            shell_error_proc(env, -err);
-        }
-    } else
+    input_cached = 0;
+    shell_console_mode = CONSOLE_INPUT_LINE;
+
+    //console_log_sync("\r\nexecute: '%s'\r\n", script);
+
+    err = interp_execute_interactive(env, script, shell_console_parser_cb, &res);
+    //console_log_sync("state: %d\r\n", err);
     if (err > 0) {
-        if (res) shell_print_value(res);
-
-        shell_mode = 0;
-        input_cached = 0;
         cupkee_history_push(len, script);
-    }
 
-    if (shell_mode == 1) {
+        if (res)
+            shell_print_value(res);
+
+        shell_console_mode = CONSOLE_INPUT_LINE;
+    } else
+    if (shell_console_mode == CONSOLE_INPUT_MULTI && (err == -ERR_InvalidToken || err == 0)) {
         input_cached = len;
         console_prompt_set(". ");
+    } else
+    if (err < 0) {
+        shell_error_proc(env, -err);
     }
 }
 
-static int shell_execute(void)
+static int shell_console_load(void)
 {
     int len;
 
-    if (shell_mode != 0) {
+    if (shell_console_mode == CONSOLE_INPUT_MULTI) {
         if (input_cached >= input_mem_sz) {
             console_puts("Warning! input over flow... \r\n");
 
-            shell_mode = 0;
+            shell_console_mode = CONSOLE_INPUT_LINE;
             input_cached = 0;
             console_prompt_set(NULL);
+
             return CON_EXECUTE_DEF;
         }
 
         len = console_input_load(input_mem_sz - input_cached, input_mem_ptr + input_cached);
-        if (len > 1) {
+        if (len >= 1) {
+            // load more
             input_cached += len;
             return CON_EXECUTE_DEF;
         } else {
-            // input end
+            // load finish, if meet empty line
             len += input_cached;
+
             console_prompt_set(NULL);
         }
     } else {
@@ -164,7 +176,7 @@ static int shell_execute(void)
 
     input_mem_ptr[len] = 0;
 
-    shell_execute_input(&shell_env, len, input_mem_ptr);
+    shell_console_execute(&shell_env, len, input_mem_ptr);
 
     return CON_EXECUTE_DEF;
 }
@@ -179,10 +191,10 @@ static int shell_console_handle(int type, int ch)
     }
 
     if (type == CON_CTRL_ENTER) {
-        return shell_execute();
+        return shell_console_load();
     } else
     if (type == CON_CTRL_TABLE) {
-        return shell_auto_complete();
+        return shell_console_complete();
     } else
     if (type == CON_CTRL_UP) {
         return cupkee_history_load(-1);
@@ -194,13 +206,8 @@ static int shell_console_handle(int type, int ch)
     return CON_EXECUTE_DEF;
 }
 
-static void shell_console_init(cupkee_device_t *tty)
+static void shell_console_init(void *tty)
 {
-    if (!tty) {
-        hw_halt();
-    }
-    cupkee_device_enable(tty);
-
     cupkee_history_init();
     cupkee_console_init(tty, shell_console_handle);
 
@@ -220,7 +227,7 @@ static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const na
 
     env_native_set(&shell_env, entrys, n);
 
-    shell_mode = 0;
+    shell_console_mode = CONSOLE_INPUT_LINE;
 }
 
 env_t *cupkee_shell_env(void)
@@ -228,7 +235,7 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives)
+int cupkee_shell_init(void *tty, int n, const native_t *natives)
 {
     int heap_mem_sz, stack_mem_sz;
 
@@ -238,32 +245,53 @@ int cupkee_shell_init(cupkee_device_t *tty, int n, const native_t *natives)
 
     shell_interp_init(heap_mem_sz, stack_mem_sz, n, natives);
 
+    cupkee_shell_init_timer();
+    cupkee_shell_init_device();
+
     return 0;
 }
 
 int cupkee_shell_start(const char *initial)
 {
-    const char *app = cupkee_sysdisk_app_script();
-    val_t *res;
-    int   err = 0;
+    const char *cfg;
+    const char *app;
 
     (void) initial;
 
-    if (app) {
-        err = interp_execute_stmts(&shell_env, app, &res);
-        //console_log("\r\nrun app: %s\r\n", err < 0 ? "fail" : "ok");
+    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && (NULL != (cfg = cupkee_sysdisk_cfg_script()))) {
+        val_t *res;
+
+        console_log(".\r\n");
+        if (0 > interp_execute_stmts(&shell_env, cfg, &res)) {
+            console_log("execute config scripts fail..\r\n");
+            return -1;
+        }
+        console_log("execute config scripts ok..\r\n");
+
+        if (NULL != (app = cupkee_sysdisk_app_script())) {
+            if (0 > interp_execute_stmts(&shell_env, app, &res)) {
+                console_log("execute app scripts fail..\r\n");
+                return -1;
+            }
+            console_log("execute app scripts ok..\r\n");
+        }
     }
 
-    return err;
+    return 0;
 }
 
-void cupkee_execute_function(val_t *fn, int ac, val_t *av)
+int cupkee_execute_string(const char *script, val_t **res)
+{
+    return interp_execute_stmts(&shell_env, script, res);
+}
+
+val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)
 {
     if (fn) {
         env_t *env = &shell_env;
         if (val_is_native(fn)) {
             function_native_t f = (function_native_t) val_2_intptr(fn);
-            f(env, ac, av);
+            return f(env, ac, av);
         } else
         if (val_is_script(fn)){
             if (ac) {
@@ -272,8 +300,26 @@ void cupkee_execute_function(val_t *fn, int ac, val_t *av)
                     env_push_call_argument(env, av + i);
             }
             env_push_call_function(env, fn);
-            interp_execute_call(env, ac);
+            return interp_execute_call(env, ac);
         }
     }
+    return VAL_UNDEFINED;
+}
+
+void *cupkee_shell_object_entry (int *ac, val_t **av)
+{
+    if ((*ac)) {
+        val_t *v = *av;
+        if (val_is_foreign(v)) {
+            val_foreign_t *fv = (val_foreign_t *) val_2_intptr(v);
+            cupkee_object_t *obj = (cupkee_object_t *)fv->data;
+
+            if (obj) {
+                (*ac) --; (*av) ++;
+                return obj->entry;
+            }
+        }
+    }
+    return NULL;
 }
 

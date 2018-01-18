@@ -35,16 +35,18 @@ static const native_t native_entries[] = {
     {"systicks",        native_systicks},
     {"require",         native_require},
     {"print",           native_print},
-    {"pinMap",          native_pin_map},
-    {"ledMap",          native_led_map},
-    {"led",             native_led},
+    {"pinEnable",       native_pin_enable},
+    {"pinGroup",        native_pin_group},
+    {"pin",             native_pin},
+    {"toggle",          native_pin_toggle},
 
     {"setTimeout",      native_set_timeout},
     {"setInterval",     native_set_interval},
     {"clearTimeout",    native_clear_timeout},
     {"clearInterval",   native_clear_interval},
 
-    {"Device",          native_device_create},
+    {"Device",          native_create_device},
+    {"Timer",           native_create_timer},
 };
 
 int board_native_number(void)
@@ -64,8 +66,6 @@ void board_setup(void)
 
 const char *board_initial_script(void)
 {
-    return "\
-print('OK')\
-";
+    return "";
 }
 

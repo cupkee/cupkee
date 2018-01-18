@@ -1,9 +1,9 @@
 /*
 MIT License
 
-This file is part of cupkee project.
+This file is part of cupkee project
 
-Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __MODULE_TEST_INC__
-#define __MODULE_TEST_INC__
+#include <stdio.h>
+#include <string.h>
 
-#include <cupkee.h>
+#include "test.h"
 
-#include "module_example.h"
+static int test_setup(void)
+{
+    return TU_pre_init();
+}
 
-int module_test_native_number(void);
-const native_t *module_test_native_entries(void);
+static int test_clean(void)
+{
+    return TU_pre_deinit();
+}
 
-void module_test_setup(void);
-const char     *module_test_script(void);
+static void test_register(void)
+{
+    CU_ASSERT((uint8_t)-1 == 0xff);
+}
 
-#endif /* __MODULE_TEST_INC__ */
+static void test_read(void)
+{
+    CU_ASSERT(1);
+}
+
+CU_pSuite test_sys_object(void)
+{
+    CU_pSuite suite = CU_add_suite("system object", test_setup, test_clean);
+
+    if (suite) {
+        CU_add_test(suite, "object register  ", test_register);
+        CU_add_test(suite, "object read      ", test_read);
+    }
+
+    return suite;
+}
 

@@ -26,33 +26,31 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define USART_TOUT_THRESHOLD    20
+#define USART_MAX       5
+#define USART_RE        5
+#define USART_TE        5
 
 typedef struct hw_uart_t {
     uint8_t flags;
-    uint8_t dev_id;
-    uint8_t reserved[2];
-    void   *rx_buff;
-    void   *tx_buff;
-    uint32_t last_tick;
-    const hw_config_uart_t *config;
+    void   *entry;
 } hw_uart_t;
 
-static hw_uart_t uart_controls[HW_INSTANCES_UART];
-static const uint32_t device_base[] = {
+static hw_uart_t uarts[USART_MAX];
+
+static const uint32_t reg_base[] = {
     USART1, USART2, USART3, UART4, UART5
 };
-static const uint32_t device_rcc[] = {
+static const uint32_t rcc_base[] = {
     RCC_USART1, RCC_USART2, RCC_USART3, RCC_UART4, RCC_UART5
 };
 
-static int uart_gpio_setup(int instance)
+static int uart_gpio_setup(int inst)
 {
     uint32_t bank_rx, bank_tx;
     uint16_t gpio_rx, gpio_tx;
     int port_rx, port_tx;
 
-    switch(instance) {
+    switch(inst) {
     case 0:
         gpio_rx = GPIO_USART1_RX; gpio_tx = GPIO_USART1_TX;
         bank_rx = bank_tx = GPIOA;
@@ -101,248 +99,270 @@ static int uart_gpio_setup(int instance)
     return CUPKEE_OK;
 }
 
-static inline hw_uart_t *uart_get(int instance) {
-    return &uart_controls[instance];
+static inline hw_uart_t *uart_block(int inst) {
+    return (unsigned)inst < USART_MAX ? &uarts[inst] : NULL;
 }
 
-static inline int uart_has_data(int instance) {
-    return USART_SR(device_base[instance]) & USART_SR_RXNE;
+static inline int uart_has_data(int inst) {
+    return USART_SR(reg_base[inst]) & USART_SR_RXNE;
 }
 
-static inline int uart_not_busy(int instance) {
-    return USART_SR(device_base[instance]) & USART_SR_TXE;
+static inline int uart_not_busy(int inst) {
+    return USART_SR(reg_base[inst]) & USART_SR_TXE;
 }
 
-static inline uint8_t uart_data_get(int instance) {
-    return USART_DR(device_base[instance]);
+static inline uint8_t uart_data_get(int inst) {
+    return USART_DR(reg_base[inst]);
 }
 
-static inline void uart_data_put(int instance, uint8_t data) {
-    USART_DR(device_base[instance]) = data;
+static inline void uart_data_put(int inst, uint8_t data) {
+    USART_DR(reg_base[inst]) = data;
 }
 
-static void uart_reset(int instance)
+static int uart_reset(int inst)
 {
-    hw_uart_t *control = uart_get(instance);
+    hw_uart_t *uart = uart_block(inst);
 
-    /* Do hardware reset here */
+    if (uart) {
+        usart_disable(reg_base[inst]);
+        uart->entry = NULL;
 
-    control->dev_id = DEVICE_ID_INVALID;
-    control->config = NULL;
-}
-
-static void uart_release(int instance)
-{
-    hw_uart_t *control = uart_get(instance);
-
-    uart_reset(instance);
-
-    cupkee_buffer_release(control->rx_buff);
-    cupkee_buffer_release(control->tx_buff);
-
-    control->flags = 0;
-}
-
-static int uart_setup(int instance, uint8_t dev_id, const hw_config_t *conf)
-{
-    hw_uart_t *control = uart_get(instance);
-    const hw_config_uart_t *config = (const hw_config_uart_t *) conf;
-    uint32_t databits, stopbits, parity;
-    int err = CUPKEE_OK;
-
-    switch(config->stop_bits) {
-    case DEVICE_OPT_STOPBITS_1: stopbits = USART_STOPBITS_1; break;
-    case DEVICE_OPT_STOPBITS_2: stopbits = USART_STOPBITS_2; break;
-    case DEVICE_OPT_STOPBITS_0_5: stopbits = USART_STOPBITS_0_5; break;
-    case DEVICE_OPT_STOPBITS_1_5: stopbits = USART_STOPBITS_1_5; break;
-    default:
-        err = CUPKEE_EINVAL; goto DO_END;
-    }
-
-    if (config->data_bits != 8) {
-        err = CUPKEE_EINVAL; goto DO_END;
+        return 0;
     } else {
-        databits = 8;
-    }
-
-    switch(config->stop_bits) {
-    case DEVICE_OPT_PARITY_NONE: parity = USART_PARITY_NONE; break;
-    case DEVICE_OPT_PARITY_ODD:  parity = USART_PARITY_ODD; break;
-    case DEVICE_OPT_PARITY_EVEN: parity = USART_PARITY_EVEN; break;
-    default:
-        err = CUPKEE_EINVAL; goto DO_END;
-    }
-
-    if (CUPKEE_OK != uart_gpio_setup(instance)) {
-        err = CUPKEE_ERESOURCE; goto DO_END;
-    }
-
-    rcc_periph_clock_enable(device_rcc[instance]);
-	usart_set_baudrate(device_base[instance], config->baudrate);
-	usart_set_databits(device_base[instance], databits);
-	usart_set_stopbits(device_base[instance], stopbits);
-	usart_set_parity  (device_base[instance], parity);
-	usart_set_mode    (device_base[instance], USART_MODE_TX_RX);
-	usart_set_flow_control(device_base[instance], USART_FLOWCONTROL_NONE);
-    usart_enable(device_base[instance]);
-
-    control->dev_id = dev_id;
-    control->config = config;
-
-DO_END:
-    return -err;
-}
-
-static void uart_poll(int instance)
-{
-    hw_uart_t *control = uart_get(instance);
-
-    if (uart_has_data(instance)) {
-        do {
-            if (cupkee_buffer_push(control->rx_buff, uart_data_get(instance)) == 0) {
-                //device_error_post(control->dev_id, CUPKEE_EOVERFLOW);
-                cupkee_event_post_device_error(control->dev_id);
-                break;
-            }
-            control->last_tick = _cupkee_systicks;
-        } while (uart_has_data(instance));
-
-        if (cupkee_buffer_is_full(control->rx_buff)) {
-            cupkee_event_post_device_data(control->dev_id);
-        }
-    } else {
-        if (!cupkee_buffer_is_empty(control->rx_buff)) {
-            if (_cupkee_systicks - control->last_tick > 10) {
-                cupkee_event_post_device_data(control->dev_id);
-            }
-        }
-    }
-
-    if (uart_not_busy(instance) && !cupkee_buffer_is_empty(control->tx_buff)) {
-        do {
-            uint8_t d;
-            if (cupkee_buffer_shift(control->tx_buff, &d)) {
-                uart_data_put(instance, d);
-            } else {
-                cupkee_event_post_device_drain(control->dev_id);
-                break;
-            }
-        } while(uart_not_busy(instance));
-    }
-}
-
-static int uart_recv(int instance, size_t n, void *buf)
-{
-    hw_uart_t *control = uart_get(instance);
-
-    return cupkee_buffer_take(control->rx_buff, n, buf);
-}
-
-static int uart_send(int instance, size_t n, const void *data)
-{
-    hw_uart_t *control = uart_get(instance);
-
-    return cupkee_buffer_give(control->tx_buff, n, data);
-}
-
-static int uart_send_sync(int instance, size_t n, const void *data)
-{
-    const uint8_t *ptr = data;
-    size_t i = 0;
-
-    while (i < n) {
-        while (!uart_not_busy(instance)) {
-        }
-        uart_data_put(instance, ptr[i++]);
-    }
-
-    return i;
-}
-
-static int uart_recv_sync(int instance, size_t n, void *data)
-{
-    uint8_t *ptr = data;
-    uint32_t begin = cupkee_systicks();
-    size_t i = 0;
-
-    while (i < n) {
-        while (!uart_has_data(instance)) {
-            if (cupkee_systicks() - begin > USART_TOUT_THRESHOLD) {
-                return -1;
-            }
-        }
-        ptr[i++] = uart_data_get(instance);
-    }
-
-    return i;
-}
-
-static int uart_io_cached(int instance, size_t *in, size_t *out)
-{
-    hw_uart_t *control = uart_get(instance);
-
-    if (!control) {
         return -CUPKEE_EINVAL;
     }
+}
 
-    if (in) {
-        *in = cupkee_buffer_length(control->rx_buff);
+static int uart_setup(int inst, void *entry)
+{
+    hw_uart_t *uart = uart_block(inst);
+    cupkee_struct_t *conf;
+    uint32_t baudrate, databits, stopbits, parity;
+    int n;
+
+    if (!uart) {
+        return -CUPKEE_EINVAL;
     }
-    if (out) {
-        *out = cupkee_buffer_length(control->tx_buff);
+    conf = cupkee_device_config(entry);
+    if (!conf) {
+        return -CUPKEE_ERROR;
     }
+
+    cupkee_struct_get_int(conf, 0, &n);
+    baudrate = n;
+
+    cupkee_struct_get_int(conf, 1, &n);
+    databits = n;
+
+    cupkee_struct_get_int(conf, 2, &n);
+    if (n == 1) {
+        parity = USART_PARITY_ODD;
+    } else
+    if (n == 2) {
+        parity = USART_PARITY_EVEN;
+    } else {
+        parity = USART_PARITY_NONE;
+    }
+
+    cupkee_struct_get_int(conf, 3, &n);
+    if (n == 2) {
+        stopbits = USART_STOPBITS_2;
+    } else {
+        stopbits = USART_STOPBITS_1;
+    }
+
+    if (CUPKEE_OK != uart_gpio_setup(inst)) {
+        return -CUPKEE_ERESOURCE;
+    }
+
+    rcc_periph_clock_enable(rcc_base[inst]);
+	usart_set_baudrate(reg_base[inst], baudrate);
+	usart_set_databits(reg_base[inst], databits);
+	usart_set_stopbits(reg_base[inst], stopbits);
+	usart_set_parity  (reg_base[inst], parity);
+	usart_set_mode    (reg_base[inst], USART_MODE_TX_RX);
+	usart_set_flow_control(reg_base[inst], USART_FLOWCONTROL_NONE);
+    usart_enable(reg_base[inst]);
+
+    uart->entry = entry;
+
     return 0;
 }
 
+static int uart_request(int inst)
+{
+    if ((unsigned)inst >= USART_MAX || uarts[inst].flags) {
+        return -CUPKEE_EINVAL;
+    }
 
-static const hw_driver_t uart_driver = {
+    uarts[inst].flags = HW_FL_USED;
+    uarts[inst].entry = NULL;
+
+    return 0;
+}
+
+static int uart_release(int inst)
+{
+    hw_uart_t *uart = uart_block(inst);
+
+    if (uart) {
+        uart_reset(inst);
+        uart->flags = 0;
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+static int uart_poll(int inst)
+{
+    hw_uart_t *uart = uart_block(inst);
+
+    if (uart) {
+        uint8_t data;
+
+        if (uart->flags & HW_FL_RXE) {
+            while (uart_has_data(inst)) {
+                data = uart_data_get(inst);
+                if (1 != cupkee_device_push(uart->entry, 1, &data)) {
+                    uart->flags &= ~HW_FL_RXE;
+                    break;
+                }
+            }
+        }
+
+        if (uart->flags & HW_FL_TXE) {
+            while (uart_not_busy(inst)) {
+                if(1 != cupkee_device_pull(uart->entry, 1, &data)) {
+                    uart->flags &= ~HW_FL_TXE;
+                    break;
+                }
+                uart_data_put(inst, data);
+            }
+        }
+        return 0;
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+static int uart_write(int inst, size_t n, const void *data)
+{
+    hw_uart_t *uart = uart_block(inst);
+
+    if (n && data) { // sync write
+        const uint8_t *ptr = data;
+        size_t i = 0;
+
+
+        while (i < n) {
+            while (!uart_not_busy(inst)) {
+            }
+            uart_data_put(inst, ptr[i++]);
+        }
+        return i;
+    } else {
+        uart->flags |= HW_FL_TXE;
+        return 0;
+    }
+}
+
+static int uart_read(int inst, size_t n, void *data)
+{
+    hw_uart_t *uart = uart_block(inst);
+
+    if (n && data) {
+        uint32_t begin = cupkee_systicks();
+        uint8_t *ptr = data;
+        size_t i = 0;
+
+        while (i < n) {
+            while (!uart_has_data(inst)) {
+                if (cupkee_systicks() - begin > 1000) {
+                    return -CUPKEE_ETIMEOUT;
+                }
+            }
+            ptr[i++] = uart_data_get(inst);
+        }
+
+        return i;
+    } else {
+        uart->flags |= HW_FL_RXE;
+        return 0;
+    }
+}
+
+static const char *parity_options[] = {
+    "none", "odd", "even"
+};
+
+static const cupkee_struct_desc_t conf_desc[] = {
+    {
+        .name = "baudrate",
+        .type = CUPKEE_STRUCT_UINT32
+    },
+    {
+        .name = "databits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+    {
+        .name = "parity",
+        .type = CUPKEE_STRUCT_OPT,
+        .size = 3,
+        .opt_names = parity_options
+    },
+    {
+        .name = "stopbits",
+        .type = CUPKEE_STRUCT_UINT8
+    },
+};
+
+static cupkee_struct_t *uart_conf_init(void *curr)
+{
+    cupkee_struct_t *conf;
+
+    if (curr) {
+        conf = curr;
+    } else {
+        conf = cupkee_struct_alloc(4, conf_desc);
+    }
+
+    if (conf) {
+        cupkee_struct_set_uint(conf, 0, 115200);
+        cupkee_struct_set_uint(conf, 1, 8);
+        cupkee_struct_set_string(conf, 2, "None");
+        cupkee_struct_set_uint(conf, 3, 1);
+    }
+
+    return conf;
+}
+
+static const cupkee_driver_t uart_driver = {
+    .request = uart_request,
     .release = uart_release,
     .reset   = uart_reset,
     .setup   = uart_setup,
     .poll    = uart_poll,
 
-    .read    = uart_recv,
-    .write   = uart_send,
-    .read_sync    = uart_recv_sync,
-    .write_sync   = uart_send_sync,
-    .io_cached    = uart_io_cached
+    .read    = uart_read,
+    .write   = uart_write,
 };
 
-const hw_driver_t *hw_request_uart(int instance)
-{
-    void *rx_buff;
-    void *tx_buff;
-
-    if (instance >= HW_INSTANCES_UART || uart_controls[instance].flags) {
-        return NULL;
-    }
-
-    rx_buff = cupkee_buffer_alloc(128);
-    if (!rx_buff) {
-        return NULL;
-    }
-
-    tx_buff = cupkee_buffer_alloc(128);
-    if (!tx_buff) {
-        cupkee_buffer_release(rx_buff);
-        return NULL;
-    }
-
-    uart_controls[instance].flags  = HW_FL_USED;
-    uart_controls[instance].dev_id = DEVICE_ID_INVALID;
-    uart_controls[instance].rx_buff= rx_buff;
-    uart_controls[instance].tx_buff= tx_buff;
-    uart_controls[instance].config = NULL;
-
-    return &uart_driver;
-}
+static const cupkee_device_desc_t hw_device_uart = {
+    .name = "uart",
+    .inst_max = USART_MAX,
+    .conf_init = uart_conf_init,
+    .driver = &uart_driver
+};
 
 void hw_setup_usart(void)
 {
     int i;
 
-    for (i = 0; i < HW_INSTANCES_UART; i++) {
-        uart_controls[i].flags = 0;
+    for (i = 0; i < USART_MAX; i++) {
+        uarts[i].flags = 0;
     }
+
+    cupkee_device_register(&hw_device_uart);
 }
 

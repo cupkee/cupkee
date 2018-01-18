@@ -27,10 +27,7 @@ SOFTWARE.
 #ifndef __HW_USART_INC__
 #define __HW_USART_INC__
 
-#define HW_INSTANCES_UART         5
-
 void  hw_setup_usart(void);
-const hw_driver_t *hw_request_uart(int instance);
 
 #endif /* __HW_USART_INC__ */
 

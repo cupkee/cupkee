@@ -27,10 +27,7 @@ SOFTWARE.
 #ifndef __HW_ADC_INC__
 #define __HW_ADC_INC__
 
-#define HW_INSTANCES_ADC            1
-
 void  hw_setup_adc(void);
-const hw_driver_t *hw_request_adc(int instance);
 
 #endif /* __HW_ADC_INC__ */
 
