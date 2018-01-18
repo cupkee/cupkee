@@ -56,12 +56,12 @@ void sys_tick_handler(void)
     cupkee_event_post_systick();
 }
 
-size_t hw_boot_memory_size(void)
+size_t hw_memory_size(void)
 {
     return hw_memory_end - hw_memory_bgn;
 }
 
-void  *hw_boot_memory_alloc(size_t size, size_t align)
+void  *hw_memory_alloc(size_t size, size_t align)
 {
     void *memory_align;
     size_t left;

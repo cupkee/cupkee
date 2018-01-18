@@ -156,8 +156,8 @@ int cupkee_memory_setup(void)
     }
 
     /* boot zone init */
-    mem_size = hw_boot_memory_size();
-    mem_base = (intptr_t) hw_boot_memory_alloc(mem_size, 1);
+    mem_size = hw_memory_size();
+    mem_base = (intptr_t) hw_memory_alloc(mem_size, 1);
     if (!mem_base) {
         return -1;
     }

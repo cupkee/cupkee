@@ -77,8 +77,8 @@ void hw_exit_critical(uint32_t state);
 void hw_info_get(hw_info_t *);
 
 /* MEMORY */
-void  *hw_boot_memory_alloc(size_t size, size_t align);
-size_t hw_boot_memory_size(void);
+void  *hw_memory_alloc(size_t size, size_t align);
+size_t hw_memory_size(void);
 
 /* STORAGE */
 uint32_t hw_storage_size(int bank);
@@ -108,6 +108,7 @@ int hw_timer_duration_get(int inst);
 
 /* DEVICE */
 int hw_device_setup(void);
+int hw_device_setup_noirq(void);
 
 #endif /* __CUPKEE_BSP_INC__ */
 

@@ -86,7 +86,7 @@ void hw_exit_critical(uint32_t state)
     (void) state;
 }
 
-void *hw_boot_memory_alloc(size_t size, size_t align)
+void *hw_memory_alloc(size_t size, size_t align)
 {
     size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);
 
@@ -99,7 +99,7 @@ void *hw_boot_memory_alloc(size_t size, size_t align)
     return mock_memory_base + off;
 }
 
-size_t hw_boot_memory_size(void)
+size_t hw_memory_size(void)
 {
     return mock_memory_size - mock_memory_off;
 }
@@ -107,7 +107,7 @@ size_t hw_boot_memory_size(void)
 void hw_setup(void)
 {}
 
-void _hw_reset(void)
+void hw_reset(void)
 {}
 
 void hw_poll(void)
