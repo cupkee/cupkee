@@ -27,23 +27,6 @@ SOFTWARE.
 #ifndef __CUPKEE_INC__
 #define __CUPKEE_INC__
 
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-
-/* Todo: cupkee_def.h ? */
-#define CUPKEE_TRUE                     1
-#define CUPKEE_FALSE                    0
-
-#define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
-#define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
-
-#define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
-#define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
-
-typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
-
 /* Todo: cupkee_config.h ? */
 // Device config
 #define CUPKEE_DEVICE_TYPE_MAX          16
@@ -68,6 +51,7 @@ void cupkee_init(void);
 void cupkee_loop(void);
 void cupkee_event_poll(void);
 
+#include "cupkee_def.h"
 #include "cupkee_bsp.h"
 #include "cupkee_errno.h"
 #include "cupkee_utils.h"
@@ -97,7 +81,7 @@ void cupkee_event_poll(void);
 #include "cupkee_native.h"
 
 // core module
-#include "cupkee_rcci.h"
+#include "cupkee_sdmp.h"
 
 static inline void cupkee_start(void) {
     _cupkee_systicks = 0;

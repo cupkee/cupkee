@@ -24,43 +24,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "board.h"
+#ifndef __CUPKEE_DEF_INC__
+#define __CUPKEE_DEF_INC__
 
-#define USE_USB_CONSOLE
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 
-int main(void)
-{
-    void *tty;
+/* Todo: cupkee_def.h ? */
+#define CUPKEE_TRUE                     1
+#define CUPKEE_FALSE                    0
 
-    /**********************************************************
-     * Cupkee system initial
-     *********************************************************/
-    cupkee_init();
+#define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
+#define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
 
-#ifdef USE_USB_CONSOLE
-    tty = cupkee_device_request("usb-cdc", 0);
-#else
-    tty = cupkee_device_request("uart", 0);
-#endif
-    if (cupkee_device_enable(tty)) {
-        hw_halt();
-    }
+#define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
+#define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
 
-    cupkee_shell_init(tty, board_native_number(), board_native_entries());
+typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
-    /**********************************************************
-     * user setup code
-     *********************************************************/
-    board_setup();
-
-    /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    cupkee_shell_loop(board_initial_script());
-
-    /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    return 0;
-}
+#endif /* __CUPKEE_DEF_INC__ */
 
