@@ -26,8 +26,6 @@ SOFTWARE.
 
 #include "board.h"
 
-#define USE_USB_CONSOLE
-
 int main(void)
 {
     void *tty;

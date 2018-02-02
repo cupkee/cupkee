@@ -64,13 +64,14 @@ void cupkee_event_poll(void);
 #include "cupkee_process.h"
 #include "cupkee_struct.h"
 #include "cupkee_object.h"
+#include "cupkee_sdmp.h"
+#include "cupkee_console.h"
 
 #include "cupkee_pin.h"
 #include "cupkee_timer.h"
 
 #include "cupkee_timeout.h"
 #include "cupkee_device.h"
-#include "cupkee_console.h"
 #include "cupkee_auto_complete.h"
 #include "cupkee_history.h"
 
@@ -81,7 +82,6 @@ void cupkee_event_poll(void);
 #include "cupkee_native.h"
 
 // core module
-#include "cupkee_sdmp.h"
 
 static inline void cupkee_start(void) {
     _cupkee_systicks = 0;

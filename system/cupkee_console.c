@@ -43,9 +43,6 @@ SOFTWARE.
 static void *console_tty = NULL;
 static console_handle_t user_handle = NULL;
 
-static uint32_t console_total_recv = 0;
-static uint32_t console_total_send = 0;
-
 static uint16_t console_cursor = 0;
 
 static rbuff_t  console_buff[CONSOLE_BUF_NUM];
@@ -252,8 +249,6 @@ static void console_input_handle(int n, void *data)
     int pos = 0;
     int ch = '.'; // Give a initial value to make gcc happy
 
-    console_total_recv += n;
-
     while (pos < n) {
         int type = console_input_parse(data, n, &pos, &ch);
 
@@ -261,15 +256,106 @@ static void console_input_handle(int n, void *data)
     }
 }
 
-static void console_do_recv(void *tty)
-{
-    int n;
-    char buf[4];
+enum sdmp_demux_state_e {
+    DEMUX_KEY = 0,
+    DEMUX_MSG_HEAD = 8,
+    DEMUX_MSG_BODY,
+};
 
-    while (0 < (n = cupkee_read(tty, 4, buf))) {
-        console_input_handle(n, buf);
+#define SDMP_SEND_BUF_SIZE      512
+
+static uint8_t  sdmp_demux_state = 0;
+static uint8_t  sdmp_demux_msg_ver;
+static uint8_t  sdmp_demux_msg_len;
+static uint16_t sdmp_demux_msg_pos;
+static uint8_t  sdmp_demux_msg_buf[256];
+static void *   sdmp_mux_buf = NULL;
+
+static int cupkee_sdmp_init(void *stream)
+{
+    (void) stream;
+
+    sdmp_mux_buf = cupkee_buffer_alloc(SDMP_SEND_BUF_SIZE);
+
+    if (!sdmp_mux_buf) {
+        return -CUPKEE_ERESOURCE;
     }
 
+    sdmp_demux_state = DEMUX_KEY;
+
+    return 0;
+}
+
+static void sdmp_msg_handler(uint8_t ver, uint16_t end, uint8_t *body)
+{
+    console_log("Get Msg[%u] ver:%u, s:%u\r\n", body[0], ver, end);
+}
+
+static int sdmp_msg_head_verify(uint8_t *head)
+{
+    return (head[0] + head[1] + head[2] + head[3]) == 0;
+}
+
+static int sdmp_msg_filter(uint8_t byte)
+{
+    if (sdmp_demux_state == DEMUX_KEY) {
+        if (byte != 0xFE) {
+            return 1;
+        } else {
+            sdmp_demux_state = DEMUX_MSG_HEAD;
+            sdmp_demux_msg_pos = 0;
+        }
+    }
+
+    if (sdmp_demux_state == DEMUX_MSG_HEAD) {
+        sdmp_demux_msg_buf[sdmp_demux_msg_pos++] = byte;
+
+        if (sdmp_demux_msg_len >= 4) {
+            if (sdmp_msg_head_verify(sdmp_demux_msg_buf)) {
+                sdmp_demux_msg_ver = sdmp_demux_msg_buf[1];
+                sdmp_demux_msg_len = sdmp_demux_msg_buf[2];
+                sdmp_demux_msg_pos = 0;
+                sdmp_demux_state = DEMUX_MSG_BODY;
+            } else {
+                sdmp_demux_state = DEMUX_KEY;
+            }
+        }
+    } else
+    if (sdmp_demux_state == DEMUX_MSG_BODY) {
+        sdmp_demux_msg_buf[sdmp_demux_msg_pos++] = byte;
+        if (sdmp_demux_msg_pos > sdmp_demux_msg_len) {
+            sdmp_demux_state = DEMUX_KEY;
+            sdmp_msg_handler(sdmp_demux_msg_ver,
+                             sdmp_demux_msg_len,
+                             sdmp_demux_msg_buf);
+        }
+    } else {
+        sdmp_demux_state = DEMUX_KEY;
+        return 1;
+    }
+
+    return 0;
+}
+
+static void sdmp_do_recv(void *tty)
+{
+    uint8_t byte;
+    char buf[4];
+    int  pos = 0;
+
+    while (0 < cupkee_read(tty, 1, &byte)) {
+        if (sdmp_msg_filter(byte)) {
+            buf[pos++] = byte;
+            if (pos >= 3) {
+                console_input_handle(pos, buf);
+                pos = 0;
+            }
+        }
+    }
+
+    if (pos) {
+        console_input_handle(pos, buf);
+    }
 }
 
 static void console_do_send(void *tty)
@@ -280,18 +366,16 @@ static void console_do_send(void *tty)
         if (!cupkee_write(tty, 1, &c)) {
             console_buf_unread_byte(CONSOLE_OUT, c);
             break;
-        } else {
-            console_total_send++;
         }
     }
 }
 
-static int console_device_handle(void *tty, int event, intptr_t param)
+static int sdmp_stream_handle(void *tty, int event, intptr_t param)
 {
     (void) param;
 
     if (event == CUPKEE_EVENT_DATA) {
-        console_do_recv(tty);
+        sdmp_do_recv(tty);
     } else
     if (event == CUPKEE_EVENT_DRAIN) {
         console_do_send(tty);
@@ -302,13 +386,14 @@ static int console_device_handle(void *tty, int event, intptr_t param)
 
 int cupkee_console_init(void *tty, console_handle_t handle)
 {
+    cupkee_sdmp_init(tty);
+
     console_cursor = 0;
-    console_total_recv = 0;
 
     rbuff_init(&console_buff[CONSOLE_IN],  CONSOLE_BUF_SIZE);
     rbuff_init(&console_buff[CONSOLE_OUT], CONSOLE_BUF_SIZE);
 
-    if (0 != cupkee_device_handle_set(tty, console_device_handle, 0)) {
+    if (0 != cupkee_device_handle_set(tty, sdmp_stream_handle, 0)) {
         return -CUPKEE_EINVAL;
     }
 
@@ -453,7 +538,6 @@ int console_putc(int c)
     if (rbuff_is_empty(&console_buff[CONSOLE_OUT])) {
         char buf = c;
         if (cupkee_write(console_tty, 1, &buf)) {
-            console_total_send++;
             return 1;
         }
     }
@@ -469,7 +553,6 @@ int console_puts(const char *s)
     if (rbuff_is_empty(&console_buff[CONSOLE_OUT])) {
         int n = cupkee_write(console_tty, len, s);
         if (n > 0) {
-            console_total_send += n;
             p += n;
         }
     }
