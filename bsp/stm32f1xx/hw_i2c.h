@@ -27,10 +27,7 @@ SOFTWARE.
 #ifndef __HW_I2C_INC__
 #define __HW_I2C_INC__
 
-#define HW_INSTANCES_I2C    (2)
-
 void  hw_setup_i2c(void);
-const hw_driver_t *hw_request_i2c(int instance);
 
 #endif /* __HW_I2C_INC__ */
 

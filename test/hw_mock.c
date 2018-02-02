@@ -29,166 +29,12 @@ SOFTWARE.
 static uint8_t *mock_memory_base = NULL;
 static size_t   mock_memory_size = 0;
 static size_t   mock_memory_off  = 0;
+static int mock_timer_curr_inst = 0;
+static int mock_timer_curr_id   = -1;
+static int mock_timer_curr_period = -1;
+static int mock_timer_curr_duration = -1;
+static int mock_timer_curr_state = -1;  // 0: stop, 1: start, -1: noused
 
-static int mock_device_instance_max = 2;
-static struct {
-    uint8_t id;
-    uint8_t type;
-    uint8_t inst;
-    const hw_config_t *config;
-
-    size_t  out;
-    size_t  want;
-    uint8_t data[32];
-} mock_device_info;
-
-cupkee_device_t *mock_device_curr(void)
-{
-    return cupkee_device_block(mock_device_info.id);
-}
-
-size_t mock_device_curr_want(void)
-{
-    return mock_device_info.want;
-}
-
-int hw_mock_device_curr_id(void)
-{
-    return mock_device_info.id;
-}
-
-static void hw_mock_release(int inst)
-{
-    (void) inst;
-}
-
-static void hw_mock_reset (int inst)
-{
-    (void) inst;
-}
-
-static int  hw_mock_setup (int inst, uint8_t devid, const hw_config_t *conf)
-{
-    (void) inst;
-    mock_device_info.id = devid;
-    mock_device_info.config = conf;
-
-    return 0;
-}
-
-static int hw_mock_query(int inst, size_t n, int want)
-{
-    (void) inst;
-
-    mock_device_info.want = want;
-    mock_device_info.out = n;
-    n = n < 32 ? n : 32;
-
-    return 0;
-}
-
-static void hw_mock_sync  (int inst, uint32_t systicks)
-{
-    (void) inst;
-    (void) systicks;
-}
-
-static void hw_mock_poll  (int inst)
-{
-    (void) inst;
-}
-
-static int  hw_mock_get (int inst, int offset, uint32_t*data)
-{
-    (void) inst;
-    (void) offset;
-    (void) data;
-    return 0;
-}
-
-static int  hw_mock_set (int inst, int offset, uint32_t data)
-{
-    (void) inst;
-    (void) offset;
-    (void) data;
-    return 0;
-}
-
-static int  hw_mock_size(int inst)
-{
-    (void) inst;
-    return 0;
-}
-
-static int hw_mock_read_req     (int inst, size_t n)
-{
-    (void) inst;
-    (void) n;
-    return 0;
-}
-
-static int hw_mock_read         (int inst, size_t n, void *buf)
-{
-    (void) inst;
-    (void) n;
-    (void) buf;
-    return 0;
-}
-
-static int hw_mock_write        (int inst, size_t n, const void *buf)
-{
-    (void) inst;
-    (void) n;
-    (void) buf;
-    return 0;
-}
-
-static int hw_mock_read_sync    (int inst, size_t n, void *buf)
-{
-    (void) inst;
-    (void) n;
-    (void) buf;
-    return 0;
-}
-
-static int hw_mock_write_sync   (int inst, size_t n, const void *buf)
-{
-    (void) inst;
-    (void) n;
-    (void) buf;
-    return 0;
-}
-
-// Todo: need a suitable name
-static int hw_mock_io_cached (int inst, size_t *in, size_t *out)
-{
-    (void) inst;
-    (void) in;
-    (void) out;
-    return 0;
-}
-
-static hw_driver_t mock_driver = {
-    .release = hw_mock_release,
-    .reset   = hw_mock_reset,
-    .setup   = hw_mock_setup,
-
-    .query   = hw_mock_query,
-
-    .sync    = hw_mock_sync, // deprecate
-    .poll    = hw_mock_poll, // deprecate
-
-    .get     = hw_mock_get,  // deprecate
-    .set     = hw_mock_set,  // deprecate
-    .size    = hw_mock_size, // deprecate
-
-    .read_req = hw_mock_read_req,   // deprecate
-    .read     = hw_mock_read,       // deprecate
-    .write    = hw_mock_write,      // deprecate
-    .read_sync     = hw_mock_read_sync, // deprecate
-    .write_sync    = hw_mock_write_sync,// deprecate
-    .io_cached     = hw_mock_io_cached, // deprecate
-};
 
 void hw_mock_init(size_t mem_size)
 {
@@ -211,6 +57,25 @@ void hw_mock_deinit(void)
     }
 }
 
+int hw_mock_timer_curr_id(void)
+{
+    return mock_timer_curr_id;
+}
+
+void hw_mock_timer_duration_set(int us)
+{
+    mock_timer_curr_duration = us;
+}
+
+int hw_mock_timer_curr_state(void)
+{
+    return mock_timer_curr_state;
+}
+
+int hw_mock_timer_period(void)
+{
+    return mock_timer_curr_period;
+}
 void hw_enter_critical(uint32_t *state)
 {
     (void) state;
@@ -221,7 +86,7 @@ void hw_exit_critical(uint32_t state)
     (void) state;
 }
 
-void *hw_boot_memory_alloc(size_t size, size_t align)
+void *hw_memory_alloc(size_t size, size_t align)
 {
     size_t off = CUPKEE_SIZE_ALIGN(mock_memory_off, align);
 
@@ -234,7 +99,7 @@ void *hw_boot_memory_alloc(size_t size, size_t align)
     return mock_memory_base + off;
 }
 
-size_t hw_boot_memory_size(void)
+size_t hw_memory_size(void)
 {
     return mock_memory_size - mock_memory_off;
 }
@@ -242,7 +107,7 @@ size_t hw_boot_memory_size(void)
 void hw_setup(void)
 {}
 
-void _hw_reset(void)
+void hw_reset(void)
 {}
 
 void hw_poll(void)
@@ -297,56 +162,186 @@ const char *hw_storage_data_map(int bank)
     return NULL;
 }
 
-void hw_usb_msc_init(const char *vendor, const char *product, const char *version, uint32_t blocks,
-                     int (*read_cb)(uint32_t lba, uint8_t *),
-                     int (*write_cb)(uint32_t lba, const uint8_t *))
-{
-    (void) vendor;
-    (void) product;
-    (void) version;
-    (void) blocks;
-    (void) read_cb;
-    (void) write_cb;
-}
-
-/* DEBUG LED */
-int  hw_led_map(int port, int pin)
-{
-    (void) port;
-    (void) pin;
-    return 0;
-}
-
-void hw_led_set(void)
-{}
-
-void hw_led_clear(void)
-{}
-
-void hw_led_toggle(void)
-{}
-
 /* GPIO */
-int   hw_pin_map(int id, int port, int pin)
+#define GPIO_BANK_MAX 8
+#define GPIO_PORT_MAX 32
+static uint8_t  gpio_event_id[GPIO_BANK_MAX * GPIO_PORT_MAX];
+static uint32_t gpio_listen_rising[GPIO_BANK_MAX];
+static uint32_t gpio_listen_falling[GPIO_BANK_MAX];
+static uint32_t gpio_state[GPIO_BANK_MAX];
+static uint32_t gpio_value[GPIO_BANK_MAX];
+
+int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
 {
-    (void) id;
-    (void) port;
-    (void) pin;
+    (void) dir;
+
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_state[bank] |= 1 << port;
+
     return 0;
 }
 
-/* DEVICE */
-const hw_driver_t *hw_device_request(int type, int inst)
+int hw_gpio_disable(uint8_t bank, uint8_t port)
 {
-    mock_device_info.type = type;
-    mock_device_info.inst = inst;
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
 
-    return &mock_driver;
+    gpio_state[bank] &= ~(1 << port);
+
+    return 0;
 }
 
-int hw_device_instances(int type)
+static void gpio_changed(uint8_t bank, uint8_t port)
 {
-    (void) type;
-    return mock_device_instance_max;
+    uint16_t pin = gpio_event_id[bank * GPIO_PORT_MAX + port];
+
+    if ((gpio_value[bank] & (1 << port)) && (gpio_listen_rising[bank] & (1 << port))) {
+        cupkee_event_post_pin(pin, 1);
+    }
+    if (!(gpio_value[bank] & (1 << port)) && (gpio_listen_falling[bank] & (1 << port))) {
+        cupkee_event_post_pin(pin, 0);
+    }
+}
+
+int hw_gpio_get(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    return (gpio_value[bank] >> port) & 1;
+
+    return 0;
+}
+
+int hw_gpio_set(uint8_t bank, uint8_t port, int v)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (v) {
+        gpio_value[bank] |= (1 << port);
+    } else {
+        gpio_value[bank] &= ~(1 << port);
+    }
+
+    gpio_changed(bank, port);
+
+    return 0;
+}
+
+int hw_gpio_toggle(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_value[bank] ^= (1 << port);
+
+    gpio_changed(bank, port);
+
+    return 0;
+}
+
+int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t pin)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_event_id[bank * GPIO_PORT_MAX + port] = pin;
+
+    if (events & CUPKEE_EVENT_PIN_RISING) {
+        gpio_listen_rising[bank] |= 1 << port;
+    }
+
+    if (events & CUPKEE_EVENT_PIN_FALLING) {
+        gpio_listen_falling[bank] |= 1 << port;
+    }
+
+    gpio_value[bank] ^= (1 << port);
+
+    return 0;
+}
+
+int hw_gpio_ignore(uint8_t bank, uint8_t port)
+{
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_listen_rising[bank] &= ~(1 << port);
+    gpio_listen_falling[bank] &= ~(1 << port);
+
+    return 0;
+}
+
+/* TIMER */
+int hw_timer_alloc(void)
+{
+    return mock_timer_curr_inst;
+}
+
+void hw_timer_release(int inst)
+{
+    if (inst == mock_timer_curr_inst) {
+        mock_timer_curr_state = -1;
+    }
+}
+
+int hw_timer_start(int inst, int id, int us)
+{
+    mock_timer_curr_inst = inst;
+    mock_timer_curr_id   = id;
+    mock_timer_curr_period = us;
+
+    mock_timer_curr_state = 1;
+
+    return 0;
+}
+
+int hw_timer_stop(int inst)
+{
+    if (inst != mock_timer_curr_inst) {
+        printf("a Ha\n");
+        return -1;
+    }
+
+    mock_timer_curr_state = 0;
+    return 0;
+}
+
+int hw_timer_update(int inst, int us)
+{
+    if (inst != mock_timer_curr_inst) {
+        return -1;
+    }
+
+    if (us < 1) {
+        return -1;
+    }
+
+    mock_timer_curr_period = us;
+
+    return 0;
+}
+
+int hw_timer_duration_get(int inst)
+{
+    if (inst != mock_timer_curr_inst) {
+        return -1;
+    }
+
+    return mock_timer_curr_duration;
+}
+
+int hw_device_setup(void)
+{
+    return 0;
 }
 

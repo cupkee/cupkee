@@ -31,10 +31,12 @@ SOFTWARE.
 val_t native_sysinfos(env_t *env, int ac, val_t *av);
 val_t native_systicks(env_t *env, int ac, val_t *av);
 val_t native_print(env_t *env, int ac, val_t *av);
-val_t native_led_map(env_t *env, int ac, val_t *av);
-val_t native_pin_map(env_t *env, int ac, val_t *av);
-val_t native_led(env_t *env, int ac, val_t *av);
 val_t native_erase(env_t *env, int ac, val_t *av);
+
+val_t native_pin_enable(env_t *env, int ac, val_t *av);
+val_t native_pin_group(env_t *env, int ac, val_t *av);
+val_t native_pin(env_t *env, int ac, val_t *av);
+val_t native_pin_toggle(env_t *env, int ac, val_t *av);
 
 /* cupkee_module.c */
 val_t native_require(env_t *env, int ac, val_t *av);
@@ -46,7 +48,8 @@ val_t native_clear_timeout(env_t *env, int ac, val_t *av);
 val_t native_clear_interval(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_device.c */
-val_t native_device_create(env_t *env, int ac, val_t *av);
+val_t native_create_device(env_t *env, int ac, val_t *av);
+/*
 val_t native_device_destroy(env_t *env, int ac, val_t *av);
 val_t native_device_config(env_t *env, int ac, val_t *av);
 val_t native_device_is_enabled(env_t *env, int ac, val_t *av);
@@ -59,6 +62,10 @@ val_t native_device_write(env_t *env, int ac, val_t *av);
 val_t native_device_read (env_t *env, int ac, val_t *av);
 val_t native_device_listen(env_t *env, int ac, val_t *av);
 val_t native_device_ignore(env_t *env, int ac, val_t *av);
+*/
+
+/* cupkee_shell_timer.c */
+val_t native_create_timer(env_t *env, int ac, val_t *av);
 
 #endif /* __CUPKEE_NATIVE_INC__ */
 

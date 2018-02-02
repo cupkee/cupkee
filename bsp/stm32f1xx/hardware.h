@@ -35,9 +35,11 @@ SOFTWARE.
 #include <libopencm3/cm3/cortex.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/vector.h>
+#include <libopencm3/cm3/scb.h>
 #include <libopencm3/stm32/desig.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/spi.h>
@@ -50,29 +52,29 @@ SOFTWARE.
 
 #include <cupkee.h>
 
-#define SYS_PCLK   ((uint32_t)36000000)
-
+// HW const
 #define HW_FL_USED              1
 #define HW_FL_BUSY              2
+#define HW_FL_RXE               4
+#define HW_FL_TXE               8
 
-static inline int hw_use_instance(int instance, uint8_t *use_map) {
-    uint8_t bit = 1 << instance;
+// HW configure
+#define SYS_PCLK                ((uint32_t)36000000)
 
-    if (*use_map & bit) {
-        return 0;
-    } else {
-        *use_map |= bit;
-        return 1;
-    }
-}
+#define GPIO_BANK_MAX           7
+#define GPIO_BANK_MASK          7
 
-static inline void hw_release_instance(int instance, uint8_t *use_map) {
-    uint8_t bit = 1 << instance;
-    *use_map &= ~bit;
-}
+#define GPIO_PIN_MAX            16
+#define GPIO_PIN_MASK           15
+
+#define GPIO_MAP_MAX            32
+
+#define BOOT_PROBE_BANK         0  // GPIOA
+#define BOOT_PROBE_PIN          12 // GPIO12
+#define BOOT_PROBE_DEV          0  // Low
 
 #include "hw_usb.h"
-#include "hw_misc.h"
+#include "hw_storage.h"
 
 #include "hw_gpio.h"
 #include "hw_timer.h"
@@ -80,7 +82,6 @@ static inline void hw_release_instance(int instance, uint8_t *use_map) {
 #include "hw_adc.h"
 #include "hw_i2c.h"
 #include "hw_spi.h"
-
 
 #if 0
 #define _TRACE(fmt, ...)    printf(fmt, ##__VA_ARGS__)

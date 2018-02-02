@@ -24,43 +24,50 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "board.h"
+#ifndef __CUPKEE_TIMER_INC__
+#define __CUPKEE_TIMER_INC__
 
-#define USE_USB_CONSOLE
+typedef struct cupkee_timer_t {
+    uint8_t inst;
+    uint8_t state;
+    uint32_t period;
 
-int main(void)
+    cupkee_callback_t cb;
+    intptr_t          cb_param;
+} cupkee_timer_t;
+
+#define CUPKEE_TIMER_KEEP 0
+#define CUPKEE_TIMER_STOP (-1)
+
+enum {
+    CUPKEE_TIMER_STATE_IDLE = 0,
+    CUPKEE_TIMER_STATE_RUNNING,
+};
+
+int cupkee_timer_setup(void);
+int cupkee_timer_tag(void);
+
+cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
+int cupkee_timer_release(cupkee_timer_t *timer);
+int cupkee_timer_state(cupkee_timer_t *timer);
+
+int cupkee_timer_start(cupkee_timer_t *timer, int us);
+int cupkee_timer_stop(cupkee_timer_t *timer);
+int cupkee_timer_duration(cupkee_timer_t *timer);
+
+int cupkee_is_timer(void *entry);
+
+static inline intptr_t cupkee_timer_callback_param(void *timer) {
+    cupkee_timer_t *t = timer;
+
+    return t->cb_param;
+};
+
+// Should only be call in BSP
+static inline void cupkee_timer_rewind(int id)
 {
-    void *tty;
-
-    /**********************************************************
-     * Cupkee system initial
-     *********************************************************/
-    cupkee_init();
-
-#ifdef USE_USB_CONSOLE
-    tty = cupkee_device_request("usb-cdc", 0);
-#else
-    tty = cupkee_device_request("uart", 0);
-#endif
-    if (cupkee_device_enable(tty)) {
-        hw_halt();
-    }
-
-    cupkee_shell_init(tty, board_native_number(), board_native_entries());
-
-    /**********************************************************
-     * user setup code
-     *********************************************************/
-    board_setup();
-
-    /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    cupkee_shell_loop(board_initial_script());
-
-    /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    return 0;
+    cupkee_object_event_post(id, CUPKEE_EVENT_REWIND);
 }
+
+#endif /* __CUPKEE_TIMER_INC__ */
 

@@ -32,118 +32,91 @@ SOFTWARE.
 
 typedef struct cupkee_device_t cupkee_device_t;
 
-typedef void (*cupkee_callback_t)(void *hnd, int state, intptr_t param);
-
 typedef void (*cupkee_handle_t)(cupkee_device_t *, uint8_t event, intptr_t param);
+
+typedef struct cupkee_driver_t {
+    int (*request)(int inst);
+    int (*release)(int inst);
+    int (*setup)(int inst, void *entry);
+    int (*reset)(int inst);
+    int (*poll)(int inst);
+
+    int (*query)(int inst, int want);
+
+    int (*read )(int inst, size_t n, void *buf);
+    int (*write)(int inst, size_t n, const void *data);
+
+    int (*set)(int inst, int id, uint32_t v);
+    int (*get)(int inst, int id, uint32_t *v);
+} cupkee_driver_t;
 
 typedef struct cupkee_device_desc_t {
     const char *name;
-    uint16_t type;
-    uint8_t  category;
-    uint8_t  conf_num;
-    const char * const *conf_names;
-    void (*conf_init)(hw_config_t *);
+    uint8_t  inst_max;
+    cupkee_struct_t *(*conf_init)(void *curr);
+    const cupkee_driver_t *driver;
 } cupkee_device_desc_t;
 
 struct cupkee_device_t {
-    uint8_t id;
+    cupkee_device_t *next;
+
+    uint8_t instance;
+    uint8_t type;
     uint8_t flags;
     uint8_t error;
-    uint8_t instance;
 
-    hw_config_t config;
-
-    cupkee_handle_t handle;
-    intptr_t        handle_param;
-
-    intptr_t        query_param;       // Todo: rename
-    cupkee_callback_t reply_handle;    // Todo: rename and combine with handle
+    cupkee_callback_t handle;
+    intptr_t          handle_param;
 
     void             *req;
     void             *res;
 
-    const cupkee_device_desc_t *desc;
-    const hw_driver_t *driver;
+    const cupkee_driver_t *driver;
 
-    struct cupkee_device_t *next;
+    cupkee_struct_t  *conf;
+    cupkee_stream_t  *s;
 };
 
-int  cupkee_device_init(void);
-void cupkee_device_poll(void);
+int cupkee_device_setup(void);
+int cupkee_device_tag(void);
 void cupkee_device_sync(uint32_t systicks);
-void cupkee_device_event_handle(uint16_t which, uint8_t code);
+void cupkee_device_poll(void);
+int  cupkee_device_register(const cupkee_device_desc_t *desc);
 
-cupkee_device_t *cupkee_device_request(const char *name, int instance);
-cupkee_device_t *cupkee_device_request2(int type, int instance);
-int cupkee_device_release(cupkee_device_t *dev);
+void *cupkee_device_request(const char *name, int instance);
+void cupkee_device_release(void *entry);
+int  cupkee_is_device(void *entry);
 
-cupkee_device_t *cupkee_device_block(int id);
-hw_config_t     *cupkee_device_config(int id);
+int cupkee_device_handle_set(void *entry, cupkee_callback_t handle, intptr_t param);
+cupkee_callback_t cupkee_device_handle_fn(void *entry);
+intptr_t cupkee_device_handle_param(void *entry);
 
-int cupkee_device_id(cupkee_device_t *device);
-int cupkee_device_elem_id(cupkee_device_t *dev, int index);
-int cupkee_device_elem_index(intptr_t id, cupkee_device_t **pdev);
+cupkee_struct_t *cupkee_device_config(void *entry);
 
-int cupkee_device_reply_push(cupkee_device_t *dev, size_t n, void *data);
+int cupkee_device_enable(void *entry);
+int cupkee_device_disable(void *entry);
+int cupkee_device_is_enabled(void *entry);
 
-static inline int cupkee_device_is_enabled(cupkee_device_t *dev) {
-    return (dev && (dev->flags & DEVICE_FL_ENABLE));
+int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
+int cupkee_device_query2(void *entry, void *req, int want, cupkee_callback_t cb, intptr_t param);
+
+/* used by driver */
+void *cupkee_device_request_take(void *entry);
+void *cupkee_device_response_take(void *entry);
+
+int   cupkee_device_request_len(void *entry);
+void *cupkee_device_request_ptr(void *entry);
+int   cupkee_device_request_load(void *entry, size_t n, void *data);
+
+void cupkee_device_response_end(void *entry);
+int  cupkee_device_response_push(void *entry, size_t n, void *data);
+
+int cupkee_device_push(void *entry, size_t n, const void *data);
+int cupkee_device_pull(void *entry, size_t n, void *buf);
+
+static inline void cupkee_device_set_error(void *entry, uint8_t code) {
+    cupkee_object_error_set(CUPKEE_OBJECT_PTR(entry), code);
 }
-
-static inline void *cupkee_device_request_take(cupkee_device_t *dev)
-{
-    if (cupkee_device_is_enabled(dev)) {
-        void *req = dev->req;
-        dev->req = NULL;
-        return req;
-    } else {
-        return NULL;
-    }
-}
-
-static inline void *cupkee_device_response_take(cupkee_device_t *dev) {
-    if (cupkee_device_is_enabled(dev)) {
-        void *res = dev->res;
-
-        dev->res = NULL;
-        return res;
-    } else {
-        return NULL;
-    }
-}
-
-void cupkee_device_set_error(int id, uint8_t code);
-int cupkee_device_enable(cupkee_device_t *dev);
-int cupkee_device_disable(cupkee_device_t *dev);
-
-int cupkee_device_set(cupkee_device_t *dev, int prop, uint32_t data);
-int cupkee_device_get(cupkee_device_t *dev, int prop, uint32_t *data);
-
-int cupkee_device_received(cupkee_device_t *dev);
-int cupkee_device_recv(cupkee_device_t *dev, int n, void *buf);
-int cupkee_device_recv_sync(cupkee_device_t *dev, int n, void *buf);
-int cupkee_device_send(cupkee_device_t *dev, int n, const void *data);
-int cupkee_device_send_sync(cupkee_device_t *dev, int n, const void *data);
-
-int cupkee_device_read_req(cupkee_device_t *dev, size_t n);
-
-int cupkee_device_read(cupkee_device_t *dev, size_t n, void *buf);
-int cupkee_device_write(cupkee_device_t *dev, size_t n, const void *data);
-
-int cupkee_device_read_sync(cupkee_device_t *dev, size_t n, void *buf);
-int cupkee_device_write_sync(cupkee_device_t *dev, size_t n, const void *data);
-
-int cupkee_device_io_cached(cupkee_device_t *dev, size_t *in, size_t *out);
-
-// new api
-void *cupkee_device_request_ptr(cupkee_device_t *dev);
-int cupkee_device_request_load(cupkee_device_t *dev, size_t n, void *data);
-
-void cupkee_device_response_end(cupkee_device_t *dev);
-int cupkee_device_response_push(cupkee_device_t *dev, size_t n, void *data);
-
-int cupkee_device_query(cupkee_device_t *dev, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
-int cupkee_device_query2(cupkee_device_t *dev, void *req, int want, cupkee_callback_t cb, intptr_t param);
 
 #endif /* __CUPKEE_DEVICE_INC__ */
 

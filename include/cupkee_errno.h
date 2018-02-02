@@ -34,7 +34,7 @@ SOFTWARE.
 #define CUPKEE_ERROR            1       // error
 #define CUPKEE_EIMPLEMENT       2       // not implemented
 #define CUPKEE_EINVAL           3       // invalid argument
-#define CUPKEE_EFULL            4       // buffer is full
+#define CUPKEE_ELIMIT           4       // out of limit
 #define CUPKEE_EEMPTY           5       // buffer is empty
 #define CUPKEE_EOVERFLOW        6       // buffer is overflow
 #define CUPKEE_ERESOURCE        7       // not enought resource

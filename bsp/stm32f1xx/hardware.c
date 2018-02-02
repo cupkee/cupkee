@@ -26,8 +26,6 @@ SOFTWARE.
 
 #include "hardware.h"
 
-#define C_STACK_SIZE 8192
-
 extern char _etext;  // devined in ld scripts
 extern char end;     // defined in ld scripts
 
@@ -35,10 +33,12 @@ extern vector_table_t vector_table;
 void *hw_memory_bgn = NULL;
 void *hw_memory_end = NULL;
 
-static void hw_memory_init(void)
+static int8_t boot_state = HW_BOOT_STATE_PRODUCT;
+
+static void hw_setup_memory(void)
 {
     hw_memory_bgn = CUPKEE_ADDR_ALIGN(&end, 16);
-    hw_memory_end = (char *)(vector_table.initial_sp_value) - C_STACK_SIZE;
+    hw_memory_end = (char *)(vector_table.initial_sp_value) - SYSTEM_STACK_SIZE;
 }
 
 static void hw_setup_systick(void)
@@ -56,12 +56,12 @@ void sys_tick_handler(void)
     cupkee_event_post_systick();
 }
 
-size_t hw_boot_memory_size(void)
+size_t hw_memory_size(void)
 {
     return hw_memory_end - hw_memory_bgn;
 }
 
-void  *hw_boot_memory_alloc(size_t size, size_t align)
+void  *hw_memory_alloc(size_t size, size_t align)
 {
     void *memory_align;
     size_t left;
@@ -108,24 +108,51 @@ void hw_info_get(hw_info_t *info)
     }
 }
 
+static void hw_boot_mode_probe(void)
+{
+    if (0 == hw_gpio_enable(BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
+        boot_state = hw_gpio_get(BOOT_PROBE_BANK, BOOT_PROBE_PIN) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
+
+        hw_gpio_disable(BOOT_PROBE_BANK, BOOT_PROBE_PIN);
+    }
+}
+
 void hw_setup(void)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
-    hw_memory_init();
+    hw_setup_memory();
 
-    /* initial device resouce */
     hw_setup_gpio();
+
+    hw_boot_mode_probe();
+    if (boot_state == HW_BOOT_STATE_PRODUCT) {
+        rcc_periph_clock_enable(RCC_AFIO);
+
+        // Disable SW and JTAG
+        AFIO_MAPR = (AFIO_MAPR & ~AFIO_MAPR_SWJ_MASK) | AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_OFF;
+    }
+
+    hw_setup_timer();
+    hw_setup_storage();
+    hw_setup_systick();
+}
+
+void hw_reset(void)
+{
+    scb_reset_system();
+}
+
+int hw_device_setup(void)
+{
+    /* initial device resouce */
     hw_setup_usart();
     hw_setup_adc();
     hw_setup_i2c();
-    hw_setup_timer();
+    hw_setup_spi();
     hw_setup_usb();
 
-    /* initial resource system depend on */
-    hw_setup_storage();
-
-    hw_setup_systick();
+    return 0;
 }
 
 void hw_poll(void)
@@ -139,41 +166,7 @@ void hw_halt(void)
         ;
 }
 
-const hw_driver_t *hw_device_request(int type, int instance)
+int  hw_boot_state(void)
 {
-    switch (type) {
-    case DEVICE_TYPE_PIN:       return hw_request_pin(instance);
-    case DEVICE_TYPE_ADC:       return hw_request_adc(instance);
-    case DEVICE_TYPE_DAC:       return NULL;
-    case DEVICE_TYPE_PWM:       return hw_request_pwm(instance);
-    case DEVICE_TYPE_PULSE:     return hw_request_pulse(instance);
-    case DEVICE_TYPE_TIMER:     return hw_request_timer(instance);
-    case DEVICE_TYPE_COUNTER:   return hw_request_counter(instance);
-    case DEVICE_TYPE_UART:      return hw_request_uart(instance);
-    case DEVICE_TYPE_I2C:       return hw_request_i2c(instance);
-    case DEVICE_TYPE_SPI:       return hw_request_spi(instance);
-    case DEVICE_TYPE_USART:     return NULL;
-    case DEVICE_TYPE_USB_CDC:   return hw_request_cdc(instance);
-    default:                    return NULL;
-    }
+    return boot_state;
 }
-
-int hw_device_instances(int type)
-{
-    switch (type) {
-    case DEVICE_TYPE_PIN:       return HW_INSTANCES_PIN;
-    case DEVICE_TYPE_ADC:       return HW_INSTANCES_ADC;
-    case DEVICE_TYPE_DAC:       return 0;
-    case DEVICE_TYPE_PWM:       return HW_INSTANCES_PWM;
-    case DEVICE_TYPE_PULSE:     return HW_INSTANCES_PULSE;
-    case DEVICE_TYPE_TIMER:     return HW_INSTANCES_TIMER;
-    case DEVICE_TYPE_COUNTER:   return HW_INSTANCES_COUNTER;
-    case DEVICE_TYPE_UART:      return HW_INSTANCES_UART;
-    case DEVICE_TYPE_I2C:       return HW_INSTANCES_I2C;
-    case DEVICE_TYPE_SPI:       return HW_INSTANCES_SPI;
-    case DEVICE_TYPE_USART:     return 0;
-    case DEVICE_TYPE_USB_CDC:   return 1;
-    default:                    return 0;
-    }
-}
-

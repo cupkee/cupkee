@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2017, 2018 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __HW_SPI_INC__
-#define __HW_SPI_INC__
-
-void  hw_setup_spi(void);
-
-#endif /* __HW_SPI_INC__ */
+#include "cupkee.h"
 

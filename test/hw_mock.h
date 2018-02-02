@@ -36,5 +36,11 @@ size_t           mock_device_curr_want(void);
 int  hw_mock_device_curr_id(void);
 size_t hw_mock_device_curr_want(void);
 
+/* TIMER */
+int hw_mock_timer_curr_id(void);
+int hw_mock_timer_curr_state(void);
+int hw_mock_timer_period(void);
+void hw_mock_timer_duration_set(int us);
+
 #endif /* __HW_MOCK_INC__ */
 

@@ -138,7 +138,7 @@ static int zone_init(cupkee_zone_t *zone, intptr_t page_base, int page_num)
     return 0;
 }
 
-int cupkee_memory_init(void)
+int cupkee_memory_setup(void)
 {
     size_t mem_size;
     size_t zone_size;
@@ -156,8 +156,8 @@ int cupkee_memory_init(void)
     }
 
     /* boot zone init */
-    mem_size = hw_boot_memory_size();
-    mem_base = (intptr_t) hw_boot_memory_alloc(mem_size, 1);
+    mem_size = hw_memory_size();
+    mem_base = (intptr_t) hw_memory_alloc(mem_size, 1);
     if (!mem_base) {
         return -1;
     }

@@ -57,7 +57,6 @@ static void test_wakeup(void)
 {
     cupkee_timeout_t *t1, *t2;
 
-    cupkee_timeout_init();
     _cupkee_systicks = 0;
 
     v1[0] = 0; v1[1] = 0;
@@ -109,7 +108,6 @@ static void test_running(void)
 {
     cupkee_timeout_t *t1, *t2, *t3;
 
-    cupkee_timeout_init();
     _cupkee_systicks = 0;
 
     v1[0] = 0; v1[1] = 0;
@@ -170,7 +168,6 @@ static void test_self_clear(void)
 {
     cupkee_timeout_t *t1, *t2, *t3, *t4;
 
-    cupkee_timeout_init();
     _cupkee_systicks = 0;
 
     v1[0] = 0; v1[1] = 0;
@@ -219,7 +216,6 @@ static void test_timeout_clear(void)
 {
     cupkee_timeout_t *t1, *t2, *t3, *t4;
 
-    cupkee_timeout_init();
     _cupkee_systicks = 0;
 
     v1[0] = 0; v1[1] = 0;
