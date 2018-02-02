@@ -254,7 +254,6 @@ static int uart_write(int inst, size_t n, const void *data)
         const uint8_t *ptr = data;
         size_t i = 0;
 
-
         while (i < n) {
             while (!uart_not_busy(inst)) {
             }
