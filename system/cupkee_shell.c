@@ -206,10 +206,10 @@ static int shell_console_handle(int type, int ch)
     return CON_EXECUTE_DEF;
 }
 
-static void shell_console_init(void *tty)
+static void shell_console_init(void)
 {
     cupkee_history_init();
-    cupkee_console_init(tty, shell_console_handle);
+    cupkee_console_init(shell_console_handle);
 
     input_cached = 0;
     shell_logo_show = 0;
@@ -235,11 +235,11 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(void *tty, int n, const native_t *natives)
+int cupkee_shell_init(int n, const native_t *natives)
 {
     int heap_mem_sz, stack_mem_sz;
 
-    shell_console_init(tty);
+    shell_console_init();
 
     shell_memory_location(&heap_mem_sz, &stack_mem_sz);
 

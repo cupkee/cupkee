@@ -34,22 +34,23 @@ static char command_buf[COMMAND_BUF_SIZE];
 
 int main(void)
 {
-    void *tty;
+    void *stream;
 
     cupkee_init();
 
 
 #ifdef USE_USB_CONSOLE
-    tty = cupkee_device_request("usb-cdc", 0);
+    stream = cupkee_device_request("usb-cdc", 0);
 #else
-    tty = cupkee_device_request("uart", 0);
+    stream = cupkee_device_request("uart", 0);
 #endif
-    cupkee_device_enable(tty);
+    cupkee_device_enable(stream);
+    cupkee_sdmp_init(stream);
 
     cupkee_command_init(board_commands(), board_command_entries(),
                         COMMAND_BUF_SIZE, command_buf);
     cupkee_history_init();
-    cupkee_console_init(tty, cupkee_command_handle);
+    cupkee_console_init(cupkee_command_handle);
 
     /**********************************************************
      * app device create & setup
