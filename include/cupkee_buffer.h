@@ -29,14 +29,16 @@ SOFTWARE.
 
 void cupkee_buffer_init(void);
 
-void   *cupkee_buffer_alloc(size_t size);
-void   *cupkee_buffer_create(size_t n, const void *data);
-void   cupkee_buffer_release(void *b);
-void   cupkee_buffer_reset(void *b);
+void *cupkee_buffer_alloc(size_t size);
+void *cupkee_buffer_create(size_t n, const void *data);
+void cupkee_buffer_release(void *b);
+void cupkee_buffer_reset(void *b);
 
 size_t cupkee_buffer_capacity(void *b);
 size_t cupkee_buffer_space(void *b);
 size_t cupkee_buffer_length(void *b);
+
+int cupkee_buffer_extend(void *b, int n);
 
 int cupkee_buffer_is_empty(void *b);
 int cupkee_buffer_is_full(void *b);
@@ -51,10 +53,10 @@ int cupkee_buffer_shift(void *b, uint8_t *d);
 int cupkee_buffer_take(void *b, size_t n, void *buf);
 int cupkee_buffer_give(void *b, size_t n, const void *buf);
 
-void   *cupkee_buffer_slice(void *b, int start, int n);
-void   *cupkee_buffer_copy(void *b);
-void   *cupkee_buffer_sort(void *b);
-void   *cupkee_buffer_reverse(void *b);
+void *cupkee_buffer_slice(void *b, int start, int n);
+void *cupkee_buffer_copy(void *b);
+void *cupkee_buffer_sort(void *b);
+void *cupkee_buffer_reverse(void *b);
 
 //void   *cupkee_buffer_to_string(void *b);
 void *cupkee_buffer_ptr(void *buf);

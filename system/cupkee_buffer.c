@@ -107,6 +107,22 @@ size_t cupkee_buffer_length(void *p)
     return b->len;
 }
 
+int cupkee_buffer_extend(void *p, int n)
+{
+    cupkee_buffer_t *b = (cupkee_buffer_t *)p;
+
+    if (n > 0) {
+        if (b->len + n <= b->cap) {
+            b->len += n;
+        }
+    } else {
+        if (b->len >= -n) {
+            b->len = n + b->len;
+        }
+    }
+    return b->len;
+}
+
 int cupkee_buffer_push(void *p, uint8_t d)
 {
     cupkee_buffer_t *b = (cupkee_buffer_t *)p;

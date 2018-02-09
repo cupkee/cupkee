@@ -187,7 +187,7 @@ static int shell_console_handle(int type, int ch)
 
     if (!shell_logo_show) {
         shell_logo_show = 1;
-        console_puts_sync(logo);
+        //console_puts_sync(logo);
     }
 
     if (type == CON_CTRL_ENTER) {
@@ -282,7 +282,12 @@ int cupkee_shell_start(const char *initial)
 
 int cupkee_execute_string(const char *script, val_t **res)
 {
-    return interp_execute_stmts(&shell_env, script, res);
+    if (!res) {
+        val_t *p;
+        return interp_execute_stmts(&shell_env, script, &p);
+    } else {
+        return interp_execute_stmts(&shell_env, script, res);
+    }
 }
 
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)
