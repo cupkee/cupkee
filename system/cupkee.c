@@ -48,11 +48,16 @@ void cupkee_event_poll(void)
 
 void cupkee_init(void)
 {
+    hw_info_t info;
+
     /* Hardware startup */
-    hw_setup();
+    hw_setup(&info);
+
+    cupkee_storage_init(info.rom_sz / CUPKEE_SECTOR_SIZE);
 
     /* System setup */
     cupkee_memory_setup();
+
 
     cupkee_object_setup();
 

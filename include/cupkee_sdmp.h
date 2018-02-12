@@ -28,10 +28,14 @@ SOFTWARE.
 #define __CUPKEE_SDMP_INC__
 
 int cupkee_sdmp_init(void *stream);
-int cupkee_sdmp_send_text(size_t len, const char *text);
-int cupkee_sdmp_send_text_sync(size_t len, const char *text);
-int cupkee_sdmp_set_demux_text_handler(void (*handler)(int, const void *));
+int cupkee_sdmp_tty_write(size_t len, const char *text);
+int cupkee_sdmp_tty_write_sync(size_t len, const char *text);
+int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *));
 
+int cupkee_sdmp_update_state_trigger(int id);
+int cupkee_sdmp_update_state_boolean(int id, int v);
+int cupkee_sdmp_update_state_number(int id, double v);
+int cupkee_sdmp_update_state_string(int id, const char *s);
 
 #endif /* __CUPKEE_SDMP_INC__ */
 

@@ -253,28 +253,18 @@ int cupkee_shell_init(int n, const native_t *natives)
 
 int cupkee_shell_start(const char *initial)
 {
-    const char *cfg;
-    const char *app;
+    const char *app = cupkee_sysdisk_app();
 
     (void) initial;
 
-    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && (NULL != (cfg = cupkee_sysdisk_cfg_script()))) {
+    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && app) {
         val_t *res;
 
-        console_log(".\r\n");
-        if (0 > interp_execute_stmts(&shell_env, cfg, &res)) {
-            console_log("execute config scripts fail..\r\n");
+        if (0 > interp_execute_stmts(&shell_env, app, &res)) {
+            console_log("execute app scripts fail..\r\n");
             return -1;
         }
-        console_log("execute config scripts ok..\r\n");
-
-        if (NULL != (app = cupkee_sysdisk_app_script())) {
-            if (0 > interp_execute_stmts(&shell_env, app, &res)) {
-                console_log("execute app scripts fail..\r\n");
-                return -1;
-            }
-            console_log("execute app scripts ok..\r\n");
-        }
+        console_log("execute app scripts ok..\r\n");
     }
 
     return 0;

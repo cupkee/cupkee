@@ -27,6 +27,8 @@ SOFTWARE.
 #ifndef __CUPKEE_INC__
 #define __CUPKEE_INC__
 
+#include "cupkee_version.h"
+
 /* Todo: cupkee_config.h ? */
 // Device config
 #define CUPKEE_DEVICE_TYPE_MAX          16
@@ -55,6 +57,7 @@ void cupkee_event_poll(void);
 #include "cupkee_bsp.h"
 #include "cupkee_errno.h"
 #include "cupkee_utils.h"
+#include "cupkee_storage.h"
 #include "cupkee_memory.h"
 #include "cupkee_event.h"
 #include "cupkee_vector.h"

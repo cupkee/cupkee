@@ -54,8 +54,6 @@ int main(int argc, const char *argv[])
     test_sys_timer();
     test_sys_device();
 
-    test_sys_rcci();
-
     /***********************************************
      * Test running
      ***********************************************/

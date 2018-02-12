@@ -229,7 +229,7 @@ int cupkee_console_init(console_handle_t handle)
 
     user_handle = handle;
 
-    cupkee_sdmp_set_demux_text_handler(console_input_handle);
+    cupkee_sdmp_set_tty_handler(console_input_handle);
 
     return 0;
 }
@@ -365,7 +365,7 @@ int console_putc(int c)
 {
     char ch = c;
 
-    return cupkee_sdmp_send_text(1, &ch);
+    return cupkee_sdmp_tty_write(1, &ch);
 }
 
 int console_puts(const char *s)
@@ -373,7 +373,7 @@ int console_puts(const char *s)
     const char *p = s;
     int len = strlen(s);
 
-    return cupkee_sdmp_send_text(len, p);
+    return cupkee_sdmp_tty_write(len, p);
 }
 
 int console_log(const char *fmt, ...)
@@ -399,7 +399,7 @@ int console_puts_sync(const char *s)
 {
     int len = strlen(s);
 
-    return cupkee_sdmp_send_text_sync(len, s);
+    return cupkee_sdmp_tty_write_sync(len, s);
 }
 
 int console_log_sync(const char *fmt, ...)
@@ -416,7 +416,7 @@ int console_log_sync(const char *fmt, ...)
 
     if (n > 0) {
         buf[n] = 0;
-        return cupkee_sdmp_send_text_sync(n, buf);
+        return cupkee_sdmp_tty_write_sync(n, buf);
     } else {
         return n;
     }

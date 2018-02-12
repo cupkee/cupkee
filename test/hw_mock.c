@@ -26,6 +26,10 @@ SOFTWARE.
 
 #include "test.h"
 
+#define FLASH_SIZE  (1024 * 256)
+
+static uint8_t  mock_flash_base[FLASH_SIZE];
+static size_t   mock_flash_size = FLASH_SIZE;
 static uint8_t *mock_memory_base = NULL;
 static size_t   mock_memory_size = 0;
 static size_t   mock_memory_off  = 0;
@@ -34,7 +38,6 @@ static int mock_timer_curr_id   = -1;
 static int mock_timer_curr_period = -1;
 static int mock_timer_curr_duration = -1;
 static int mock_timer_curr_state = -1;  // 0: stop, 1: start, -1: noused
-
 
 void hw_mock_init(size_t mem_size)
 {
@@ -104,8 +107,15 @@ size_t hw_memory_size(void)
     return mock_memory_size - mock_memory_off;
 }
 
-void hw_setup(void)
-{}
+int hw_boot_state(void)
+{
+    return HW_BOOT_STATE_PRODUCT;
+}
+
+void hw_setup(hw_info_t *info)
+{
+    hw_info_get(info);
+}
 
 void hw_reset(void)
 {}
@@ -118,7 +128,11 @@ void hw_halt(void)
 
 void hw_info_get(hw_info_t *info)
 {
-    (void) info;
+    info->ram_base = mock_memory_base;
+    info->rom_base = mock_flash_base;
+
+    info->ram_sz = mock_memory_size;
+    info->rom_sz = mock_flash_size;
 }
 
 uint32_t hw_storage_size(int bank)

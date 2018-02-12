@@ -32,9 +32,13 @@ SOFTWARE.
 #include <string.h>
 #include <stdint.h>
 
-/* Todo: cupkee_def.h ? */
 #define CUPKEE_TRUE                     1
 #define CUPKEE_FALSE                    0
+
+#define CUPKEE_UID_SIZE                 24
+
+#define CUPKEE_BLOCK_SIZE               128
+#define CUPKEE_SECTOR_SIZE              (CUPKEE_BLOCK_SIZE * 64)
 
 #define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
 #define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))

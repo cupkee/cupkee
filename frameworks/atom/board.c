@@ -34,6 +34,7 @@ static const native_t native_entries[] = {
     {"sysinfos",        native_sysinfos},
     {"systicks",        native_systicks},
     {"require",         native_require},
+    {"report",          native_report},
     {"print",           native_print},
     {"pinEnable",       native_pin_enable},
     {"pinGroup",        native_pin_group},
