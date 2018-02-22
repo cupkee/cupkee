@@ -89,6 +89,7 @@ int cupkee_storage_sector_erase(uint32_t sector_start, uint32_t n)
     uint32_t base = hw_storage_base() + sector_start * CUPKEE_SECTOR_SIZE;
     uint32_t size = n * CUPKEE_SECTOR_SIZE;
 
+    //console_log("erase sector: %x, %x\r\n", base, size);
     return hw_storage_erase(base, size);
 }
 
@@ -98,6 +99,7 @@ int cupkee_storage_block_write(uint32_t sector, uint32_t block, const uint8_t *d
 
     base += block * CUPKEE_BLOCK_SIZE;
 
+    //console_log("write sector: %x, %x\r\n", base, CUPKEE_BLOCK_SIZE);
     return hw_storage_program(base, CUPKEE_BLOCK_SIZE, data);
 }
 

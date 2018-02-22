@@ -75,7 +75,6 @@ enum sdmp_message_code_e {
     SDMP_REQ_APP_STATE,
     SDMP_REQ_APP_QUERY_DATA,
     SDMP_REQ_APP_WRITE_DATA,
-    SDMP_REQ_APP_FN,
 
     SDMP_RESPONSE = 0x80,
     SDMP_REPORT   = 0x81,
@@ -230,27 +229,12 @@ static void sdmp_hello(void)
     }
 }
 
-static void cupkee_sysinfo_get(uint8_t *info_buf)
-{
-    // cupkee version info
-    info_buf[0] = CUPKEE_MAJOR;
-    info_buf[1] = CUPKEE_MINOR;
-    info_buf[2] = (CUPKEE_REVISION >> 8);
-    info_buf[3] = (CUPKEE_REVISION & 0xFF);
-
-    // OS ID
-    memset(info_buf + 4, 0, CUPKEE_UID_SIZE);  // OS ID
-
-    // Device ID
-    memset(info_buf + 4 + CUPKEE_UID_SIZE, 0, CUPKEE_UID_SIZE); // device ID
-}
-
 static void sdmp_query_sysinfo(void)
 {
     sdmp_message_t msg;
     int len;
 
-    if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 2 + 52, 0)) > 0) {
+    if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 2 + CUPKEE_INFO_SIZE, 0)) > 0) {
         msg.param[0] = SDMP_REQ_QUERY_SYSINFO;
         msg.param[1] = SDMP_OK;
 
@@ -294,29 +278,25 @@ static void sdmp_query_sysdata(uint16_t req_len, uint8_t *req)
 static void sdmp_erase_sysdata(uint16_t req_len, uint8_t *req)
 {
     sdmp_message_t msg;
-    uint8_t sect_start;
-    uint16_t sect_num;
     int len;
 
-    if (req_len < 3) {
-        sdmp_response_status(SDMP_REQ_ERASE_SYSDATA, SDMP_InvalidParam);
-        return;
-    }
+    if (req_len >= 3 && (len = sdmp_message_init(&msg, SDMP_RESPONSE, 4, 0)) > 0) {
+        uint8_t sect_start = req[1];
+        uint16_t sect_num  = req[2] + 1;
 
-    sect_start = req[1];
-    sect_num   = req[2] + 1;
-
-    if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 4, 0)) > 0) {
-        msg.param[0] = SDMP_REQ_QUERY_SYSDATA;
-        msg.param[1] = SDMP_OK;
+        msg.param[0] = SDMP_REQ_ERASE_SYSDATA;
         msg.param[2] = sect_start;
         msg.param[3] = sect_num - 1;
 
-        if (0 != cupkee_storage_sector_erase(sect_num, sect_num)) {
+        if (0 != cupkee_storage_sector_erase(sect_start, sect_num)) {
             msg.param[1] = SDMP_Unwriteable;
+        } else {
+            msg.param[1] = SDMP_OK;
         }
 
         sdmp_message_send(len);
+    } else {
+        sdmp_response_status(SDMP_REQ_ERASE_SYSDATA, SDMP_InvalidParam);
     }
 }
 
@@ -339,12 +319,12 @@ static void sdmp_write_sysdata(uint16_t req_len, uint8_t *req)
     data = req + 5;
 
     if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 4, 0)) > 0) {
-        msg.param[0] = SDMP_REQ_QUERY_SYSDATA;
+        msg.param[0] = SDMP_REQ_WRITE_SYSDATA;
         msg.param[1] = SDMP_OK;
         msg.param[2] = sector;
         msg.param[3] = block;
 
-        if (0 != cupkee_storage_block_write(sector, block, data)) {
+        if (0 > cupkee_storage_block_write(sector, block, data)) {
             msg.param[1] = SDMP_Unwriteable;
         }
 
@@ -438,13 +418,6 @@ static void sdmp_app_state(uint16_t req_len, uint8_t *req)
     sdmp_response_status(req[0], SDMP_NotImplemented);
 }
 
-static void sdmp_execute_function(uint16_t req_len, uint8_t *req)
-{
-    (void) req_len;
-
-    sdmp_response_status(req[0], SDMP_NotImplemented);
-}
-
 static void sdmp_query_appdata(uint16_t req_len, uint8_t *req)
 {
     (void) req_len;
@@ -476,7 +449,6 @@ static void sdmp_request_handler(uint16_t len, uint8_t *req)
 
     case SDMP_REQ_APP_INTERFACE:    sdmp_app_interface(len, req); break;
     case SDMP_REQ_APP_STATE:        sdmp_app_state(len, req); break;
-    case SDMP_REQ_APP_FN:           sdmp_execute_function(len, req); break;
     case SDMP_REQ_APP_QUERY_DATA:   sdmp_query_appdata(len, req); break;
     case SDMP_REQ_APP_WRITE_DATA:   sdmp_write_appdata(len, req); break;
     default: sdmp_response_status(code, SDMP_InvalidReq);

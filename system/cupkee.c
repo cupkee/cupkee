@@ -46,6 +46,39 @@ void cupkee_event_poll(void)
     }
 }
 
+static const char *board_default_id(void)
+{
+    return NULL;
+}
+
+const char *board_id(void) __attribute__ ((weak, alias("board_default_id")));
+
+void cupkee_sysinfo_get(uint8_t *info_buf)
+{
+    const char *bid;
+
+    // cupkee version info
+    info_buf[0] = CUPKEE_MAJOR;
+    info_buf[1] = CUPKEE_MINOR;
+    info_buf[2] = (CUPKEE_REVISION >> 8);
+    info_buf[3] = (CUPKEE_REVISION & 0xFF);
+
+    // Device ID
+    info_buf[4] = 0x80;
+    info_buf[5] = 0x00;
+    info_buf[6] = 0x00;
+    info_buf[7] = 0x00;
+    hw_cuid_get(info_buf + 8);
+
+    // OS ID
+    bid = board_id();
+    if (bid) {
+        memcpy(info_buf + CUPKEE_VER_SIZE + CUPKEE_UID_SIZE, bid, CUPKEE_UID_SIZE);
+    } else {
+        memset(info_buf + CUPKEE_VER_SIZE + CUPKEE_UID_SIZE, 0, CUPKEE_UID_SIZE);
+    }
+}
+
 void cupkee_init(void)
 {
     hw_info_t info;

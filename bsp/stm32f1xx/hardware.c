@@ -96,16 +96,23 @@ void hw_exit_critical(uint32_t state)
     cm_mask_interrupts(state);
 }
 
+void hw_cuid_get(uint8_t *cuid)
+{
+    uint32_t buf[3];
+
+    desig_get_unique_id(buf);
+    memset(cuid, 0, 20);
+    memcpy(cuid, buf, 12);
+}
+
 void hw_info_get(hw_info_t *info)
 {
-    if (info) {
-        info->sys_freq = 72000000;
-        info->ram_sz = (char *)(vector_table.initial_sp_value) - (char *)0x20000000;
-        info->rom_sz = desig_get_flash_size() * 1024;
-        //info->rom_sz = &_etext - (char *)0x8000000;
-        info->ram_base = (void *)0x20000000;
-        info->rom_base = (void *)0x08000000;
-    }
+    info->sys_freq = 72000000;
+    info->ram_sz = (char *)(vector_table.initial_sp_value) - (char *)0x20000000;
+    info->rom_sz = desig_get_flash_size() * 1024;
+    //info->rom_sz = &_etext - (char *)0x8000000;
+    info->ram_base = (void *)0x20000000;
+    info->rom_base = (void *)0x08000000;
 }
 
 static void hw_boot_mode_probe(void)
