@@ -41,13 +41,6 @@ enum sdmp_demux_state_e {
     DEMUX_MSG_BODY,
 };
 
-enum sdmp_state_type_e {
-    STATE_TYPE_TRIGGER = 0,
-    STATE_TYPE_BOOLEAN,
-    STATE_TYPE_NUMBER,
-    STATE_TYPE_STRING
-};
-
 enum sdmp_response_code_e {
     SDMP_OK = 0,
     SDMP_CONT,
@@ -64,7 +57,7 @@ enum sdmp_response_code_e {
 
 enum sdmp_message_code_e {
     SDMP_REQ_HELLO = 0x00,
-    SDMP_REQ_RESET,
+    SDMP_REQ_EXECUTE_FUNC,
     SDMP_REQ_QUERY_SYSINFO,
     SDMP_REQ_QUERY_SYSDATA,
     SDMP_REQ_ERASE_SYSDATA,
@@ -275,6 +268,46 @@ static void sdmp_query_sysdata(uint16_t req_len, uint8_t *req)
     }
 }
 
+static uint8_t sdmp_function_handler(uint8_t func_id, cupkee_data_entry_t *entry)
+{
+    if (func_id == 0x80) {
+        cupkee_data_t av;
+
+        if (CUPKEE_DATA_NUMBER == cupkee_data_shift(entry, &av)) {
+            hw_reset(av.number);
+        } else {
+            hw_reset(HW_RESET_NORMAL);
+        }
+        return 0; // Make gcc happy
+    } else
+    if (func_id < 0x10){
+        return SDMP_NotImplemented;
+    } else {
+        return SDMP_InvalidParam;
+    }
+}
+
+static void sdmp_execute_func(uint16_t req_len, uint8_t *req)
+{
+    sdmp_message_t msg;
+    int len;
+
+    if (req_len >= 2 && (len = sdmp_message_init(&msg, SDMP_RESPONSE, 3, 0)) > 0) {
+        cupkee_data_entry_t entry;
+        uint8_t func_id = req[1];
+
+        cupkee_data_init(&entry, req_len - 2, req + 2);
+
+        msg.param[0] = SDMP_REQ_EXECUTE_FUNC;
+        msg.param[2] = sdmp_function_handler(func_id, &entry);
+        msg.param[2] = func_id;
+
+        sdmp_message_send(len);
+    } else {
+        sdmp_response_status(SDMP_REQ_EXECUTE_FUNC, SDMP_InvalidParam);
+    }
+}
+
 static void sdmp_erase_sysdata(uint16_t req_len, uint8_t *req)
 {
     sdmp_message_t msg;
@@ -440,7 +473,7 @@ static void sdmp_request_handler(uint16_t len, uint8_t *req)
 
     switch(code) {
     case SDMP_REQ_HELLO:            sdmp_hello(); break;
-    case SDMP_REQ_RESET:            hw_reset(); break;
+    case SDMP_REQ_EXECUTE_FUNC:     sdmp_execute_func(len, req); break;
     case SDMP_REQ_QUERY_SYSINFO:    sdmp_query_sysinfo(); break;
     case SDMP_REQ_QUERY_SYSDATA:    sdmp_query_sysdata(len, req); break;
     case SDMP_REQ_ERASE_SYSDATA:    sdmp_erase_sysdata(len, req); break;
@@ -596,7 +629,7 @@ int cupkee_sdmp_update_state_trigger(int id)
 
     if ((len = sdmp_message_init(&msg, SDMP_REPORT, 2, 0))) {
         msg.param[0] = id;
-        msg.param[1] = STATE_TYPE_TRIGGER;
+        msg.param[1] = CUPKEE_DATA_NONE;
 
         sdmp_message_send(len);
         return 0;
@@ -612,7 +645,7 @@ int cupkee_sdmp_update_state_boolean(int id, int v)
 
     if ((len = sdmp_message_init(&msg, SDMP_REPORT, 2, 1))) {
         msg.param[0] = id;
-        msg.param[1] = STATE_TYPE_BOOLEAN;
+        msg.param[1] = CUPKEE_DATA_BOOLEAN;
         msg.data[0] = v != 0;
 
         sdmp_message_send(len);
@@ -634,7 +667,7 @@ int cupkee_sdmp_update_state_number(int id, double v)
         } *x = (void *)&v;
 
         msg.param[0] = id;
-        msg.param[1] = STATE_TYPE_NUMBER;
+        msg.param[1] = CUPKEE_DATA_NUMBER;
 
         msg.data[0] = (uint8_t) (x->u >> 56);
         msg.data[1] = (uint8_t) (x->u >> 48);
@@ -660,7 +693,7 @@ int cupkee_sdmp_update_state_string(int id, const char *s)
 
     if ((len = sdmp_message_init(&msg, SDMP_REPORT, 2, data_len))) {
         msg.param[0] = id;
-        msg.param[1] = STATE_TYPE_STRING;
+        msg.param[1] = CUPKEE_DATA_STRING;
 
         memcpy(msg.data, s, data_len);
 

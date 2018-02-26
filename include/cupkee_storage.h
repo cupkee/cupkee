@@ -25,7 +25,7 @@ typedef struct cupkee_storage_info_t {
 
 int cupkee_storage_init(uint32_t sector_num);
 
-uint32_t cupkee_storage_base(int bank_id);
+intptr_t cupkee_storage_base(int bank_id);
 uint32_t cupkee_storage_size(int bank_id);
 int cupkee_storage_erase(uint32_t bank_id);
 int cupkee_storage_query(int bank_id, cupkee_storage_info_t *info);

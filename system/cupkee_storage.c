@@ -29,7 +29,7 @@ int cupkee_storage_init(uint32_t sectors)
     return 0;
 }
 
-uint32_t cupkee_storage_base(int bank_id)
+intptr_t cupkee_storage_base(int bank_id)
 {
     if (bank_id < CUPKEE_STORAGE_BANK_MAX) {
         return hw_storage_base() + sector_bgn[bank_id] * CUPKEE_SECTOR_SIZE;
@@ -66,7 +66,7 @@ int cupkee_storage_query(int bank_id, cupkee_storage_info_t *info)
 int cupkee_storage_erase(uint32_t bank_id)
 {
     if (bank_id < CUPKEE_STORAGE_BANK_MAX) {
-        uint32_t base = hw_storage_base() + sector_bgn[bank_id] * CUPKEE_SECTOR_SIZE;
+        intptr_t base = hw_storage_base() + sector_bgn[bank_id] * CUPKEE_SECTOR_SIZE;
         uint32_t size = sector_num[bank_id] * CUPKEE_SECTOR_SIZE;
 
         return hw_storage_erase(base, size);
@@ -77,7 +77,7 @@ int cupkee_storage_erase(uint32_t bank_id)
 int cupkee_storage_write(uint32_t bank_id, uint32_t offset, uint32_t size, const uint8_t *data)
 {
     if (bank_id < CUPKEE_STORAGE_BANK_MAX) {
-        uint32_t base = cupkee_storage_base(bank_id) + offset;
+        intptr_t base = cupkee_storage_base(bank_id) + offset;
 
         return hw_storage_program(base, size, data);
     }
@@ -86,7 +86,7 @@ int cupkee_storage_write(uint32_t bank_id, uint32_t offset, uint32_t size, const
 
 int cupkee_storage_sector_erase(uint32_t sector_start, uint32_t n)
 {
-    uint32_t base = hw_storage_base() + sector_start * CUPKEE_SECTOR_SIZE;
+    intptr_t base = hw_storage_base() + sector_start * CUPKEE_SECTOR_SIZE;
     uint32_t size = n * CUPKEE_SECTOR_SIZE;
 
     //console_log("erase sector: %x, %x\r\n", base, size);
@@ -95,7 +95,7 @@ int cupkee_storage_sector_erase(uint32_t sector_start, uint32_t n)
 
 int cupkee_storage_block_write(uint32_t sector, uint32_t block, const uint8_t *data)
 {
-    uint32_t base = hw_storage_base() + sector * CUPKEE_SECTOR_SIZE;
+    intptr_t base = hw_storage_base() + sector * CUPKEE_SECTOR_SIZE;
 
     base += block * CUPKEE_BLOCK_SIZE;
 
@@ -106,7 +106,7 @@ int cupkee_storage_block_write(uint32_t sector, uint32_t block, const uint8_t *d
 int cupkee_storage_block_read(uint32_t sector, uint32_t block, uint8_t *buf)
 {
     if (sector < sector_total_num) {
-        uint32_t base = hw_storage_base() + sector * CUPKEE_SECTOR_SIZE;
+        intptr_t base = hw_storage_base() + sector * CUPKEE_SECTOR_SIZE;
         const uint8_t *p = (const uint8_t *)base + block * CUPKEE_BLOCK_SIZE;
         memcpy(buf, p, CUPKEE_BLOCK_SIZE);
         return 0;
@@ -119,7 +119,7 @@ const void *cupkee_storage_sector_mmap(void *to, uint32_t sector_start, uint32_t
 {
     (void) to;
     if (sector_start + n <= sector_total_num) {
-        uint32_t base = hw_storage_base() + sector_start * CUPKEE_SECTOR_SIZE;
+        intptr_t base = hw_storage_base() + sector_start * CUPKEE_SECTOR_SIZE;
 
         return (const void *)base;
     } else {

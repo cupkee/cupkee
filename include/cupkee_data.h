@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2018 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,44 +24,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "test.h"
+#ifndef __CUPKEE_DATA_INC__
+#define __CUPKEE_DATA_INC__
 
-int TU_pre_init(void)
-{
-    hw_mock_init(1024 * 32); // 32K Ram
+enum cupkee_data_type_e {
+    CUPKEE_DATA_NONE = 0,
+    CUPKEE_DATA_BOOLEAN,
+    CUPKEE_DATA_NUMBER,
+    CUPKEE_DATA_STRING
+};
 
-    cupkee_init(NULL);
+typedef struct cupkee_data_entry_t  {
+    uint8_t end;
+    uint8_t pos;
+    uint8_t *data;
+} cupkee_data_entry_t;
 
-    cupkee_start();
+typedef union cupkee_data_t {
+    int    boolean;
+    double number;
+    const char  *string;
+} cupkee_data_t;
 
-    return 0;
-}
+static inline void cupkee_data_init(cupkee_data_entry_t *entry, uint8_t size, uint8_t *data) {
+    entry->end = size;
+    entry->pos = 0;
+    entry->data = data;
+};
 
-int TU_pre_deinit(void)
-{
-    hw_mock_deinit();
-    return 0;
-}
+int cupkee_data_shift(cupkee_data_entry_t *entry, cupkee_data_t *av);
 
-int TU_object_event_dispatch(void)
-{
-    cupkee_event_t e;
-    if (cupkee_event_take(&e) && e.type == EVENT_OBJECT) {
-        cupkee_object_event_dispatch(e.which, e.code);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-int TU_pin_event_dispatch(void)
-{
-    cupkee_event_t e;
-    if (cupkee_event_take(&e) && e.type == EVENT_PIN) {
-        cupkee_pin_event_dispatch(e.which, e.code);
-        return 1;
-    } else {
-        return 0;
-    }
-}
+#endif /* __CUPKEE_DATA_INC__ */
 

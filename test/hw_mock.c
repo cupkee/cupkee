@@ -117,8 +117,10 @@ void hw_setup(hw_info_t *info)
     hw_info_get(info);
 }
 
-void hw_reset(void)
-{}
+void hw_reset(int mode)
+{
+    (void) mode;
+}
 
 void hw_poll(void)
 {}
@@ -135,46 +137,32 @@ void hw_info_get(hw_info_t *info)
     info->rom_sz = mock_flash_size;
 }
 
-uint32_t hw_storage_size(int bank)
+void hw_cuid_get(uint8_t *cuid)
 {
-    (void) bank;
-    return 0;
+    memset(cuid, 0, CUPKEE_UID_SIZE);
 }
 
-int hw_storage_erase (int bank)
+intptr_t hw_storage_base(void)
 {
-    (void) bank;
+    return mock_flash_base;
+}
+
+int hw_storage_erase(uint32_t base, uint32_t size)
+{
+    (void) base;
+    (void) size;
     return -1;
 }
 
-int hw_storage_update(int bank, uint32_t offset, const uint8_t *data, int len)
+int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data)
 {
-    (void) bank;
-    (void) offset;
-    (void) data;
+    (void) base;
     (void) len;
+    (void) data;
 
     return -1;
 }
 
-int hw_storage_finish(int bank, uint32_t end)
-{
-    (void) bank;
-    (void) end;
-    return -1;
-}
-
-uint32_t hw_storage_data_length(int bank)
-{
-    (void) bank;
-    return 0;
-}
-
-const char *hw_storage_data_map(int bank)
-{
-    (void) bank;
-    return NULL;
-}
 
 /* GPIO */
 #define GPIO_BANK_MAX 8
@@ -322,7 +310,6 @@ int hw_timer_start(int inst, int id, int us)
 int hw_timer_stop(int inst)
 {
     if (inst != mock_timer_curr_inst) {
-        printf("a Ha\n");
         return -1;
     }
 

@@ -468,6 +468,8 @@ static void test_event(void)
     cupkee_listen(dev, CUPKEE_EVENT_DATA);
     cupkee_listen(dev, CUPKEE_EVENT_DRAIN);
 
+    CU_ASSERT(0 == TU_object_event_dispatch());
+
     mock_arg_release();
     // trigger event: data
     data = 0;
@@ -482,6 +484,9 @@ static void test_event(void)
         data -= n;
     }
     CU_ASSERT(data == 0);
+
+    while (TU_object_event_dispatch())
+        ; /* clean event */
 
     mock_arg_release();
     // trigger event: data

@@ -43,6 +43,10 @@ SOFTWARE.
 #define HW_STORAGE_BANK_APP                 2
 #define HW_STORAGE_BANK_CFG                 3
 
+#define HW_RESET_NORMAL                     0
+#define HW_RESET_DEBUG                      1
+#define HW_RESET_UPGRADE                    2
+
 #define HW_BOOT_STATE_PRODUCT               0
 #define HW_BOOT_STATE_DEVEL                 1
 
@@ -64,7 +68,7 @@ typedef struct hw_info_t {
 /* hardware interface to implement                              */
 /****************************************************************/
 void hw_setup(hw_info_t *info);
-void hw_reset(void);
+void hw_reset(int mode);
 
 void hw_poll(void);
 void hw_halt(void);
@@ -81,7 +85,7 @@ void  *hw_memory_alloc(size_t size, size_t align);
 size_t hw_memory_size(void);
 
 /* STORAGE */
-uint32_t hw_storage_base(void);
+intptr_t hw_storage_base(void);
 int hw_storage_erase(uint32_t base, uint32_t size);
 int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data);
 

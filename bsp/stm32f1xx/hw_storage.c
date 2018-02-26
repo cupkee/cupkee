@@ -35,7 +35,7 @@ static inline uint32_t hw_storage_size(void)
     return desig_get_flash_size() * 1024;
 }
 
-uint32_t hw_storage_base(void)
+intptr_t hw_storage_base(void)
 {
     return FLASH_BASE;
 }

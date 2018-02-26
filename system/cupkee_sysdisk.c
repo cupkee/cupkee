@@ -249,7 +249,7 @@ static void sysdisk_write_parse(const uint8_t *info)
     }
 }
 
-static uint32_t sysdisk_app_scan(uint32_t base, uint32_t end)
+static uint32_t sysdisk_app_scan(intptr_t base, uint32_t end)
 {
     uint8_t *ptr = (uint8_t *) base;
     uint32_t i;
@@ -309,7 +309,7 @@ int cupkee_sysdisk_write(uint32_t lba, const uint8_t *copy_from)
 
 void cupkee_sysdisk_init(void)
 {
-    uint32_t base = cupkee_storage_base(CUPKEE_STORAGE_BANK_APP);
+    intptr_t base = cupkee_storage_base(CUPKEE_STORAGE_BANK_APP);
     uint32_t size = cupkee_storage_size(CUPKEE_STORAGE_BANK_APP);
 
     app_size = sysdisk_app_scan(base, size);

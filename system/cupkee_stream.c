@@ -192,7 +192,7 @@ int cupkee_stream_push(cupkee_stream_t *s, size_t n, const void *data)
 
     cnt = cupkee_buffer_give(cache, n, data);
     if (cnt > 0) {
-        if (cupkee_buffer_length(cache) > s->rx_buf_size / 2 && s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA) {
+        if (s->flags & CUPKEE_STREAM_FL_NOTIFY_DATA && cupkee_buffer_length(cache) > s->rx_buf_size / 2) {
             cupkee_object_event_post(s->id, CUPKEE_EVENT_DATA);
         }
         s->last_push = _cupkee_systicks;

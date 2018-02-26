@@ -50,6 +50,8 @@ SOFTWARE.
 #define CUPKEE_TRUE                     1
 #define CUPKEE_FALSE                    0
 
+#define CUPKEE_SYSDISK_SECTOR_COUNT		1024 * 32
+
 typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
 void cupkee_sysinfo_get(uint8_t *info_buf);

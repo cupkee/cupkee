@@ -33,7 +33,7 @@ int main(void)
     /**********************************************************
      * Cupkee system initial
      *********************************************************/
-    cupkee_init();
+    cupkee_init(board_id());
 
 #ifdef USE_USB_CONSOLE
     stream = cupkee_device_request("usb-cdc", 0);

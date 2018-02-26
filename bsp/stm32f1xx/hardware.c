@@ -147,8 +147,10 @@ void hw_setup(hw_info_t *info)
     hw_info_get(info);
 }
 
-void hw_reset(void)
+void hw_reset(int mode)
 {
+    (void) mode;
+
     scb_reset_system();
 }
 
