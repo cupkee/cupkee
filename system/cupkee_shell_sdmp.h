@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2017 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2018 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,22 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __CUPKEE_SDMP_INC__
-#define __CUPKEE_SDMP_INC__
+#ifndef __CUPKEE_SHELL_SDMP_INC__
+#define __CUPKEE_SHELL_SDMP_INC__
 
-int cupkee_sdmp_init(void *stream);
-int cupkee_sdmp_tty_write(size_t len, const char *text);
-int cupkee_sdmp_tty_write_sync(size_t len, const char *text);
+#include <cupkee.h>
 
-int cupkee_sdmp_set_interface_id(const char *id);
-int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *));
-int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args));
-int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags));
+void shell_sdmp_init(void);
 
-int cupkee_sdmp_update_state_trigger(int id);
-int cupkee_sdmp_update_state_boolean(int id, int v);
-int cupkee_sdmp_update_state_number(int id, double v);
-int cupkee_sdmp_update_state_string(int id, const char *s);
+#endif /* __CUPKEE_SHELL_SDMP_INC__ */
 
-#endif /* __CUPKEE_SDMP_INC__ */
 

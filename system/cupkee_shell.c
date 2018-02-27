@@ -26,7 +26,8 @@ SOFTWARE.
 
 #include <cupkee.h>
 
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
+#include "cupkee_shell_sdmp.h"
 #include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
 
@@ -240,6 +241,8 @@ int cupkee_shell_init(int n, const native_t *natives)
     int heap_mem_sz, stack_mem_sz;
 
     shell_console_init();
+
+    shell_sdmp_init();
 
     shell_memory_location(&heap_mem_sz, &stack_mem_sz);
 

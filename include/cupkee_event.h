@@ -30,7 +30,7 @@ SOFTWARE.
 enum CUPKEE_EVENT_TYPE {
     EVENT_SYSTICK = 0,
     EVENT_OBJECT  = 1,
-    EVENT_PIN     = 2,
+    EVENT_PIN     = 2
 };
 
 enum CUPKEE_EVENT_OBJECT {

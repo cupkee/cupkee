@@ -64,10 +64,10 @@ enum sdmp_message_code_e {
     SDMP_REQ_WRITE_SYSDATA,
     SDMP_REQ_EXECUTE_SCRIPT,
 
-    SDMP_REQ_APP_INTERFACE,
-    SDMP_REQ_APP_STATE,
-    SDMP_REQ_APP_QUERY_DATA,
-    SDMP_REQ_APP_WRITE_DATA,
+    SDMP_REQ_QUERY_INTERFACE,
+    SDMP_REQ_QUERY_APPSTATE,
+    SDMP_REQ_QUERY_APPDATA,
+    SDMP_REQ_WRITE_APPDATA,
 
     SDMP_RESPONSE = 0x80,
     SDMP_REPORT   = 0x81,
@@ -83,6 +83,7 @@ static uint8_t  sdmp_demux_state = 0;
 static uint16_t sdmp_request_len;
 static uint16_t sdmp_request_pos;
 static uint8_t  sdmp_request_buf[256];
+static uint8_t  sdmp_app_interface[CUPKEE_UID_SIZE];
 
 static uint16_t sdmp_message_pos = 0;
 static uint16_t sdmp_message_end = 0;
@@ -93,7 +94,9 @@ static void *   sdmp_mux_text_buf = NULL;
 static uint16_t sdmp_script_buf_size = 0;
 static char *   sdmp_script_buf = NULL;
 
-static void (*sdmp_demux_text_handler)(int, const void *) = NULL;
+static void (*sdmp_text_handler)(int, const void *) = NULL;
+static int (*sdmp_user_call_handler)(int, void *) = NULL;
+static int (*sdmp_user_query_handler)(uint16_t flags) = NULL;
 
 static int sdmp_request_filter(uint8_t);
 
@@ -106,15 +109,15 @@ static void sdmp_do_recv(void *tty)
     while (0 < cupkee_read(tty, 1, &byte)) {
         if (sdmp_request_filter(byte)) {
             buf[pos++] = byte;
-            if (pos >= 3 && sdmp_demux_text_handler) {
-                sdmp_demux_text_handler(pos, buf);
+            if (pos >= 3 && sdmp_text_handler) {
+                sdmp_text_handler(pos, buf);
                 pos = 0;
             }
         }
     }
 
-    if (pos && sdmp_demux_text_handler) {
-        sdmp_demux_text_handler(pos, buf);
+    if (pos && sdmp_text_handler) {
+        sdmp_text_handler(pos, buf);
     }
 }
 
@@ -194,6 +197,16 @@ static void sdmp_response_status(uint8_t req, uint8_t err)
     }
 }
 
+static inline void sdmp_script_buf_free(void)
+{
+    if (sdmp_script_buf) {
+        cupkee_free(sdmp_script_buf);
+        sdmp_script_buf = NULL;
+    }
+
+    sdmp_script_buf_size = 0;
+}
+
 static void sdmp_response_cont(uint8_t req, uint8_t next)
 {
     sdmp_message_t msg;
@@ -233,6 +246,8 @@ static void sdmp_query_sysinfo(void)
 
         cupkee_sysinfo_get(msg.param + 2);
         sdmp_message_send(len);
+    } else {
+        sdmp_response_status(SDMP_REQ_QUERY_SYSINFO, SDMP_MemNotEnought);
     }
 }
 
@@ -268,7 +283,16 @@ static void sdmp_query_sysdata(uint16_t req_len, uint8_t *req)
     }
 }
 
-static uint8_t sdmp_function_handler(uint8_t func_id, cupkee_data_entry_t *entry)
+static uint8_t sdmp_do_report_state(uint16_t flags)
+{
+    if (sdmp_user_query_handler) {
+        return sdmp_user_query_handler(flags) ? SDMP_ExecuteError : SDMP_OK;
+    } else {
+        return SDMP_NotImplemented;
+    }
+}
+
+static uint8_t sdmp_do_call(uint8_t func_id, cupkee_data_entry_t *entry)
 {
     if (func_id == 0x80) {
         cupkee_data_t av;
@@ -280,8 +304,12 @@ static uint8_t sdmp_function_handler(uint8_t func_id, cupkee_data_entry_t *entry
         }
         return 0; // Make gcc happy
     } else
-    if (func_id < 0x10){
-        return SDMP_NotImplemented;
+    if (func_id < 16){
+        if (sdmp_user_call_handler) {
+            return sdmp_user_call_handler(func_id, entry) ? SDMP_ExecuteError : SDMP_OK;
+        } else {
+            return SDMP_NotImplemented;
+        }
     } else {
         return SDMP_InvalidParam;
     }
@@ -293,13 +321,13 @@ static void sdmp_execute_func(uint16_t req_len, uint8_t *req)
     int len;
 
     if (req_len >= 2 && (len = sdmp_message_init(&msg, SDMP_RESPONSE, 3, 0)) > 0) {
-        cupkee_data_entry_t entry;
+        cupkee_data_entry_t args;
         uint8_t func_id = req[1];
 
-        cupkee_data_init(&entry, req_len - 2, req + 2);
+        cupkee_data_init(&args, req_len - 2, req + 2);
 
         msg.param[0] = SDMP_REQ_EXECUTE_FUNC;
-        msg.param[2] = sdmp_function_handler(func_id, &entry);
+        msg.param[2] = sdmp_do_call(func_id, &args);
         msg.param[2] = func_id;
 
         sdmp_message_send(len);
@@ -365,16 +393,6 @@ static void sdmp_write_sysdata(uint16_t req_len, uint8_t *req)
     }
 }
 
-static inline void sdmp_script_buf_free(void)
-{
-    if (sdmp_script_buf) {
-        cupkee_free(sdmp_script_buf);
-        sdmp_script_buf = NULL;
-    }
-
-    sdmp_script_buf_size = 0;
-}
-
 static void sdmp_execute_script(uint16_t req_len, uint8_t *req)
 {
     uint8_t *script;
@@ -437,18 +455,40 @@ DO_ERROR:
     sdmp_response_status(req[0], error);
 }
 
-static void sdmp_app_interface(uint16_t req_len, uint8_t *req)
+static void sdmp_query_interface(void)
 {
-    (void) req_len;
+    sdmp_message_t msg;
+    int len;
 
-    sdmp_response_status(req[0], SDMP_NotImplemented);
+    if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 2 + CUPKEE_UID_SIZE, 0)) > 0) {
+        char *ptr = (char *) msg.param + 2;
+
+        msg.param[0] = SDMP_REQ_QUERY_INTERFACE;
+        msg.param[1] = SDMP_OK;
+
+        memcpy(ptr, sdmp_app_interface, CUPKEE_UID_SIZE);
+
+        sdmp_message_send(len);
+    } else {
+        sdmp_response_status(SDMP_REQ_QUERY_INTERFACE, SDMP_MemNotEnought);
+    }
 }
 
-static void sdmp_app_state(uint16_t req_len, uint8_t *req)
+static void sdmp_query_appstate(uint16_t req_len, uint8_t *req)
 {
-    (void) req_len;
+    uint16_t pos = 1;
+    uint16_t flags = 0;
 
-    sdmp_response_status(req[0], SDMP_NotImplemented);
+    for (; pos < req_len; ++pos) {
+        if (req[pos] < 16) {
+            flags |= 1 << req[pos];
+        } else {
+            sdmp_response_status(SDMP_REQ_QUERY_APPSTATE, SDMP_InvalidParam);
+            return;
+        }
+    }
+
+    sdmp_response_status(SDMP_REQ_QUERY_APPSTATE, sdmp_do_report_state(flags));
 }
 
 static void sdmp_query_appdata(uint16_t req_len, uint8_t *req)
@@ -480,10 +520,10 @@ static void sdmp_request_handler(uint16_t len, uint8_t *req)
     case SDMP_REQ_WRITE_SYSDATA:    sdmp_write_sysdata(len, req); break;
     case SDMP_REQ_EXECUTE_SCRIPT:   sdmp_execute_script(len, req); break;
 
-    case SDMP_REQ_APP_INTERFACE:    sdmp_app_interface(len, req); break;
-    case SDMP_REQ_APP_STATE:        sdmp_app_state(len, req); break;
-    case SDMP_REQ_APP_QUERY_DATA:   sdmp_query_appdata(len, req); break;
-    case SDMP_REQ_APP_WRITE_DATA:   sdmp_write_appdata(len, req); break;
+    case SDMP_REQ_QUERY_INTERFACE:  sdmp_query_interface(); break;
+    case SDMP_REQ_QUERY_APPSTATE:   sdmp_query_appstate(len, req); break;
+    case SDMP_REQ_QUERY_APPDATA:    sdmp_query_appdata(len, req); break;
+    case SDMP_REQ_WRITE_APPDATA:    sdmp_write_appdata(len, req); break;
     default: sdmp_response_status(code, SDMP_InvalidReq);
     }
 }
@@ -562,7 +602,11 @@ int cupkee_sdmp_init(void *stream)
     sdmp_script_buf_size = 0;
     sdmp_script_buf = NULL;
 
-    sdmp_io_stream = stream;
+    memset(sdmp_app_interface, 0, CUPKEE_UID_SIZE);
+
+    sdmp_text_handler = NULL;
+    sdmp_user_call_handler = NULL;
+    sdmp_user_query_handler = NULL;
 
     if (0 != cupkee_device_handle_set(stream, sdmp_stream_handle, 0)) {
         return -CUPKEE_EINVAL;
@@ -575,6 +619,8 @@ int cupkee_sdmp_init(void *stream)
     if (!sdmp_mux_text_buf) {
         return -CUPKEE_ERESOURCE;
     }
+
+    sdmp_io_stream = stream;
 
     return 0;
 }
@@ -618,7 +664,19 @@ int cupkee_sdmp_tty_write_sync(size_t len, const char *s)
 
 int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *))
 {
-    sdmp_demux_text_handler = handler;
+    sdmp_text_handler = handler;
+    return 0;
+}
+
+int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args))
+{
+    sdmp_user_call_handler = handler;
+    return 0;
+}
+
+int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags))
+{
+    sdmp_user_query_handler = handler;
     return 0;
 }
 
@@ -702,5 +760,43 @@ int cupkee_sdmp_update_state_string(int id, const char *s)
     }
 
     return CUPKEE_ERESOURCE;
+}
+
+static int char2hex(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else
+    if (c >= 'a' && c <= 'f') {
+        return c - ('a' - 10);
+    } else
+    if (c >= 'A' && c <= 'F') {
+        return c - ('A' - 10);
+    } else {
+        return -1;
+    }
+}
+
+int cupkee_sdmp_set_interface_id(const char *id)
+{
+    int pos = 0;
+
+
+    while (*id) {
+        int hi = char2hex(*id++);
+        int lo = char2hex(*id++);
+
+        if (hi >= 0 && lo >= 0) {
+            sdmp_app_interface[pos++] = hi * 16 + lo;
+        } else {
+            break;
+        }
+
+        if (pos == CUPKEE_UID_SIZE) {
+            return 0;
+        }
+    }
+
+    return -CUPKEE_EINVAL;
 }
 

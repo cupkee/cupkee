@@ -24,9 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <cupkee.h>
-
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 
 #define VARIABLE_REF_MAX (32)
 #if     VARIABLE_REF_MAX > 255
@@ -370,41 +368,6 @@ val_t native_erase(env_t *env, int ac, val_t *av)
 
     return cupkee_storage_erase(CUPKEE_STORAGE_BANK_APP) ? VAL_FALSE : VAL_TRUE;
 }
-
-val_t native_report(env_t *env, int ac, val_t *av)
-{
-    uint8_t state_id;
-
-    (void) env;
-
-    if (ac > 0 && val_is_number(av)) {
-        state_id = val_2_integer(av);
-    } else {
-        return VAL_FALSE;
-    }
-
-    if (ac > 1) {
-        ++av;
-
-        if (val_is_boolean(av)) {
-            return cupkee_sdmp_update_state_boolean(state_id, val_is_true(av)) ? VAL_FALSE : VAL_TRUE;
-        } else
-        if (val_is_number(av)) {
-            return cupkee_sdmp_update_state_number(state_id, val_2_double(av)) ? VAL_FALSE : VAL_TRUE;
-        } else {
-            const char *s = val_2_cstring(av);
-
-            if (s) {
-                return cupkee_sdmp_update_state_string(state_id, s) ? VAL_FALSE : VAL_TRUE;
-            } else {
-                return VAL_FALSE;
-            }
-        }
-    } else {
-        return cupkee_sdmp_update_state_trigger(state_id) ? VAL_FALSE : VAL_TRUE;
-    }
-}
-
 
 /* PIN */
 val_t native_pin_enable(env_t *env, int ac, val_t *av)
