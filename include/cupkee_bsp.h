@@ -43,6 +43,10 @@ SOFTWARE.
 #define HW_STORAGE_BANK_APP                 2
 #define HW_STORAGE_BANK_CFG                 3
 
+#define HW_RESET_NORMAL                     0
+#define HW_RESET_DEBUG                      1
+#define HW_RESET_UPGRADE                    2
+
 #define HW_BOOT_STATE_PRODUCT               0
 #define HW_BOOT_STATE_DEVEL                 1
 
@@ -53,19 +57,18 @@ enum HW_DIR {
 };
 
 typedef struct hw_info_t {
-    int ram_sz;
-    int rom_sz;
-    void *ram_base;
-    void *rom_base;
+    uint32_t ram_sz;
+    uint32_t rom_sz;
+    void    *ram_base;
+    void    *rom_base;
     uint32_t sys_freq;
 } hw_info_t;
-
 
 /****************************************************************/
 /* hardware interface to implement                              */
 /****************************************************************/
-void hw_setup(void);
-void hw_reset(void);
+void hw_setup(hw_info_t *info);
+void hw_reset(int mode);
 
 void hw_poll(void);
 void hw_halt(void);
@@ -74,6 +77,7 @@ int  hw_boot_state(void);
 void hw_enter_critical(uint32_t *state);
 void hw_exit_critical(uint32_t state);
 
+void hw_cuid_get(uint8_t *cuid);
 void hw_info_get(hw_info_t *);
 
 /* MEMORY */
@@ -81,12 +85,9 @@ void  *hw_memory_alloc(size_t size, size_t align);
 size_t hw_memory_size(void);
 
 /* STORAGE */
-uint32_t hw_storage_size(int bank);
-uint32_t hw_storage_data_length(int bank);
-const char *hw_storage_data_map(int bank);
-int hw_storage_erase (int bank);
-int hw_storage_update(int bank, uint32_t offset, const uint8_t *data, int len);
-int hw_storage_finish(int bank, uint32_t end);
+intptr_t hw_storage_base(void);
+int hw_storage_erase(uint32_t base, uint32_t size);
+int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data);
 
 /* GPIO */
 int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir);

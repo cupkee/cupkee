@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <cupkee.h>
 
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 
 static void timeout_handle(int drop, void *param)
 {

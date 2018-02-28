@@ -24,9 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <cupkee.h>
-
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 
 #define VARIABLE_REF_MAX (32)
 #if     VARIABLE_REF_MAX > 255
@@ -364,33 +362,12 @@ val_t native_print(env_t *env, int ac, val_t *av)
 
 val_t native_erase(env_t *env, int ac, val_t *av)
 {
-    const char *target;
-
     (void) env;
+    (void) ac;
+    (void) av;
 
-    if (ac > 0) {
-        target = val_2_cstring(av);
-    } else {
-        target = "app";
-    }
-
-    if (!strcmp(target, "APP") || !strcmp(target, "app")) {
-        hw_storage_erase(HW_STORAGE_BANK_APP);
-        return VAL_TRUE;
-    } else
-    if (!strcmp(target, "CONFIG") || !strcmp(target, "config")) {
-        hw_storage_erase(HW_STORAGE_BANK_CFG);
-        return VAL_TRUE;
-    } else
-    if (!strcmp(target, "ALL") || !strcmp(target, "all")) {
-        hw_storage_erase(HW_STORAGE_BANK_APP);
-        hw_storage_erase(HW_STORAGE_BANK_CFG);
-        return VAL_TRUE;
-    }
-
-    return VAL_FALSE;
+    return cupkee_storage_erase(CUPKEE_STORAGE_BANK_APP) ? VAL_FALSE : VAL_TRUE;
 }
-
 
 /* PIN */
 val_t native_pin_enable(env_t *env, int ac, val_t *av)

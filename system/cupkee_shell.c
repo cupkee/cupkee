@@ -26,7 +26,8 @@ SOFTWARE.
 
 #include <cupkee.h>
 
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
+#include "cupkee_shell_sdmp.h"
 #include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
 
@@ -187,7 +188,7 @@ static int shell_console_handle(int type, int ch)
 
     if (!shell_logo_show) {
         shell_logo_show = 1;
-        console_puts_sync(logo);
+        //console_puts_sync(logo);
     }
 
     if (type == CON_CTRL_ENTER) {
@@ -206,10 +207,10 @@ static int shell_console_handle(int type, int ch)
     return CON_EXECUTE_DEF;
 }
 
-static void shell_console_init(void *tty)
+static void shell_console_init(void)
 {
     cupkee_history_init();
-    cupkee_console_init(tty, shell_console_handle);
+    cupkee_console_init(shell_console_handle);
 
     input_cached = 0;
     shell_logo_show = 0;
@@ -235,11 +236,13 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(void *tty, int n, const native_t *natives)
+int cupkee_shell_init(int n, const native_t *natives)
 {
     int heap_mem_sz, stack_mem_sz;
 
-    shell_console_init(tty);
+    shell_console_init();
+
+    shell_sdmp_init();
 
     shell_memory_location(&heap_mem_sz, &stack_mem_sz);
 
@@ -253,28 +256,18 @@ int cupkee_shell_init(void *tty, int n, const native_t *natives)
 
 int cupkee_shell_start(const char *initial)
 {
-    const char *cfg;
-    const char *app;
+    const char *app = cupkee_sysdisk_app();
 
     (void) initial;
 
-    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && (NULL != (cfg = cupkee_sysdisk_cfg_script()))) {
+    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && app) {
         val_t *res;
 
-        console_log(".\r\n");
-        if (0 > interp_execute_stmts(&shell_env, cfg, &res)) {
-            console_log("execute config scripts fail..\r\n");
+        if (0 > interp_execute_stmts(&shell_env, app, &res)) {
+            console_log("execute app scripts fail..\r\n");
             return -1;
         }
-        console_log("execute config scripts ok..\r\n");
-
-        if (NULL != (app = cupkee_sysdisk_app_script())) {
-            if (0 > interp_execute_stmts(&shell_env, app, &res)) {
-                console_log("execute app scripts fail..\r\n");
-                return -1;
-            }
-            console_log("execute app scripts ok..\r\n");
-        }
+        console_log("execute app scripts ok..\r\n");
     }
 
     return 0;
@@ -282,7 +275,12 @@ int cupkee_shell_start(const char *initial)
 
 int cupkee_execute_string(const char *script, val_t **res)
 {
-    return interp_execute_stmts(&shell_env, script, res);
+    if (!res) {
+        val_t *p;
+        return interp_execute_stmts(&shell_env, script, &p);
+    } else {
+        return interp_execute_stmts(&shell_env, script, res);
+    }
 }
 
 val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)

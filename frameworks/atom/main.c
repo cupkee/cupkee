@@ -26,27 +26,27 @@ SOFTWARE.
 
 #include "board.h"
 
-#define USE_USB_CONSOLE
-
 int main(void)
 {
-    void *tty;
+    void *stream;
 
     /**********************************************************
      * Cupkee system initial
      *********************************************************/
-    cupkee_init();
+    cupkee_init(board_id());
 
 #ifdef USE_USB_CONSOLE
-    tty = cupkee_device_request("usb-cdc", 0);
+    stream = cupkee_device_request("usb-cdc", 0);
 #else
-    tty = cupkee_device_request("uart", 0);
+    stream = cupkee_device_request("uart", 0);
 #endif
-    if (cupkee_device_enable(tty)) {
+    if (cupkee_device_enable(stream)) {
         hw_halt();
     }
 
-    cupkee_shell_init(tty, board_native_number(), board_native_entries());
+    cupkee_sdmp_init(stream);
+
+    cupkee_shell_init(board_native_number(), board_native_entries());
 
     /**********************************************************
      * user setup code

@@ -26,6 +26,18 @@ SOFTWARE.
 
 #include "board.h"
 
+// Request from www.cupkee.com
+static const uint8_t BOARD_ID[] = {
+    0x01, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+};
+
+const uint8_t *board_id(void)
+{
+    return BOARD_ID;
+}
+
 static const native_t native_entries[] = {
     /* Panda natives */
     {"Buffer",          buffer_native_create},
@@ -34,6 +46,9 @@ static const native_t native_entries[] = {
     {"sysinfos",        native_sysinfos},
     {"systicks",        native_systicks},
     {"require",         native_require},
+    {"report",          native_report},
+    {"interface",       native_interface},
+
     {"print",           native_print},
     {"pinEnable",       native_pin_enable},
     {"pinGroup",        native_pin_group},

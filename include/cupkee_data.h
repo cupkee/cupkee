@@ -3,7 +3,7 @@ MIT License
 
 This file is part of cupkee project.
 
-Copyright (c) 2016 Lixing Ding <ding.lixing@gmail.com>
+Copyright (c) 2018 Lixing Ding <ding.lixing@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,43 +24,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef __CUPKEE_DATA_INC__
+#define __CUPKEE_DATA_INC__
 
-#include "test.h"
+enum cupkee_data_type_e {
+    CUPKEE_DATA_NONE = 0,
+    CUPKEE_DATA_BOOLEAN,
+    CUPKEE_DATA_NUMBER,
+    CUPKEE_DATA_STRING
+};
 
-int main(int argc, const char *argv[])
-{
-    (void) argc;
-    (void) argv;
+typedef struct cupkee_data_entry_t  {
+    uint8_t end;
+    uint8_t pos;
+    uint8_t *data;
+} cupkee_data_entry_t;
 
-    if (CUE_SUCCESS != CU_initialize_registry()) {
-        return CU_get_error();
-    }
+typedef union cupkee_data_t {
+    int    boolean;
+    double number;
+    const char  *string;
+} cupkee_data_t;
 
-    /***********************************************
-     * Test suites register here:
-     ***********************************************/
-    test_hello();
+static inline void cupkee_data_init(cupkee_data_entry_t *entry, uint8_t size, uint8_t *data) {
+    entry->end = size;
+    entry->pos = 0;
+    entry->data = data;
+};
 
-    test_sys_memory();
-    test_sys_event();
+int cupkee_data_shift(cupkee_data_entry_t *entry, cupkee_data_t *av);
 
-    test_sys_timeout();
-    test_sys_process();
-    test_sys_stream();
-    test_sys_struct();
-
-    test_sys_object();
-    test_sys_pin();
-    test_sys_timer();
-    test_sys_device();
-
-    /***********************************************
-     * Test running
-     ***********************************************/
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-
-    return CU_get_error();
-}
+#endif /* __CUPKEE_DATA_INC__ */
 

@@ -96,16 +96,23 @@ void hw_exit_critical(uint32_t state)
     cm_mask_interrupts(state);
 }
 
+void hw_cuid_get(uint8_t *cuid)
+{
+    uint32_t buf[3];
+
+    desig_get_unique_id(buf);
+    memset(cuid, 0, 20);
+    memcpy(cuid, buf, 12);
+}
+
 void hw_info_get(hw_info_t *info)
 {
-    if (info) {
-        info->sys_freq = 72000000;
-        info->ram_sz = (char *)(vector_table.initial_sp_value) - (char *)0x20000000;
-        //info->rom_sz = desig_get_flash_size() * 1024;
-        info->rom_sz = &_etext - (char *)0x8000000;
-        info->ram_base = (void *)0x20000000;
-        info->rom_base = (void *)0x08000000;
-    }
+    info->sys_freq = 72000000;
+    info->ram_sz = (char *)(vector_table.initial_sp_value) - (char *)0x20000000;
+    info->rom_sz = desig_get_flash_size() * 1024;
+    //info->rom_sz = &_etext - (char *)0x8000000;
+    info->ram_base = (void *)0x20000000;
+    info->rom_base = (void *)0x08000000;
 }
 
 static void hw_boot_mode_probe(void)
@@ -117,7 +124,7 @@ static void hw_boot_mode_probe(void)
     }
 }
 
-void hw_setup(void)
+void hw_setup(hw_info_t *info)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
@@ -136,10 +143,14 @@ void hw_setup(void)
     hw_setup_timer();
     hw_setup_storage();
     hw_setup_systick();
+
+    hw_info_get(info);
 }
 
-void hw_reset(void)
+void hw_reset(int mode)
 {
+    (void) mode;
+
     scb_reset_system();
 }
 

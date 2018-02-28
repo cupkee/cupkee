@@ -456,7 +456,7 @@ static void test_event(void)
     void *dev;
     int n;
     uint8_t data;
-    char buf[32];
+    char buf[10];
 
     CU_ASSERT_FATAL(NULL != (dev = cupkee_device_request("mock", 2)));
 
@@ -468,6 +468,8 @@ static void test_event(void)
     cupkee_listen(dev, CUPKEE_EVENT_DATA);
     cupkee_listen(dev, CUPKEE_EVENT_DRAIN);
 
+    CU_ASSERT(0 == TU_object_event_dispatch());
+
     mock_arg_release();
     // trigger event: data
     data = 0;
@@ -478,10 +480,13 @@ static void test_event(void)
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(dev));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DATA);
-    while (0 < (n = cupkee_read(dev, 32, buf))) {
+    while (0 < (n = cupkee_read(dev, 10, buf))) {
         data -= n;
     }
     CU_ASSERT(data == 0);
+
+    while (TU_object_event_dispatch())
+        ; /* clean event */
 
     mock_arg_release();
     // trigger event: data
@@ -494,7 +499,7 @@ static void test_event(void)
     CU_ASSERT(1 == TU_object_event_dispatch());
     CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(dev));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_DATA);
-    CU_ASSERT(1 == cupkee_read(dev, 32, buf));
+    CU_ASSERT(1 == cupkee_read(dev, 10, buf));
 
     // tirgger nothing (read buffer is empty)
     cupkee_device_sync(40);

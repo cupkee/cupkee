@@ -24,19 +24,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __CUPKEE_RCCI_INC__
-#define __CUPKEE_RCCI_INC__
+#ifndef __CUPKEE_SDMP_INC__
+#define __CUPKEE_SDMP_INC__
 
-int cupkee_rcci_setup(void *stream, const char *uuid, cupkee_callback_t cb, intptr_t param);
+int cupkee_sdmp_init(void *stream);
+int cupkee_sdmp_tty_write(size_t len, const char *text);
+int cupkee_sdmp_tty_write_sync(size_t len, const char *text);
 
-int cupkee_rcci_service_id(void *entry);              // call in cb
-int cupkee_rcci_service_pull_int(void *entry, int *); // call in cb, with event service_set
-int cupkee_rcci_service_push_int(void *entry, int);   // call in cb, with event service_get
-int cupkee_rcci_service_update(int id);
+int cupkee_sdmp_set_interface_id(const char *id);
+int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *));
+int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args));
+int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags));
 
-int cupkee_rcci_stream_size(void *stream);
-void *cupkee_rcci_create_istream(int id, cupkee_callback_t cb, intptr_t param);
-void *cupkee_rcci_create_ostream(int id, cupkee_callback_t cb, intptr_t param);
+int cupkee_sdmp_update_state_trigger(int id);
+int cupkee_sdmp_update_state_boolean(int id, int v);
+int cupkee_sdmp_update_state_number(int id, double v);
+int cupkee_sdmp_update_state_string(int id, const char *s);
 
-#endif /* __CUPKEE_RCCI_INC__ */
+#endif /* __CUPKEE_SDMP_INC__ */
 

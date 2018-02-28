@@ -28,8 +28,8 @@ SOFTWARE.
 #define __CUPKEE_SYSDISK_INC__
 
 void cupkee_sysdisk_init(void);
-const char *cupkee_sysdisk_app_script(void);
-const char *cupkee_sysdisk_cfg_script(void);
+const char *cupkee_sysdisk_app(void);
+const char *cupkee_sysdisk_bin(void);
 
 #endif /* __CUPKEE_SYSDISK_INC__ */
 

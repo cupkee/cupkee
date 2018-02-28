@@ -38,6 +38,10 @@ val_t native_pin_group(env_t *env, int ac, val_t *av);
 val_t native_pin(env_t *env, int ac, val_t *av);
 val_t native_pin_toggle(env_t *env, int ac, val_t *av);
 
+/* cupkee_shell_sdmp.c */
+val_t native_report(env_t *env, int ac, val_t *av);
+val_t native_interface(env_t *env, int ac, val_t *av);
+
 /* cupkee_module.c */
 val_t native_require(env_t *env, int ac, val_t *av);
 

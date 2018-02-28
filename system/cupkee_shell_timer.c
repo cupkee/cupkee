@@ -25,7 +25,7 @@ SOFTWARE.
 */
 
 #include "cupkee.h"
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 
 typedef struct timer_param_t {
     val_t *handle;

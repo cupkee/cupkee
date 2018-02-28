@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <cupkee.h>
 
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 #include "cupkee_shell_device.h"
 
 static int device_setup(void *entry, env_t *env, val_t *setting)

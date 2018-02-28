@@ -55,14 +55,10 @@ SOFTWARE.
 #define COUNT_CLUSTER(s)     (((s) + BYTES_PER_CLUSTER - 1) / BYTES_PER_CLUSTER)
 
 static const char *app_data = NULL;
-static const char *cfg_data = NULL;
-static uint8_t curr_bank  = 0;
-static uint8_t curr_state = 0;
-static uint16_t curr_offset = 0;
 static uint16_t app_size = 0;
-static uint16_t cfg_size = 0;
-static uint16_t app_start_sector = 0;
-static uint16_t cfg_start_sector = 0;
+static uint16_t write_start_sector = 0;
+static uint8_t  write_state = 0;
+static uint16_t write_offset = 0;
 
 static const uint8_t boot_sector[] = {
 	0xEB, 0x3C, 0x90,				// code to jump to the bootstrap code
@@ -138,8 +134,7 @@ static void sysdisk_fat(uint8_t *fat)
 	memset(fat, 0, SECTOR_SIZE);
 
 	memcpy(fat, fat_sector, sizeof(fat_sector));
-    sysddisk_fat_set(fat, app_start_sector, app_size);
-    sysddisk_fat_set(fat, cfg_start_sector, cfg_size);
+    sysddisk_fat_set(fat, write_start_sector, app_size);
 }
 
 static void sysdisk_dir_set(uint8_t *dir, const char *prefix, const char *suffix, uint32_t start, uint32_t size)
@@ -167,16 +162,15 @@ static void sysdisk_dir(uint8_t *dir)
 {
 	memset(dir, 0, SECTOR_SIZE);
 
-    sysdisk_dir_set(dir, "APP", "JS", START_CLUSTER(app_start_sector), app_size);
-    sysdisk_dir_set(dir + ROOT_ENTRY_LENGTH, "CONFIG", "JS", START_CLUSTER(cfg_start_sector), cfg_size);
+    sysdisk_dir_set(dir, "APP", "JS", START_CLUSTER(write_start_sector), app_size);
 }
 
 static void sysdisk_file_read(uint32_t lba, uint8_t *buf)
 {
     int length = 0;
 
-    if (lba >= app_start_sector && (lba - app_start_sector) < 16) {
-        int offset = (lba - app_start_sector) * SECTOR_SIZE;
+    if (lba >= write_start_sector) {
+        uint32_t offset = (lba - write_start_sector) * SECTOR_SIZE;
 
         if (offset < app_size) {
             length = app_size - offset;
@@ -184,17 +178,6 @@ static void sysdisk_file_read(uint32_t lba, uint8_t *buf)
                 length = SECTOR_SIZE;
             }
             memcpy(buf, app_data + offset, length);
-        }
-    } else
-    if (lba >= cfg_start_sector && (lba - cfg_start_sector) < 16) {
-        int offset = (lba - cfg_start_sector) * SECTOR_SIZE;
-
-        if (offset < cfg_size) {
-            length = cfg_size - offset;
-            if (length > SECTOR_SIZE) {
-                length = SECTOR_SIZE;
-            }
-            memcpy(buf, cfg_data + offset, length);
         }
     }
 
@@ -224,65 +207,36 @@ static void sysdisk_write_init(const uint8_t *data)
     type = data + i + 7;
 
     if (!memcmp(type, "APP", 3) || !memcmp(type, "app", 3)) {
-        curr_state = 1;
-        curr_offset = 0;
-        curr_bank = HW_STORAGE_BANK_APP;
-        app_data = hw_storage_data_map(HW_STORAGE_BANK_APP);
-        hw_storage_erase(curr_bank);
-    } else
-    if (!memcmp(type, "CONFIG", 6) || !memcmp(type, "config", 6)) {
-        curr_state = 1;
-        curr_offset = 0;
-        curr_bank  = HW_STORAGE_BANK_CFG;
-        cfg_data = hw_storage_data_map(HW_STORAGE_BANK_CFG);
-        hw_storage_erase(curr_bank);
+        write_state = 1;
+        write_offset = 0;
+        cupkee_storage_erase(CUPKEE_STORAGE_BANK_APP);
     }
     return;
 }
 
-static void sysdisk_write_finish(const uint8_t *entry)
+static int sysdisk_write_finish(const uint8_t *entry)
 {
-    char *target = NULL;
     uint16_t cluster;
-    uint32_t size, old_size, max_size;
-    uint8_t  bank;
+    uint32_t max_size;
 
-    if (0 == memcmp(entry, "APP     JS ", 11)) {
-        target = "app.js";
-        bank = HW_STORAGE_BANK_APP;
-    } else
-    if (0 == memcmp(entry, "CONFIG  JS ", 11)){
-        target = "config.js";
-        bank = HW_STORAGE_BANK_CFG;
-    } else {
-        return;
+    if (memcmp(entry, "APP     JS ", 11)) {
+        return 0;
     }
 
     cluster = entry[26] + entry[27] * 256;
-    size = entry[28] + entry[29] * 256 + entry[30] * 0x10000 + entry[31] * 0x1000000;
+    app_size = entry[28] + entry[29] * 256 + entry[30] * 0x10000 + entry[31] * 0x1000000;
 
-    if (bank == HW_STORAGE_BANK_APP) {
-        app_start_sector = FILEDATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER;
-        max_size = hw_storage_size(bank);
-        old_size = app_size;
-        if (max_size < size) {
-            size = max_size;
-        }
-        app_size = size;
+
+    write_start_sector = FILEDATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER;
+    max_size = cupkee_storage_size(CUPKEE_STORAGE_BANK_APP) - 1;
+    if (max_size < app_size) {
+        app_size = max_size;
     } else {
-        cfg_start_sector = FILEDATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER;
-        max_size = hw_storage_size(bank);
-        old_size = cfg_size;
-        if (max_size < size) {
-            size = max_size;
-        }
-        cfg_size = size;
+        uint8_t zero = 0;
+        cupkee_storage_write(CUPKEE_STORAGE_BANK_APP, app_size, 1, &zero);
     }
 
-    if (old_size != size) {
-        hw_storage_finish(bank, size);
-        console_log("update %s: %dbytes\r\n", target, size);
-    }
+    return 1; // done
 }
 
 static void sysdisk_write_parse(const uint8_t *info)
@@ -293,6 +247,22 @@ static void sysdisk_write_parse(const uint8_t *info)
         sysdisk_write_finish(info + pos);
         pos += ROOT_ENTRY_LENGTH;
     }
+}
+
+static uint32_t sysdisk_app_scan(intptr_t base, uint32_t end)
+{
+    uint8_t *ptr = (uint8_t *) base;
+    uint32_t i;
+
+    for (i = 0; i < end; i++) {
+        uint8_t d = ptr[i];
+
+        if (d == 0 || d == 0xFF) {
+            break;
+        }
+    }
+
+    return i;
 }
 
 int cupkee_sysdisk_read(uint32_t lba, uint8_t *copy_to)
@@ -320,58 +290,43 @@ int cupkee_sysdisk_write(uint32_t lba, const uint8_t *copy_from)
 {
     if (lba >= ROOT_START_SECTOR && lba < ROOT_END_SECTOR) {
         sysdisk_write_parse(copy_from);
-        curr_state = 0;
+        write_state = 0;
     } else
     if (lba >= FILEDATA_START_SECTOR) {
-        if (curr_state == 0) {
+        if (write_state == 0) {
             sysdisk_write_init(copy_from);
         }
-        if (curr_state == 1) {
-            hw_storage_update(curr_bank, curr_offset, copy_from, SECTOR_SIZE);
-            curr_offset += SECTOR_SIZE;
+
+        if (write_state == 1) {
+            cupkee_storage_write(CUPKEE_STORAGE_BANK_APP,
+                    write_offset, SECTOR_SIZE, copy_from);
+            write_offset += SECTOR_SIZE;
         }
     }
 
 	return 0;
 }
 
-static void sysdisk_scan(void)
+void cupkee_sysdisk_init(void)
 {
-    app_size = hw_storage_data_length(HW_STORAGE_BANK_APP);
+    intptr_t base = cupkee_storage_base(CUPKEE_STORAGE_BANK_APP);
+    uint32_t size = cupkee_storage_size(CUPKEE_STORAGE_BANK_APP);
+
+    app_size = sysdisk_app_scan(base, size);
     if (app_size == 0) {
         app_data = APP_HEAD;
         app_size = strlen(app_data);
     } else {
-        app_data = hw_storage_data_map(HW_STORAGE_BANK_APP);
+        app_data = (void *)base;
     }
-    app_start_sector = FILEDATA_START_SECTOR;
 
-    cfg_size = hw_storage_data_length(HW_STORAGE_BANK_CFG);
-    if (cfg_size == 0) {
-        cfg_data = CFG_HEAD;
-        cfg_size = strlen(cfg_data);
-    } else {
-        cfg_data = hw_storage_data_map(HW_STORAGE_BANK_CFG);
-    }
-    cfg_start_sector = app_start_sector + (hw_storage_size(HW_STORAGE_BANK_APP) / BYTES_PER_SECTOR);
+    write_state = 0;
+    write_offset = 0;
+    write_start_sector = FILEDATA_START_SECTOR;
 }
 
-void cupkee_sysdisk_init(void)
+const char *cupkee_sysdisk_app(void)
 {
-    curr_state = 0;
-    curr_bank  = 0;
-    curr_offset = 0;
-
-    sysdisk_scan();
-}
-
-const char *cupkee_sysdisk_app_script(void)
-{
-    return app_data;
-}
-
-const char *cupkee_sysdisk_cfg_script(void)
-{
-    return cfg_data;
+    return (intptr_t)app_data == (intptr_t)APP_HEAD ? NULL : app_data;
 }
 

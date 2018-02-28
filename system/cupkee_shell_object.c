@@ -25,7 +25,7 @@ SOFTWARE.
 */
 
 #include "cupkee.h"
-#include "cupkee_shell_misc.h"
+#include "cupkee_shell_util.h"
 
 
 static void create_array_by_octstr(env_t *env, uint8_t *seq, val_t *res)

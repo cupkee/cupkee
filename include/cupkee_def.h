@@ -32,9 +32,14 @@ SOFTWARE.
 #include <string.h>
 #include <stdint.h>
 
-/* Todo: cupkee_def.h ? */
-#define CUPKEE_TRUE                     1
-#define CUPKEE_FALSE                    0
+#define CUPKEE_VER_SIZE                 4
+
+#define CUPKEE_UID_SIZE                 24
+
+#define CUPKEE_INFO_SIZE                (CUPKEE_VER_SIZE + CUPKEE_UID_SIZE * 2)
+
+#define CUPKEE_BLOCK_SIZE               128
+#define CUPKEE_SECTOR_SIZE              (CUPKEE_BLOCK_SIZE * 64)
 
 #define CUPKEE_MEMBER_OFFSET(T, m)      (intptr_t)(&(((T*)0)->m))
 #define CUPKEE_CONTAINER_OF(p, T, m)    ((T*)((intptr_t)(p) - CUPKEE_MEMBER_OFFSET(T, m)))
@@ -42,7 +47,15 @@ SOFTWARE.
 #define CUPKEE_SIZE_ALIGN(v, a)         (((size_t)(v) + ((a) - 1)) & ~((a) - 1))
 #define CUPKEE_ADDR_ALIGN(p, a)         (void *)(((intptr_t)(p) + ((a) - 1)) & ~(intptr_t)((a) - 1))
 
+#define CUPKEE_TRUE                     1
+#define CUPKEE_FALSE                    0
+
+#define CUPKEE_SYSDISK_SECTOR_COUNT		1024 * 32
+
 typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
+
+void cupkee_sysinfo_get(uint8_t *info_buf);
+
 
 #endif /* __CUPKEE_DEF_INC__ */
 

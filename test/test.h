@@ -53,7 +53,5 @@ CU_pSuite test_sys_device(void);
 CU_pSuite test_sys_pin(void);
 CU_pSuite test_sys_timer(void);
 
-CU_pSuite test_sys_rcci(void);
-
 #endif /* __TEST_INC__ */
 
