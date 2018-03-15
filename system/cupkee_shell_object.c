@@ -122,8 +122,7 @@ static void object_elem_get(void *env, intptr_t o, val_t *key, val_t *prop)
 }
 
 static const val_foreign_op_t object_op = {
-    .elem_get = object_elem_get,
-    .elem_set = object_elem_set,
+    .elem = object_elem_get,
 };
 
 val_t cupkee_shell_object_create(env_t *env, void *entry)

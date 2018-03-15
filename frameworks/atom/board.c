@@ -33,7 +33,6 @@ const uint8_t *board_id(void)
 
 static const native_t native_entries[] = {
     /* Panda natives */
-    {"Buffer",          buffer_native_create},
 
     /* Cupkee natives */
     {"sysinfos",        native_sysinfos},

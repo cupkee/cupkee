@@ -70,9 +70,6 @@ void print_simple_value(val_t *v)
     if (val_is_object(v)) {
         console_puts("<object>\r\n");
     } else
-    if (val_is_buffer(v)) {
-        console_puts("<buffer>\r\n");
-    } else
     if (val_is_array(v)) {
         console_puts("<array>\r\n");
     } else {
@@ -126,6 +123,9 @@ static void print_array_value(val_t *v)
 
 static void print_buffer_value(val_t *v)
 {
+    (void) v;
+#warning "Todo: look here"
+    /*
     int   i, len = _val_buffer_size(v);
     uint8_t *ptr = _val_buffer_addr(v);
     char buf[16];
@@ -142,6 +142,7 @@ static void print_buffer_value(val_t *v)
     } else {
         console_puts(">\r\n");
     }
+    */
 }
 
 void shell_print_value(val_t *v)
@@ -151,9 +152,6 @@ void shell_print_value(val_t *v)
     } else
     if (val_is_object(v)) {
         print_object_value(v);
-    } else
-    if (val_is_buffer(v)) {
-        print_buffer_value(v);
     } else {
         print_simple_value(v);
     }
@@ -272,16 +270,6 @@ void shell_do_callback_error(env_t *env, val_t *cb, int code)
     val_t err = shell_error(env, code);
 
     shell_do_callback(env, cb, 1, &err);
-}
-
-void shell_do_callback_buffer(env_t *env, val_t *cb, type_buffer_t *buffer)
-{
-    val_t args[2];
-
-    val_set_undefined(args);
-    val_set_buffer(args + 1, buffer);
-
-    shell_do_callback(env, cb, 2, args);
 }
 
 int shell_str_id(const char *s, int max, const char * const *names)
@@ -480,8 +468,8 @@ static void grp_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
 
 static const val_foreign_op_t grp_op = {
     .set  = grp_op_set,
-    .elem_get = grp_elem_get,
-    .elem_set = grp_elem_set,
+    //.elem_get = grp_elem_get,
+    //.elem_set = grp_elem_set,
 };
 
 val_t native_pin_group(env_t *env, int ac, val_t *av)

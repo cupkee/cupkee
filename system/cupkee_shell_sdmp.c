@@ -56,7 +56,7 @@ static int call_handler(int which, void *args)
                 val_set_number(av + ac, data.number);
             } else
             if (type == CUPKEE_DATA_STRING) {
-                av[ac] = string_create_heap(cupkee_shell_env(), data.string);
+                av[ac] = string_create_heap_val(cupkee_shell_env(), data.string);
             }
         }
 

@@ -167,7 +167,7 @@ static int module_is_true(intptr_t ptr)
     return 1;
 }
 
-static void module_prop_get(void *env, intptr_t id, val_t *key, val_t *prop)
+static val_t *module_prop_ref(void *env, intptr_t id, val_t *key)
 {
     cupkee_module_t *mod = (cupkee_module_t *)id;
     const char *prop_key = val_2_cstring(key);
@@ -179,19 +179,18 @@ static void module_prop_get(void *env, intptr_t id, val_t *key, val_t *prop)
 
         while (i < mod->prop_num) {
             if (strcmp(prop_key, (const char *) (mod->props[i].key)) == 0) {
-                *prop = mod->props[i].val;
-                return;
+                return &mod->props[i].val;
             }
             i++;
         }
     }
 
-    val_set_undefined(prop);
+    return NULL;
 }
 
 static const val_foreign_op_t module_op = {
     .is_true = module_is_true,
-    .elem_get = module_prop_get,
+    .elem_ref = module_prop_ref,
 };
 
 val_t native_require(env_t *env, int ac, val_t *av)
