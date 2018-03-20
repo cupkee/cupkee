@@ -433,8 +433,7 @@ int  cupkee_prop_set(void *entry, const char *k, int t, intptr_t data)
     return desc->prop_set(entry, k, t, data);
 }
 
-
-int  cupkee_elem_get(void *entry, int i, intptr_t *p)
+int cupkee_elem_get(void *entry, int i, intptr_t *p)
 {
     const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
 
@@ -449,7 +448,7 @@ int  cupkee_elem_get(void *entry, int i, intptr_t *p)
     return desc->elem_get(entry, i, p);
 }
 
-int  cupkee_prop_get(void *entry, const char *k, intptr_t *p)
+int cupkee_prop_get(void *entry, const char *k, intptr_t *p)
 {
     const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
 

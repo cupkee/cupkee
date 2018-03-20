@@ -27,27 +27,24 @@
 static val_t reference_vals[VARIABLE_REF_MAX];
 
 static inline void print_number(val_t *v) {
-    char buf[32];
-
     if (*v & 0xffff) {
-        snprintf(buf, 32, "%f\r\n", val_2_double(v));
+        console_log("%f", val_2_double(v));
     } else {
-        snprintf(buf, 32, "%lld\r\n", (int64_t)val_2_double(v));
+        console_log("%lld", (int64_t)val_2_double(v));
     }
-    console_puts(buf);
 }
 
 static inline void print_boolean(val_t *v) {
-    console_puts(val_2_intptr(v) ? "true\r\n" : "false\r\n");
+    console_puts(val_2_intptr(v) ? "true" : "false");
 }
 
 static inline void print_string(val_t *v) {
-    console_puts("\"");
+    console_putc('"');
     console_puts(val_2_cstring(v));
-    console_puts("\"\r\n");
+    console_putc('"');
 }
 
-void print_simple_value(val_t *v)
+static void print_simple_value(val_t *v)
 {
     if (val_is_number(v)) {
         print_number(v);
@@ -59,44 +56,49 @@ void print_simple_value(val_t *v)
         print_string(v);
     } else
     if (val_is_undefined(v)) {
-        console_puts("undefined\r\n");
+        console_puts("undefined");
     } else
     if (val_is_nan(v)) {
-        console_puts("NaN\r\n");
+        console_puts("NaN");
     } else
     if (val_is_function(v)) {
-        console_puts("<function>\r\n");
+        console_puts("<function>");
     } else
     if (val_is_object(v)) {
-        console_puts("<object>\r\n");
+        console_puts("<object>");
     } else
     if (val_is_array(v)) {
-        console_puts("<array>\r\n");
+        console_puts("<array>");
     } else {
-        console_puts("<object>\r\n");
+        console_puts("<object>");
     }
 }
 
 static void print_object_value(val_t *o)
 {
     object_t *obj = (object_t *) val_2_intptr(o);
-    object_iter_t it;
-    const char *k;
-    val_t *v;
 
-    console_puts("{");
+    if (obj) {
+        object_iter_t it;
+        const char *k;
+        val_t *v;
+        int i = 0;
 
-    _object_iter_init(&it, obj);
-    if (object_iter_next(&it, &k, &v)) {
-        console_puts("\r\n");
-        do {
-            console_puts("  ");
-            console_puts(k);
-            console_puts(": ");
-            print_simple_value(v);
-        }while(object_iter_next(&it, &k, &v));
+        console_puts("{");
+        _object_iter_init(&it, obj);
+        if (object_iter_next(&it, &k, &v)) {
+            do {
+                console_puts(i++ == 0 ? " " : ", ");
+                console_puts(k);
+                console_puts(": ");
+                print_simple_value(v);
+            } while(object_iter_next(&it, &k, &v));
+        }
+        if (i > 0) console_putc(' ');
+        console_puts("}\r\n");
+    } else {
+        console_puts("null\r\n");
     }
-    console_puts("}\r\n");
 }
 
 static void print_array_value(val_t *v)
@@ -106,43 +108,14 @@ static void print_array_value(val_t *v)
 
     max = array_length(array);
 
-    if (max == 0) {
-        console_puts("[]\r\n");
-        return;
-    }
-    console_puts("[\r\n");
+    console_puts("[");
     for (i = 0; i < max; i++) {
-        char buf[16];
-        snprintf(buf, 16, "  [%2d]:", i);
-        console_puts(buf);
-
+        console_puts(i == 0 ? " " : ", ");
         print_simple_value(array_elem(array, i));
     }
+    if (i > 0) console_putc(' ');
+
     console_puts("]\r\n");
-}
-
-static void print_buffer_value(val_t *v)
-{
-    (void) v;
-#warning "Todo: look here"
-    /*
-    int   i, len = _val_buffer_size(v);
-    uint8_t *ptr = _val_buffer_addr(v);
-    char buf[16];
-
-    snprintf(buf, 16, "<Buffer[%d]:", len);
-    console_puts(buf);
-    for (i = 0; i < len && i < 8; i++) {
-        snprintf(buf, 16, " %.2x", ptr[i]);
-        console_puts(buf);
-    }
-
-    if (i < len) {
-        console_puts(" ...>\r\n");
-    } else {
-        console_puts(">\r\n");
-    }
-    */
 }
 
 void shell_print_value(val_t *v)
@@ -154,6 +127,7 @@ void shell_print_value(val_t *v)
         print_object_value(v);
     } else {
         print_simple_value(v);
+        console_puts("\r\n");
     }
 }
 
@@ -194,19 +168,6 @@ void cupkee_shell_reference_release(val_t *ref)
     }
 }
 
-uint8_t shell_reference_id(val_t *ref)
-{
-    if (ref) {
-        int pos = ref - reference_vals;
-
-        if (pos >= 0 && pos < VARIABLE_REF_MAX) {
-            return pos + 1;
-        }
-    }
-
-    return 0;
-}
-
 val_t  *shell_reference_ptr(uint8_t id)
 {
     if (id > 0 && id <= VARIABLE_REF_MAX) {
@@ -236,61 +197,6 @@ void shell_print_error(int error)
     case ERR_SysError:          console_puts("Error: System error\r\n");            break;
 
     default: console_puts("Error: unknown error\r\n");
-    }
-}
-
-void shell_do_callback(env_t *env, val_t *cb, uint8_t ac, val_t *av)
-{
-    if (!cb) return;
-
-    if (val_is_native(cb)) {
-        function_native_t fn = (function_native_t) val_2_intptr(cb);
-        fn(env, ac, av);
-    } else
-    if (val_is_script(cb)){
-        if (ac) {
-            int i;
-            for (i = ac - 1; i >= 0; i--)
-                env_push_call_argument(env, av + i);
-        }
-        env_push_call_function(env, cb);
-        interp_execute_call(env, ac);
-    }
-}
-
-val_t shell_error(env_t *env, int code)
-{
-    (void) env;
-
-    return val_mk_number(code);
-}
-
-void shell_do_callback_error(env_t *env, val_t *cb, int code)
-{
-    val_t err = shell_error(env, code);
-
-    shell_do_callback(env, cb, 1, &err);
-}
-
-int shell_str_id(const char *s, int max, const char * const *names)
-{
-    if (s) {
-        int id;
-        for (id = 0; id < max && names[id]; id++) {
-            if (!strcmp(s, names[id])) {
-                return id;
-            }
-        }
-    }
-    return -1;
-}
-
-int shell_val_id(val_t *v, int max, const char * const *names)
-{
-    if (val_is_number(v)) {
-        return val_2_integer(v);
-    } else {
-        return shell_str_id(val_2_cstring(v), max, names);
     }
 }
 
@@ -349,6 +255,7 @@ val_t native_erase(env_t *env, int ac, val_t *av)
 
     return cupkee_storage_erase(CUPKEE_STORAGE_BANK_APP) ? VAL_FALSE : VAL_TRUE;
 }
+
 
 /* PIN */
 val_t native_pin_enable(env_t *env, int ac, val_t *av)
@@ -470,6 +377,8 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
     void *grp = cupkee_pin_group_create();
     uint8_t i;
+
+    (void) env;
 
     if (!grp) {
         return VAL_UNDEFINED;

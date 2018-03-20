@@ -26,17 +26,13 @@
 #define shell_reference_release cupkee_shell_reference_release
 
 void shell_reference_init(env_t *env);
-uint8_t shell_reference_id(val_t *ref);
 val_t  *shell_reference_ptr(uint8_t id);
-
-void print_simple_value(val_t *v);
 
 void shell_print_value(val_t *v);
 void shell_print_error(int error);
-void shell_do_callback(env_t *env, val_t *cb, uint8_t ac, val_t *av);
-void shell_do_callback_error(env_t *env, val_t *cb, int code);
 
-val_t shell_error(env_t *env, int code);
+void shell_do_callback(env_t *env, val_t *cb, uint8_t ac, val_t *av);
+
 int shell_val_id(val_t *v, int max, const char * const *names);
 int shell_str_id(const char *s, int max, const char * const *names);
 int shell_input_data(val_t *data, void **ptr);
