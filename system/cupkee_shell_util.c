@@ -69,6 +69,9 @@ static void print_simple_value(val_t *v)
     } else
     if (val_is_array(v)) {
         console_puts("<array>");
+    } else
+    if (val_is_foreign(v)) {
+        console_puts(cupkee_name((void*) val_2_intptr(v)));
     } else {
         console_puts("<object>");
     }

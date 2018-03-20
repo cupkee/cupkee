@@ -218,12 +218,25 @@ static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const na
     shell_console_mode = CONSOLE_INPUT_LINE;
 }
 
-val_t foreign_set(void *env, val_t *self, val_t *val)
+val_t foreign_set(void *env, val_t *self, val_t *data)
 {
-    (void) env;
-    (void) self;
+    void *entry = (void *)val_2_intptr(self);
+    int retval = -1;
 
-    return *val;
+    (void) env;
+
+    if (val_is_number(data)) {
+        retval = cupkee_set(entry, CUPKEE_OBJECT_ELEM_INT, val_2_integer(data));
+    } else
+    if (val_is_string(data)) {
+        retval = cupkee_set(entry, CUPKEE_OBJECT_ELEM_STR, (intptr_t)val_2_cstring(data));
+    }
+
+    if (retval < 0) {
+        *self = *data;
+    }
+
+    return *data;
 }
 
 void foreign_keep(intptr_t entry)
@@ -250,19 +263,49 @@ double foreign_value_of(val_t *self)
     return 0;
 }
 
-val_t  foreign_get_prop(void *env, val_t *self, const char *key)
+val_t foreign_get_prop(void *env, val_t *self, const char *key)
 {
+    void *entry = (void *)val_2_intptr(self);
+    intptr_t v;
+    int t;
+
     (void) env;
-    (void) self;
-    (void) key;
+
+    t = cupkee_prop_get(entry, key, &v);
+    switch (t) {
+    case CUPKEE_OBJECT_ELEM_INT:
+        return val_mk_number(v);
+    case CUPKEE_OBJECT_ELEM_STR:
+        return val_mk_foreign_string(v);
+    case CUPKEE_OBJECT_ELEM_BOOL:
+        return val_mk_boolean(v);
+    case CUPKEE_OBJECT_ELEM_OCT:
+    default:
+        break;
+    }
     return VAL_UNDEFINED;
 }
 
 val_t foreign_get_elem(void *env, val_t *self, int id)
 {
+    void *entry = (void *)val_2_intptr(self);
+    intptr_t v;
+    int t;
+
     (void) env;
-    (void) self;
-    (void) id;
+
+    t = cupkee_elem_get(entry, id, &v);
+    switch (t) {
+    case CUPKEE_OBJECT_ELEM_INT:
+        return val_mk_number(v);
+    case CUPKEE_OBJECT_ELEM_STR:
+        return val_mk_foreign_string(v);
+    case CUPKEE_OBJECT_ELEM_BOOL:
+        return val_mk_boolean(v);
+    case CUPKEE_OBJECT_ELEM_OCT:
+    default:
+        break;
+    }
     return VAL_UNDEFINED;
 }
 
@@ -276,10 +319,16 @@ void foreign_set_prop(void *env, val_t *self, const char *key, val_t *data)
 
 void foreign_set_elem(void *env, val_t *self, int id, val_t *data)
 {
+    void *entry = (void *)val_2_intptr(self);
+
     (void) env;
-    (void) self;
-    (void) id;
-    (void) data;
+
+    if (val_is_number(data)) {
+        cupkee_elem_set(entry, id, CUPKEE_OBJECT_ELEM_INT, val_2_integer(data));
+    } else
+    if (val_is_string(data)) {
+        cupkee_elem_set(entry, id, CUPKEE_OBJECT_ELEM_STR, (intptr_t)val_2_cstring(data));
+    }
 }
 
 void foreign_opx_prop(void *env, val_t *self, const char *key, val_t *res, val_opx_t op)

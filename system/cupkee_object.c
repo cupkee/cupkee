@@ -156,8 +156,12 @@ const void *cupkee_object_meta(cupkee_object_t *obj)
 cupkee_object_t *cupkee_object_create(int tag)
 {
     if ((unsigned)tag < obj_tag_end) {
-        cupkee_object_t *obj = (cupkee_object_t *)cupkee_malloc(sizeof(cupkee_object_t) + obj_infos[tag].size);
+        cupkee_object_info_t *desc = &obj_infos[tag];
+        cupkee_object_t *obj;
+
+        obj = (cupkee_object_t *)cupkee_malloc(sizeof(cupkee_object_t) + desc->size);
         if (obj) {
+            memset(obj->entry, 0, desc->size);
             obj->tag = tag;
             obj->ref = 1;
             obj->id  = CUPKEE_ID_INVALID;
@@ -368,6 +372,17 @@ void cupkee_error_set(void *entry, int err)
     cupkee_object_error_set(CUPKEE_OBJECT_PTR(entry), err);
 }
 
+const char *cupkee_name(void *entry)
+{
+    const cupkee_desc_t *desc = cupkee_object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (desc) {
+        return desc->name;
+    }
+
+    return "<Illegal>";
+}
+
 void cupkee_listen(void *entry, int event)
 {
     cupkee_object_listen(CUPKEE_OBJECT_PTR(entry), event);
@@ -401,6 +416,21 @@ int cupkee_write_sync(void *entry, size_t n, const void *data)
 int cupkee_unshift(void *entry, uint8_t data)
 {
     return cupkee_object_unshift(CUPKEE_OBJECT_PTR(entry), data);
+}
+
+int  cupkee_set(void *entry, int t, intptr_t data)
+{
+    const cupkee_desc_t *desc = object_desc(CUPKEE_OBJECT_PTR(entry));
+
+    if (!desc) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (!desc->set) {
+        return -CUPKEE_EIMPLEMENT;
+    }
+
+    return desc->set(entry, t, data);
 }
 
 int  cupkee_elem_set(void *entry, int i, int t, intptr_t data)

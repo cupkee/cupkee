@@ -39,8 +39,6 @@ int cupkee_pin_get(int pin);
 int cupkee_pin_toggle(int pin);
 
 void *cupkee_pin_group_create(void);
-int cupkee_pin_group_destroy(void *grp);
-int cupkee_pin_group_size(void *grp);
 int cupkee_pin_group_push(void *grp, int pin);
 int cupkee_pin_group_pop(void *grp);
 

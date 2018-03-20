@@ -40,31 +40,6 @@ static void grp_op_set(void *env, intptr_t p, val_t *val, val_t *res)
     cupkee_pin_group_set((void*)p, v);
 }
 
-static void grp_elem_get(void *env, intptr_t p, val_t *k, val_t *elem)
-{
-    int v;
-
-    (void) env;
-
-    if (p && val_is_number(k)) {
-        v = cupkee_pin_group_elem_get((void*)p, val_2_integer(k));
-        if (v >= 0) {
-            val_set_number(elem, v);
-            return;
-        }
-    }
-    val_set_undefined(elem);
-}
-
-static void grp_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
-{
-    (void) env;
-
-    if (p && val_is_number(k)) {
-        cupkee_pin_group_elem_set((void*)p, val_2_integer(k), val_is_true(v));
-    }
-}
-
 val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
     void *grp = cupkee_pin_group_create();
@@ -82,13 +57,7 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
             cupkee_pin_group_push(grp, pin);
         }
     }
-
-    if (cupkee_pin_group_size(grp) > 0) {
-        return val_mk_foreign((intptr_t)grp);
-    } else {
-        cupkee_pin_group_destroy(grp);
-        return VAL_FALSE;
-    }
+    return val_mk_foreign((intptr_t)grp);
 }
 
 val_t native_pin_enable(env_t *env, int ac, val_t *av)
