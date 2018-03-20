@@ -17,22 +17,25 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#ifndef __CUPKEE_SHELL_MISC_INC__
-#define __CUPKEE_SHELL_MISC_INC__
+#ifndef __CUPKEE_CONFIG_INC__
+#define __CUPKEE_CONFIG_INC__
 
-#include <cupkee.h>
+// Device
+#define CUPKEE_DEVICE_TYPE_MAX          16
 
-#define shell_reference_create  cupkee_shell_reference_create
-#define shell_reference_release cupkee_shell_reference_release
+// Pin
+#define CUPKEE_PIN_MAX                  32
 
-void shell_reference_init(env_t *env);
-val_t  *shell_reference_ptr(uint8_t id);
+// Memory
+#define CUPKEE_ZONE_MAX                 2
 
-void shell_print_value(val_t *v);
-void shell_print_error(int error);
+#define CUPKEE_PAGE_SHIFT               (10)
+#define CUPKEE_PAGE_SIZE                (1U << CUPKEE_PAGE_SHIFT)
+#define CUPKEE_PAGE_MASK                (((intptr_t)(-1)) << CUPKEE_PAGE_SHIFT)
+#define CUPKEE_PAGE_ORDERR_MAX          (8)
 
-// cupkee_shell_timer.c
-void cupkee_shell_init_timer(void);
+#define CUPKEE_MUNIT_SHIFT              (5)
+#define CUPKEE_MUNIT_SIZE               (1U << CUPKEE_MUNIT_SHIFT)
 
-#endif /* __CUPKEE_SHELL_MISC_INC__ */
+#endif /* __CUPKEE_CONFIG_INC__ */
 

@@ -21,29 +21,11 @@
 #define __CUPKEE_INC__
 
 #include "cupkee_version.h"
-
-/* Todo: cupkee_config.h ? */
-// Device config
-#define CUPKEE_DEVICE_TYPE_MAX          16
-
-// Pin
-#define CUPKEE_PIN_MAX                  32
-
-// Memory config
-#define CUPKEE_ZONE_MAX                 2
-
-#define CUPKEE_PAGE_SHIFT               (10)
-#define CUPKEE_PAGE_SIZE                (1U << CUPKEE_PAGE_SHIFT)
-#define CUPKEE_PAGE_MASK                (((intptr_t)(-1)) << CUPKEE_PAGE_SHIFT)
-#define CUPKEE_PAGE_ORDERR_MAX          (8)
-
-#define CUPKEE_MUNIT_SHIFT              (5)
-#define CUPKEE_MUNIT_SIZE               (1U << CUPKEE_MUNIT_SHIFT)
-
-
-/* Cupkee api */
+#include "cupkee_config.h"
 #include "cupkee_def.h"
+
 #include "cupkee_bsp.h"
+
 #include "cupkee_errno.h"
 #include "cupkee_data.h"
 #include "cupkee_utils.h"

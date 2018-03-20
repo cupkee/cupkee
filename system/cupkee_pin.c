@@ -96,6 +96,18 @@ int cupkee_pin_setup(void)
     return 0;
 }
 
+void cupkee_pin_event_dispatch(uint16_t id, uint8_t code)
+{
+    pin_event_handle_info_t *info = pin_event_handle_head;
+
+    while (info) {
+        if (info->pin == id && info->handler) {
+            info->handler(info->entry, code ? CUPKEE_EVENT_PIN_RISING : CUPKEE_EVENT_PIN_FALLING, id);
+        }
+        info = info->next;
+    }
+}
+
 int cupkee_pin_map(int pin, int bank, int port)
 {
     if (pin >= CUPKEE_PIN_MAX || pin_map_table[pin] != 0xFF) {
@@ -149,6 +161,36 @@ int cupkee_pin_toggle(int pin)
         return hw_gpio_toggle(BANK_OF(pin), PORT_OF(pin));
     } else {
         return 0;
+    }
+}
+
+int cupkee_pin_listen(int pin, int events, cupkee_callback_t handler, void *entry)
+{
+    events &= CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING;
+
+    if (events && !pin_is_invalid(pin)) {
+        int err;
+        err = pin_event_handle_set(pin, handler, entry);
+        if (err) {
+            return err;
+        }
+        err = hw_gpio_listen(BANK_OF(pin), PORT_OF(pin), events, pin);
+        if (err) {
+            pin_event_handle_clear(pin);
+        }
+        return err;
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int cupkee_pin_ignore(int pin)
+{
+    if (!pin_is_invalid(pin)) {
+        pin_event_handle_clear(pin);
+        return hw_gpio_ignore(BANK_OF(pin), PORT_OF(pin));
+    } else {
+        return -CUPKEE_EINVAL;
     }
 }
 
@@ -288,47 +330,5 @@ int cupkee_pin_group_elem_set(void *grp, int i, int v)
     }
 
     return -CUPKEE_EINVAL;
-}
-
-void cupkee_pin_event_dispatch(uint16_t id, uint8_t code)
-{
-    pin_event_handle_info_t *info = pin_event_handle_head;
-
-    while (info) {
-        if (info->pin == id && info->handler) {
-            info->handler(info->entry, code ? CUPKEE_EVENT_PIN_RISING : CUPKEE_EVENT_PIN_FALLING, id);
-        }
-        info = info->next;
-    }
-}
-
-int cupkee_pin_listen(int pin, int events, cupkee_callback_t handler, void *entry)
-{
-    events &= CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING;
-
-    if (events && !pin_is_invalid(pin)) {
-        int err;
-        err = pin_event_handle_set(pin, handler, entry);
-        if (err) {
-            return err;
-        }
-        err = hw_gpio_listen(BANK_OF(pin), PORT_OF(pin), events, pin);
-        if (err) {
-            pin_event_handle_clear(pin);
-        }
-        return err;
-    } else {
-        return -CUPKEE_EINVAL;
-    }
-}
-
-int cupkee_pin_ignore(int pin)
-{
-    if (!pin_is_invalid(pin)) {
-        pin_event_handle_clear(pin);
-        return hw_gpio_ignore(BANK_OF(pin), PORT_OF(pin));
-    } else {
-        return -CUPKEE_EINVAL;
-    }
 }
 
