@@ -26,10 +26,23 @@ void cupkee_module_init(void);
 void *cupkee_module_create(const char *name, int members);
 void cupkee_module_release(void *mod);
 
-int cupkee_module_export_number(void *mod, const char *name, double n);
-int cupkee_module_export_boolean(void *mod, const char *name, int b);
-int cupkee_module_export_string(void *mod, const char *name, const char *s);
-int cupkee_module_export_native(void *mod, const char *name, void *fn);
+int cupkee_module_export(void *mod, const char *key, val_t val);
+
+static inline int cupkee_module_export_number(void *m, const char *k, double v) {
+    return cupkee_module_export(m, k, val_mk_number(v));
+};
+
+static inline int cupkee_module_export_boolean(void *m, const char *k, int v) {
+    return cupkee_module_export(m, k, val_mk_boolean(v));
+}
+
+static inline int cupkee_module_export_string(void *m, const char *k, const char *v) {
+    return cupkee_module_export(m, k, val_mk_foreign_string((intptr_t)v));
+}
+
+static inline int cupkee_module_export_native(void *m, const char *k, void *v) {
+    return cupkee_module_export(m, k, val_mk_native((intptr_t)v));
+}
 
 int cupkee_module_register(void *mod);
 

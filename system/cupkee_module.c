@@ -82,65 +82,22 @@ void cupkee_module_release(void *mod)
     cupkee_free(mod);
 }
 
-int cupkee_module_export_number(void *m, const char *key, double n)
+int cupkee_module_export(void *m, const char *name, val_t val)
 {
     cupkee_module_t *mod = (cupkee_module_t *) m;
+    intptr_t key = env_symbal_add_static(cupkee_shell_env(), name);
 
-    if (mod->prop_num < mod->prop_cap) {
-        kv_pair_t *kv = &mod->props[mod->prop_num++];
+    if (name && mod->prop_num < mod->prop_cap) {
+        kv_pair_t *prop = &mod->props[mod->prop_num++];
 
-        kv->key = (intptr_t) key;
-        val_set_number(&kv->val, n);
-        return CUPKEE_OK;
-    }
-
-    return -CUPKEE_ELIMIT;
-}
-
-int cupkee_module_export_boolean(void *m, const char *key, int b)
-{
-    cupkee_module_t *mod = (cupkee_module_t *) m;
-
-    if (mod->prop_num < mod->prop_cap) {
-        kv_pair_t *kv = &mod->props[mod->prop_num++];
-
-        kv->key = (intptr_t) key;
-        val_set_boolean(&kv->val, b);
+        prop->key = key;
+        prop->val = val;
         return 0;
+    } else {
+        return -CUPKEE_ELIMIT;
     }
-
-    return -CUPKEE_ELIMIT;
 }
 
-int cupkee_module_export_string(void *m, const char *key, const char *s)
-{
-    cupkee_module_t *mod = (cupkee_module_t *) m;
-
-    if (mod->prop_num < mod->prop_cap) {
-        kv_pair_t *kv = &mod->props[mod->prop_num++];
-
-        kv->key = (intptr_t) key;
-        val_set_foreign_string(&kv->val, (intptr_t) s);
-        return 0;
-    }
-
-    return -CUPKEE_ELIMIT;
-}
-
-int cupkee_module_export_native(void *m, const char *key, void *fn)
-{
-    cupkee_module_t *mod = (cupkee_module_t *) m;
-
-    if (mod->prop_num < mod->prop_cap) {
-        kv_pair_t *kv = &mod->props[mod->prop_num++];
-
-        kv->key = (intptr_t) key;
-        val_set_native(&kv->val, (intptr_t) fn);
-        return 0;
-    }
-
-    return -CUPKEE_ELIMIT;
-}
 
 int cupkee_module_register(void *m)
 {
@@ -160,49 +117,18 @@ int cupkee_module_register(void *m)
     return 0;
 }
 
-static int module_is_true(intptr_t ptr)
-{
-    (void) ptr;
-
-    return 1;
-}
-
-static val_t *module_prop_ref(void *env, intptr_t id, val_t *key)
-{
-    cupkee_module_t *mod = (cupkee_module_t *)id;
-    const char *prop_key = val_2_cstring(key);
-
-    (void) env;
-
-    if (mod && prop_key) {
-        unsigned i = 0;
-
-        while (i < mod->prop_num) {
-            if (strcmp(prop_key, (const char *) (mod->props[i].key)) == 0) {
-                return &mod->props[i].val;
-            }
-            i++;
-        }
-    }
-
-    return NULL;
-}
-
-static const val_foreign_op_t module_op = {
-    .is_true = module_is_true,
-    .elem_ref = module_prop_ref,
-};
-
 val_t native_require(env_t *env, int ac, val_t *av)
 {
     const char *name = ac ? val_2_cstring(av) : NULL;
     val_t mod = VAL_UNDEFINED;
 
+    (void) env;
+
     if (name) {
         cupkee_module_t *cur = module_head;
         while (cur) {
             if (strcmp(cur->name, name) == 0) {
-                val_foreign_create(env, &module_op, (intptr_t) cur, &mod);
+                val_set_foreign(&mod, (intptr_t)cur);
                 break;
             } else {
                 cur = cur->next;

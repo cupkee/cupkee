@@ -40,12 +40,14 @@ static int device_setup(void *entry, env_t *env, val_t *setting)
         } else
         if (val_is_array(val)){
             array_t *array = (array_t *)val_2_intptr(val);
-            val_t   *elems = array_values(array);
-            int n = array_len(array), i;
+            val_t   *elem;
+            int i = 0;
 
-            for (i = 0; i < n; i++, elems++) {
-                if (val_is_number(elems) && cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(elems)) < 1) {
-                    break;
+            for (elem = array_get(array, i); NULL != (elem = array_get(array, i)); i++) {
+                if (val_is_number(elem)) {
+                    if (cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(elem)) < 1) {
+                        break;
+                    }
                 }
             }
         } else {

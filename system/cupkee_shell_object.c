@@ -30,7 +30,7 @@ static void create_array_by_octstr(env_t *env, uint8_t *seq, val_t *res)
 
         if (a) {
             for (i = 0; i < n; i++) {
-                val_set_number(_array_elem(a, i), seq[1 + i]);
+                val_set_number(array_elem(a, i), seq[1 + i]);
             }
             val_set_array(res, (intptr_t) a);
             return;
@@ -121,14 +121,10 @@ static void object_elem_get(void *env, intptr_t o, val_t *key, val_t *prop)
     val_set_undefined(prop);
 }
 
-static const val_foreign_op_t object_op = {
-    .elem = object_elem_get,
-};
-
 val_t cupkee_shell_object_create(env_t *env, void *entry)
 {
     if (entry) {
-        return val_create(env, &object_op, (intptr_t)CUPKEE_OBJECT_PTR(entry));
+        return val_mk_foreign((intptr_t)CUPKEE_OBJECT_PTR(entry));
     } else {
         return VAL_UNDEFINED;
     }

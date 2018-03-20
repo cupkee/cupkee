@@ -42,7 +42,6 @@ static char *input_mem_ptr;
 static int   input_mem_sz;
 static int   input_cached;
 static uint8_t   shell_console_mode;
-static uint8_t   shell_logo_show;
 static env_t shell_env;
 
 static void shell_memory_location(int *heap_mem_sz, int *stack_mem_sz)
@@ -179,10 +178,6 @@ static int shell_console_handle(int type, int ch)
 {
     (void) ch;
 
-    if (!shell_logo_show) {
-        shell_logo_show = 1;
-        //console_puts_sync(logo);
-    }
 
     if (type == CON_CTRL_ENTER) {
         return shell_console_load();
@@ -206,7 +201,6 @@ static void shell_console_init(void)
     cupkee_console_init(shell_console_handle);
 
     input_cached = 0;
-    shell_logo_show = 0;
 }
 
 static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const native_t *entrys)
@@ -224,6 +218,107 @@ static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const na
     shell_console_mode = CONSOLE_INPUT_LINE;
 }
 
+val_t foreign_set(void *env, val_t *self, val_t *val)
+{
+    (void) env;
+    (void) self;
+
+    return *val;
+}
+
+void foreign_keep(intptr_t entry)
+{
+    (void) entry;
+}
+
+int foreign_is_true(val_t *self)
+{
+    (void) self;
+    return 0;
+}
+
+int foreign_is_equal(val_t *self, val_t *other)
+{
+    (void) self;
+    (void) other;
+    return 0;
+}
+
+double foreign_value_of(val_t *self)
+{
+    (void) self;
+    return 0;
+}
+
+val_t  foreign_get_prop(void *env, val_t *self, const char *key)
+{
+    (void) env;
+    (void) self;
+    (void) key;
+    return VAL_UNDEFINED;
+}
+
+val_t foreign_get_elem(void *env, val_t *self, int id)
+{
+    (void) env;
+    (void) self;
+    (void) id;
+    return VAL_UNDEFINED;
+}
+
+void foreign_set_prop(void *env, val_t *self, const char *key, val_t *data)
+{
+    (void) env;
+    (void) self;
+    (void) key;
+    (void) data;
+}
+
+void foreign_set_elem(void *env, val_t *self, int id, val_t *data)
+{
+    (void) env;
+    (void) self;
+    (void) id;
+    (void) data;
+}
+
+void foreign_opx_prop(void *env, val_t *self, const char *key, val_t *res, val_opx_t op)
+{
+    (void) env;
+    (void) self;
+    (void) key;
+    (void) res;
+    (void) op;
+}
+
+void foreign_opx_elem(void *env, val_t *self, int id, val_t *res, val_opx_t op)
+{
+    (void) env;
+    (void) self;
+    (void) id;
+    (void) res;
+    (void) op;
+}
+
+void foreign_opxx_prop(void *env, val_t *self, const char *key, val_t *data, val_t *res, val_opxx_t op)
+{
+    (void) env;
+    (void) self;
+    (void) key;
+    (void) data;
+    (void) res;
+    (void) op;
+}
+
+void foreign_opxx_elem(void *env, val_t *self, int id, val_t *data, val_t *res, val_opxx_t op)
+{
+    (void) env;
+    (void) self;
+    (void) id;
+    (void) data;
+    (void) res;
+    (void) op;
+}
 env_t *cupkee_shell_env(void)
 {
     return &shell_env;
@@ -243,6 +338,8 @@ int cupkee_shell_init(int n, const native_t *natives)
 
     cupkee_shell_init_timer();
     cupkee_shell_init_device();
+
+    //console_puts_sync(logo);
 
     return 0;
 }
@@ -302,8 +399,7 @@ void *cupkee_shell_object_entry (int *ac, val_t **av)
     if ((*ac)) {
         val_t *v = *av;
         if (val_is_foreign(v)) {
-            val_foreign_t *fv = (val_foreign_t *) val_2_intptr(v);
-            cupkee_object_t *obj = (cupkee_object_t *)fv->data;
+            cupkee_object_t *obj = (cupkee_object_t *) val_2_intptr(v);
 
             if (obj) {
                 (*ac) --; (*av) ++;

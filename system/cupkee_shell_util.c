@@ -104,7 +104,7 @@ static void print_array_value(val_t *v)
     array_t *array = (array_t *) val_2_intptr(v);
     int i, max;
 
-    max = array_len(array);
+    max = array_length(array);
 
     if (max == 0) {
         console_puts("[]\r\n");
@@ -116,7 +116,7 @@ static void print_array_value(val_t *v)
         snprintf(buf, 16, "  [%2d]:", i);
         console_puts(buf);
 
-        print_simple_value(_array_elem(array, i));
+        print_simple_value(array_elem(array, i));
     }
     console_puts("]\r\n");
 }
@@ -466,12 +466,6 @@ static void grp_elem_set(void *env, intptr_t p, val_t *k, val_t *v)
     }
 }
 
-static const val_foreign_op_t grp_op = {
-    .set  = grp_op_set,
-    //.elem_get = grp_elem_get,
-    //.elem_set = grp_elem_set,
-};
-
 val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
     void *grp = cupkee_pin_group_create();
@@ -489,7 +483,7 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
     }
 
     if (cupkee_pin_group_size(grp) > 0) {
-        return val_create(env, &grp_op, (intptr_t)grp);
+        return val_mk_foreign((intptr_t)grp);
     } else {
         cupkee_pin_group_destroy(grp);
         return VAL_FALSE;
