@@ -336,13 +336,18 @@ int cupkee_id(int tag)
     return id;
 }
 
-void cupkee_release(void *entry)
+int cupkee_release(void *entry)
 {
     cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
 
     if (obj) {
         cupkee_object_destroy(obj);
+        return 0;
+    } else {
+        return -CUPKEE_EINVAL;
     }
+
+    //cupkee_object_event_post(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_DESTROY);
 }
 
 void *cupkee_entry(int id, uint8_t tag)

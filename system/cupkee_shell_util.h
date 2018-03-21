@@ -22,11 +22,10 @@
 
 #include <cupkee.h>
 
-#define shell_reference_create  cupkee_shell_reference_create
-#define shell_reference_release cupkee_shell_reference_release
-
 void shell_reference_init(env_t *env);
-val_t  *shell_reference_ptr(uint8_t id);
+void shell_reference_release(val_t *ref);
+val_t *shell_reference_create(val_t *v);
+val_t *shell_reference_ptr(uint8_t id);
 
 void shell_print_value(val_t *v);
 void shell_print_error(int error);

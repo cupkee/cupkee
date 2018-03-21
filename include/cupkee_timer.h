@@ -41,19 +41,19 @@ int cupkee_timer_setup(void);
 int cupkee_timer_tag(void);
 
 cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param);
-int cupkee_timer_release(cupkee_timer_t *timer);
-int cupkee_timer_state(cupkee_timer_t *timer);
 
-int cupkee_timer_start(cupkee_timer_t *timer, int us);
+int cupkee_timer_state(void *entry);
+
+int cupkee_timer_start(void *entry, int us);
 int cupkee_timer_stop(cupkee_timer_t *timer);
 int cupkee_timer_duration(cupkee_timer_t *timer);
 
 int cupkee_is_timer(void *entry);
 
-static inline intptr_t cupkee_timer_callback_param(void *timer) {
-    cupkee_timer_t *t = timer;
+static inline intptr_t cupkee_timer_callback_param(void *entry) {
+    cupkee_timer_t *timer = entry;
 
-    return t->cb_param;
+    return timer->cb_param;
 };
 
 // Should only be call in BSP

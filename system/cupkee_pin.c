@@ -376,3 +376,13 @@ int cupkee_pin_group_set(void *entry, uint32_t v)
     return -CUPKEE_EINVAL;
 }
 
+int cupkee_pin_group_tag(void)
+{
+    return pin_group_tag;
+}
+
+int cupkee_is_pin_group(void *entry)
+{
+    return cupkee_is_object(entry, pin_group_tag);
+}
+

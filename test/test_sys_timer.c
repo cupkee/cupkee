@@ -61,8 +61,7 @@ static void test_timer_request(void)
     CU_ASSERT(0 <= (timer = cupkee_timer_request(test_timer_counter, 0)));
     CU_ASSERT(cupkee_timer_state(timer) == CUPKEE_TIMER_STATE_IDLE);
 
-    CU_ASSERT(0 == cupkee_timer_release(timer));
-    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(0 == cupkee_release(timer));
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 
@@ -82,8 +81,7 @@ static void test_timer_start(void)
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(timer_event == CUPKEE_EVENT_STOP);
 
-    CU_ASSERT(0 == cupkee_timer_release(timer));
-    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(0 == cupkee_release(timer));
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 
@@ -124,8 +122,7 @@ static void test_timer_running(void)
     CU_ASSERT(timer_event == CUPKEE_EVENT_STOP);
     CU_ASSERT(timer_count == 3);
 
-    CU_ASSERT(0 == cupkee_timer_release(timer));
-    CU_ASSERT(TU_object_event_dispatch());
+    CU_ASSERT(0 == cupkee_release(timer));
     CU_ASSERT(timer_event == CUPKEE_EVENT_DESTROY);
 }
 

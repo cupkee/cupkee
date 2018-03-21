@@ -19,27 +19,6 @@
 
 #include "cupkee_shell_util.h"
 
-/* pin group */
-static void grp_op_set(void *env, intptr_t p, val_t *val, val_t *res)
-{
-    uint32_t v;
-
-    (void) env;
-
-    if (val_is_number(val)) {
-        v = val_2_integer(val);
-    } else
-    if (val_is_true(val)) {
-        v = -1;
-    } else {
-        v = 0;
-    }
-
-    *res = val_mk_number(v);
-
-    cupkee_pin_group_set((void*)p, v);
-}
-
 val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
     void *grp = cupkee_pin_group_create();

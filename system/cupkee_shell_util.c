@@ -71,7 +71,7 @@ static void print_simple_value(val_t *v)
         console_puts("<array>");
     } else
     if (val_is_foreign(v)) {
-        console_puts(cupkee_name((void*) val_2_intptr(v)));
+        console_log("<object %s>", cupkee_name((void*) val_2_intptr(v)));
     } else {
         console_puts("<object>");
     }
@@ -145,7 +145,7 @@ void shell_reference_init(env_t *env)
     env_reference_set(env, reference_vals, VARIABLE_REF_MAX);
 }
 
-val_t *cupkee_shell_reference_create(val_t *v)
+val_t *shell_reference_create(val_t *v)
 {
     int i;
 
@@ -160,7 +160,7 @@ val_t *cupkee_shell_reference_create(val_t *v)
     return NULL;
 }
 
-void cupkee_shell_reference_release(val_t *ref)
+void shell_reference_release(val_t *ref)
 {
     if (ref) {
         int pos = ref - reference_vals;

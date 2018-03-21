@@ -76,6 +76,7 @@ static void test_basic(void)
 static void test_group(void)
 {
     void *grp;
+    intptr_t v;
 
     CU_ASSERT(NULL != (grp = cupkee_pin_group_create()));
 
@@ -91,21 +92,21 @@ static void test_group(void)
     CU_ASSERT(10 == cupkee_pin_group_get(grp));
 
     CU_ASSERT(0 == cupkee_pin_group_set(grp, 0xc));
-    CU_ASSERT(0 == cupkee_pin_group_elem_get(grp, 0));
-    CU_ASSERT(0 == cupkee_pin_group_elem_get(grp, 1));
-    CU_ASSERT(1 == cupkee_pin_group_elem_get(grp, 2));
-    CU_ASSERT(1 == cupkee_pin_group_elem_get(grp, 3));
+    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 0, &v) && v == 0);
+    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 1, &v) && v == 0);
+    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 2, &v) && v == 1);
+    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 3, &v) && v == 1);
 
-    CU_ASSERT(0 == cupkee_pin_group_elem_set(grp, 0, 1));
-    CU_ASSERT(0 == cupkee_pin_group_elem_set(grp, 1, 1));
-    CU_ASSERT(0 == cupkee_pin_group_elem_set(grp, 2, 0));
-    CU_ASSERT(0 == cupkee_pin_group_elem_set(grp, 3, 0));
+    CU_ASSERT(0 == cupkee_elem_set(grp, 0, CUPKEE_OBJECT_ELEM_INT, 1));
+    CU_ASSERT(0 == cupkee_elem_set(grp, 1, CUPKEE_OBJECT_ELEM_INT, 1));
+    CU_ASSERT(0 == cupkee_elem_set(grp, 2, CUPKEE_OBJECT_ELEM_INT, 0));
+    CU_ASSERT(0 == cupkee_elem_set(grp, 3, CUPKEE_OBJECT_ELEM_INT, 0));
     CU_ASSERT(3 == cupkee_pin_group_get(grp));
 
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_group_elem_set(grp, 4, 1));
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_group_elem_get(grp, 4));
+    CU_ASSERT(0 > cupkee_elem_set(grp, 4, CUPKEE_OBJECT_ELEM_INT, 0));
+    CU_ASSERT(CUPKEE_OBJECT_ELEM_NV == cupkee_elem_get(grp, 4, &v));
 
-    CU_ASSERT(0 == cupkee_pin_group_destroy(grp));
+    CU_ASSERT(0 == cupkee_release(grp));
 }
 
 static int changed_pin;

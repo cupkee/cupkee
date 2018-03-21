@@ -52,7 +52,6 @@ static void timer_event_handle(void *entry, uint8_t code)
     case CUPKEE_EVENT_STOP:
         timer->state = CUPKEE_TIMER_STATE_IDLE;
         // no break;
-    case CUPKEE_EVENT_DESTROY:
     case CUPKEE_EVENT_ERROR:
     case CUPKEE_EVENT_START:
         if (timer && timer->cb) {
@@ -83,7 +82,7 @@ static const cupkee_desc_t timer_desc = {
 
 int cupkee_timer_setup(void)
 {
-    if (0 > (timer_tag = cupkee_object_register(sizeof(cupkee_timer_t), &timer_desc))) {
+    if (0 >= (timer_tag = cupkee_object_register(sizeof(cupkee_timer_t), &timer_desc))) {
         return -1;
     }
 
@@ -117,50 +116,40 @@ cupkee_timer_t *cupkee_timer_request(cupkee_callback_t cb, intptr_t param)
     return timer;
 }
 
-int cupkee_timer_release(cupkee_timer_t *timer)
+int cupkee_timer_state(void *entry)
 {
-    if (is_timer(timer)) {
-        cupkee_object_event_post(CUPKEE_ENTRY_ID(timer), CUPKEE_EVENT_DESTROY);
+    if (!is_timer(entry)) {
+        return -CUPKEE_EINVAL;
+    } else {
+        cupkee_timer_t *timer = entry;
+        return timer->state;
+    }
+}
+
+int cupkee_timer_start(void *entry, int us)
+{
+    if (!is_timer(entry) || us < 1) {
+        return -CUPKEE_EINVAL;
+    } else {
+        cupkee_timer_t *timer = entry;
+
+        if (timer->state != CUPKEE_TIMER_STATE_IDLE) {
+            return -CUPKEE_EBUSY;
+        }
+
+        timer->period = us;
+        if (hw_timer_start(timer->inst, CUPKEE_ENTRY_ID(timer), us)) {
+            return -CUPKEE_EHARDWARE;
+        }
+        timer->state = CUPKEE_TIMER_STATE_RUNNING;
+
+        if (timer->cb) {
+            timer->cb(timer, CUPKEE_EVENT_START, timer->cb_param);
+        }
+        // cupkee_object_event_post(cupkee_entry_id(timer), CUPKEE_EVENT_START);
+
         return 0;
     }
-    return -CUPKEE_EINVAL;
-}
-
-int cupkee_timer_state(cupkee_timer_t *timer)
-{
-    if (!is_timer(timer)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return timer->state;
-}
-
-int cupkee_timer_start(cupkee_timer_t *timer, int us)
-{
-    if (!is_timer(timer)) {
-        return -CUPKEE_EINVAL;
-    }
-
-    if (us < 1) {
-        return -CUPKEE_EINVAL;
-    }
-
-    if (timer->state != CUPKEE_TIMER_STATE_IDLE) {
-        return -CUPKEE_EBUSY;
-    }
-
-    timer->period = us;
-    if (hw_timer_start(timer->inst, CUPKEE_ENTRY_ID(timer), us)) {
-        return -CUPKEE_EHARDWARE;
-    }
-    timer->state = CUPKEE_TIMER_STATE_RUNNING;
-
-    if (timer->cb) {
-        timer->cb(timer, CUPKEE_EVENT_START, timer->cb_param);
-    }
-    // cupkee_object_event_post(cupkee_entry_id(timer), CUPKEE_EVENT_START);
-
-    return 0;
 }
 
 int cupkee_timer_stop(cupkee_timer_t *timer)

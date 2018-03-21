@@ -38,14 +38,14 @@ int cupkee_pin_set(int pin, int v);
 int cupkee_pin_get(int pin);
 int cupkee_pin_toggle(int pin);
 
+int cupkee_is_pin_group(void *entry);
+int cupkee_pin_group_tag(void);
 void *cupkee_pin_group_create(void);
-int cupkee_pin_group_push(void *grp, int pin);
-int cupkee_pin_group_pop(void *grp);
+int cupkee_pin_group_push(void *entry, int pin);
+int cupkee_pin_group_pop(void *entry);
 
-int cupkee_pin_group_get(void *grp);
-int cupkee_pin_group_set(void *grp, uint32_t v);
-int cupkee_pin_group_elem_get(void *grp, int id);
-int cupkee_pin_group_elem_set(void *grp, int id, int v);
+int cupkee_pin_group_get(void *entry);
+int cupkee_pin_group_set(void *entry, uint32_t v);
 
 #endif /* __CUPKEE_PIN_INC__ */
 
