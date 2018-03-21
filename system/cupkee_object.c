@@ -361,6 +361,17 @@ void *cupkee_entry(int id, uint8_t tag)
     return NULL;
 }
 
+const void *cupkee_meta(void *entry)
+{
+    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
+
+    if (obj && obj->tag < obj_tag_end) {
+        return obj_infos[obj->tag].meta;
+    }
+
+    return NULL;
+}
+
 int cupkee_tag(void *entry)
 {
     cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);

@@ -266,10 +266,19 @@ double foreign_value_of(val_t *self)
 val_t foreign_get_prop(void *env, val_t *self, const char *key)
 {
     void *entry = (void *)val_2_intptr(self);
+    const cupkee_meta_t *meta;
     intptr_t v;
     int t;
 
     (void) env;
+
+    meta = cupkee_meta(entry);
+    if (meta && meta->prop_get) {
+        val_t prop;
+        if (meta->prop_get(entry, key, &prop) > 0) {
+            return prop;
+        }
+    }
 
     t = cupkee_prop_get(entry, key, &v);
     switch (t) {
@@ -441,21 +450,5 @@ val_t cupkee_execute_function(val_t *fn, int ac, val_t *av)
         }
     }
     return VAL_UNDEFINED;
-}
-
-void *cupkee_shell_object_entry (int *ac, val_t **av)
-{
-    if ((*ac)) {
-        val_t *v = *av;
-        if (val_is_foreign(v)) {
-            cupkee_object_t *obj = (cupkee_object_t *) val_2_intptr(v);
-
-            if (obj) {
-                (*ac) --; (*av) ++;
-                return obj->entry;
-            }
-        }
-    }
-    return NULL;
 }
 

@@ -109,6 +109,7 @@ int cupkee_tag(void *entry);
 void cupkee_error_set(void *entry, int err);
 
 const char *cupkee_name(void *entry);
+const void *cupkee_meta(void *entry);
 void cupkee_listen(void *entry, int event);
 void cupkee_ignore(void *entry, int event);
 int  cupkee_read(void *entry, size_t n, void *buf);

@@ -48,7 +48,7 @@ val_t cupkee_execute_function(val_t *fn, int ac, val_t *av);
 
 val_t cupkee_shell_object_create(env_t *env, void *entry);
 
-void *cupkee_shell_object_entry (int *ac, val_t **av);
+void *cupkee_shell_object_entry (val_t *av);
 
 #endif /* __CUPKEE_SHELL_INC__ */
 

@@ -36,7 +36,7 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
             cupkee_pin_group_push(grp, pin);
         }
     }
-    return val_mk_foreign((intptr_t)grp);
+    return cupkee_shell_object_create(env, grp);
 }
 
 val_t native_pin_enable(env_t *env, int ac, val_t *av)

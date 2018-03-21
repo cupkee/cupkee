@@ -67,9 +67,10 @@ static val_t native_device_enable(env_t *env, int ac, val_t *av)
 
     (void) env;
 
-    if (NULL == (dev= cupkee_shell_object_entry(&ac, &av))) {
-        return VAL_FALSE;
+    if (ac < 1 || NULL == (dev = cupkee_shell_object_entry(av))) {
+        return VAL_UNDEFINED;
     }
+    ac--; av++;
 
     if (ac > 0 && val_is_object(av)) {
         if (cupkee_device_is_enabled(dev)) {
@@ -89,9 +90,10 @@ static val_t native_device_disable(env_t *env, int ac, val_t *av)
 
     (void) env;
 
-    if (NULL == (dev= cupkee_shell_object_entry(&ac, &av))) {
-        return VAL_FALSE;
+    if (ac < 1 || NULL == (dev = cupkee_shell_object_entry(av))) {
+        return VAL_UNDEFINED;
     }
+    ac--; av++;
 
     return cupkee_device_disable(dev) == 0 ? VAL_TRUE : VAL_FALSE;
 }

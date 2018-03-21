@@ -65,6 +65,18 @@ static void timer_event_handle(void *entry, uint8_t code)
     }
 }
 
+static int timer_get_prop (void *entry, const char *k, intptr_t *p)
+{
+    cupkee_timer_t *t = entry;
+
+    if (t && !strcmp(k, "duration")) {
+        *p = cupkee_timer_duration(t);
+        return CUPKEE_OBJECT_ELEM_INT;
+    } else {
+        return CUPKEE_OBJECT_ELEM_NV;
+    }
+}
+
 static void timer_destroy(void *entry)
 {
     cupkee_timer_t *timer = (cupkee_timer_t *)entry;
@@ -76,8 +88,12 @@ static void timer_destroy(void *entry)
 }
 
 static const cupkee_desc_t timer_desc = {
+    .name         = "Timer",
+
     .destroy      = timer_destroy,
-    .event_handle = timer_event_handle
+    .event_handle = timer_event_handle,
+
+    .prop_get     = timer_get_prop,
 };
 
 int cupkee_timer_setup(void)

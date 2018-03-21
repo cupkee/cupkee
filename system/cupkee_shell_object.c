@@ -124,9 +124,17 @@ static void object_elem_get(void *env, intptr_t o, val_t *key, val_t *prop)
 val_t cupkee_shell_object_create(env_t *env, void *entry)
 {
     if (entry) {
-        return val_mk_foreign((intptr_t)CUPKEE_OBJECT_PTR(entry));
+        return val_mk_foreign((intptr_t)entry);
     } else {
         return VAL_UNDEFINED;
     }
+}
+
+void *cupkee_shell_object_entry (val_t *v)
+{
+    if (val_is_foreign(v)) {
+        return (void*) val_2_intptr(v);
+    }
+    return NULL;
 }
 
