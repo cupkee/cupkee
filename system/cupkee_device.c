@@ -20,15 +20,13 @@
 #include "cupkee.h"
 #include "cupkee_shell_device.h"
 
+#define is_device(d)  cupkee_is_object((d), device_tag)
+
 static uint8_t device_tag = 0xff;
 static uint8_t device_type_num = 0;
 
 static cupkee_device_desc_t const *device_descs[CUPKEE_DEVICE_TYPE_MAX];
 static cupkee_device_t      *device_work = NULL;
-
-static inline int is_device(void *entry) {
-    return entry && (CUPKEE_OBJECT_PTR(entry)->tag == device_tag);
-}
 
 static inline cupkee_device_t *device_data(int id)
 {
@@ -289,17 +287,8 @@ static void device_listen(void *entry, int event)
 {
     cupkee_device_t *dev = entry;
 
-    if (dev) {
-        switch(event) {
-        case CUPKEE_EVENT_DATA:
-        case CUPKEE_EVENT_DRAIN:
-            if (dev->s) {
-                cupkee_stream_listen(dev->s, event);
-            }
-            break;
-        default:
-            break;
-        }
+    if (dev && dev->s) {
+        cupkee_stream_listen(dev->s, event);
     }
 }
 
@@ -307,17 +296,8 @@ static void device_ignore(void *entry, int event)
 {
     cupkee_device_t *dev = entry;
 
-    if (dev) {
-        switch(event) {
-        case CUPKEE_EVENT_DATA:
-        case CUPKEE_EVENT_DRAIN:
-            if (dev->s) {
-                cupkee_stream_ignore(dev->s, event);
-            }
-            break;
-        default:
-            break;
-        }
+    if (dev && dev->s) {
+        cupkee_stream_ignore(dev->s, event);
     }
 }
 
@@ -437,6 +417,8 @@ static int device_elem_set(void *entry, int i, int t, intptr_t v)
 }
 
 static const cupkee_desc_t device_desc = {
+    .name         = "Device",
+
     .error_handle = device_error_handle,
     .event_handle = device_event_handle,
     .streaming    = device_stream,
@@ -524,12 +506,6 @@ void *cupkee_device_request(const char *name, int instance)
         return NULL;
     } else {
         return device_request(type, instance);
-    }
-}
-
-void cupkee_device_release(void *entry) {
-    if (is_device(entry)) {
-        cupkee_object_event_post(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_DESTROY);
     }
 }
 
@@ -781,7 +757,7 @@ int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, c
     }
 
     err = device_query_start(dev, req, want, cb, param);
-    if (err < 0 && req) {
+    if (err < 0) {
         cupkee_buffer_release(req);
     }
 

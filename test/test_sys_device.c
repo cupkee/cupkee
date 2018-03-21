@@ -256,12 +256,12 @@ static void test_request(void)
     CU_ASSERT(cupkee_is_device(d1));
     CU_ASSERT(cupkee_is_device(d2));
 
-    cupkee_device_release(d1);
-    CU_ASSERT(TU_object_event_dispatch());
+    cupkee_release(d1);
+    TU_object_event_dispatch();
     CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 
-    cupkee_device_release(d2);
-    CU_ASSERT(TU_object_event_dispatch());
+    cupkee_release(d2);
+    TU_object_event_dispatch();
     CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
@@ -280,8 +280,8 @@ static void test_enable(void)
     CU_ASSERT(0 == cupkee_device_disable(d));
     CU_ASSERT(!cupkee_device_is_enabled(d));
 
-    cupkee_device_release(d);
-    CU_ASSERT(TU_object_event_dispatch());
+    cupkee_release(d);
+    TU_object_event_dispatch();
     CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
@@ -385,8 +385,8 @@ static void test_query(void)
     CU_ASSERT(0 == cupkee_device_disable(d));
     CU_ASSERT(!cupkee_device_is_enabled(d));
 
-    cupkee_device_release(d);
-    CU_ASSERT(TU_object_event_dispatch());
+    cupkee_release(d);
+    TU_object_event_dispatch();
     CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 

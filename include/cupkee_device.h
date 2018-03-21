@@ -77,7 +77,6 @@ void cupkee_device_poll(void);
 int  cupkee_device_register(const cupkee_device_desc_t *desc);
 
 void *cupkee_device_request(const char *name, int instance);
-void cupkee_device_release(void *entry);
 int  cupkee_is_device(void *entry);
 
 int cupkee_device_handle_set(void *entry, cupkee_callback_t handle, intptr_t param);

@@ -24,8 +24,8 @@
 #include "cupkee_shell_device.h"
 #include "cupkee_sysdisk.h"
 
-#define CONSOLE_INPUT_LINE  0
-#define CONSOLE_INPUT_MULTI 1
+#define CONSOLE_INPUT_LINE      0
+#define CONSOLE_INPUT_MULTI     1
 
 static const char *logo = "\r\n\
     ______               __                  \r\n\
@@ -33,7 +33,7 @@ static const char *logo = "\r\n\
  /    \\  \\/|  |  \\____ \\|  |/ // __ \\_/ __ \\ \r\n\
  \\     \\___|  |  /  |_> |    <\\  ___/\\  ___/ \r\n\
   \\________/____/|   __/|__|_ \\\\____> \\____>\r\n\
-                 |__|        \\/ www.cupkee.cn\r\n";
+                 |__|        \\/ V" CUPKEE_VERSION "\r\n";
 
 static void *core_mem_ptr;
 static int   core_mem_sz;
@@ -288,7 +288,12 @@ val_t foreign_get_prop(void *env, val_t *self, const char *key)
         return val_mk_foreign_string(v);
     case CUPKEE_OBJECT_ELEM_BOOL:
         return val_mk_boolean(v);
-    case CUPKEE_OBJECT_ELEM_OCT:
+    case CUPKEE_OBJECT_ELEM_OCT: {
+        uint8_t *ptr = (uint8_t *)v;
+        uint8_t len = *ptr++;
+
+        return val_mk_array(array_alloc_u8(env, len, ptr));
+    }
     default:
         break;
     }
@@ -320,10 +325,27 @@ val_t foreign_get_elem(void *env, val_t *self, int id)
 
 void foreign_set_prop(void *env, val_t *self, const char *key, val_t *data)
 {
+    void *entry = (void *)val_2_intptr(self);
+
     (void) env;
-    (void) self;
-    (void) key;
-    (void) data;
+
+    if (val_is_number(data)) {
+        cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(data));
+    } else
+    if (val_is_string(data)) {
+        cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_STR, (intptr_t)val_2_cstring(data));
+    } else
+    if (val_is_array(data)){
+        array_t *array = (array_t *)val_2_intptr(data);
+        val_t   *elems = array_values(array);
+        int n = array_length(array), i;
+
+        for (i = 0; i < n; i++, elems++) {
+            if (val_is_number(elems) && cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(elems)) < 1) {
+                break;
+            }
+        }
+    }
 }
 
 void foreign_set_elem(void *env, val_t *self, int id, val_t *data)
@@ -397,7 +419,7 @@ int cupkee_shell_init(int n, const native_t *natives)
     cupkee_shell_init_timer();
     cupkee_shell_init_device();
 
-    //console_puts_sync(logo);
+    console_puts_sync(logo);
 
     return 0;
 }

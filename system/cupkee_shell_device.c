@@ -22,7 +22,7 @@
 #include "cupkee_shell_util.h"
 #include "cupkee_shell_device.h"
 
-static int device_setup(void *entry, env_t *env, val_t *setting)
+static int device_config(void *entry, env_t *env, val_t *setting)
 {
     object_iter_t it;
     const char *key;
@@ -76,7 +76,7 @@ static val_t native_device_enable(env_t *env, int ac, val_t *av)
         if (cupkee_device_is_enabled(dev)) {
             return VAL_FALSE;
         }
-        if (0 != device_setup(dev, env, av)) {
+        if (0 != device_config(dev, env, av)) {
             return VAL_FALSE;
         }
     }

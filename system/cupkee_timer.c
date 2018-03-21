@@ -19,14 +19,9 @@
 
 #include "cupkee.h"
 
-static int timer_tag = -1;
+#define is_timer(t)  cupkee_is_object((t), timer_tag)
 
-static inline int is_timer(void *p)
-{
-    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(p);
-
-    return obj ? obj->tag == timer_tag : 0;
-}
+static uint8_t timer_tag = -1;
 
 static void timer_do_rewind(cupkee_timer_t *timer)
 {
