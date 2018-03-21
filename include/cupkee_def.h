@@ -45,6 +45,8 @@
 
 #define CUPKEE_SYSDISK_SECTOR_COUNT		1024 * 32
 
+#define CUPKEE_FLAG_REPEAT              0x01
+
 typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
 void cupkee_sysinfo_get(uint8_t *info_buf);

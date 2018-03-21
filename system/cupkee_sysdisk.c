@@ -20,9 +20,6 @@
 #include "cupkee.h"
 #include "cupkee_sysdisk.h"
 
-#define APP_HEAD    "/* CUPKEE APP */"
-#define CFG_HEAD    "/* CUPKEE CONFIG  */"
-
 #define WBVAL(x) ((x) & 0xFF), (((x) >> 8) & 0xFF)
 #define QBVAL(x) ((x) & 0xFF), (((x) >> 8) & 0xFF),\
 		 (((x) >> 16) & 0xFF), (((x) >> 24) & 0xFF)
@@ -47,6 +44,9 @@
 #define START_CLUSTER(s)     (((s) - FILEDATA_START_SECTOR) / SECTORS_PER_CLUSTER + 2)
 #define COUNT_CLUSTER(s)     (((s) + BYTES_PER_CLUSTER - 1) / BYTES_PER_CLUSTER)
 
+#define APP_HEAD    "/* CUPKEE APP */"
+
+static const char *app_head = APP_HEAD;
 static const char *app_data = NULL;
 static uint16_t app_size = 0;
 static uint16_t write_start_sector = 0;
@@ -307,7 +307,7 @@ void cupkee_sysdisk_init(void)
 
     app_size = sysdisk_app_scan(base, size);
     if (app_size == 0) {
-        app_data = APP_HEAD;
+        app_data = app_head;
         app_size = strlen(app_data);
     } else {
         app_data = (void *)base;
@@ -320,6 +320,6 @@ void cupkee_sysdisk_init(void)
 
 const char *cupkee_sysdisk_app(void)
 {
-    return (intptr_t)app_data == (intptr_t)APP_HEAD ? NULL : app_data;
+    return ((intptr_t)app_data == (intptr_t) (app_head)) ? NULL : app_data;
 }
 

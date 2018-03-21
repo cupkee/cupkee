@@ -19,7 +19,6 @@
 
 #include <cupkee.h>
 
-#define TIMEOUT_FL_REPEAT 1
 
 static cupkee_timeout_t *timeout_head = NULL;
 static int timeout_next = 0;
@@ -77,7 +76,7 @@ void cupkee_timeout_sync(uint32_t curr_ticks)
         if (curr_ticks - curr->from >= curr->wait) {
             curr->handle(0, curr->param);       // wake up
 
-            if (curr->flags & TIMEOUT_FL_REPEAT) {
+            if (curr->flags & CUPKEE_FLAG_REPEAT) {
                 curr->from = curr_ticks;
                 prev = curr;
             } else {
@@ -97,7 +96,7 @@ void cupkee_timeout_sync(uint32_t curr_ticks)
     }
 }
 
-cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int repeat, cupkee_timeout_handle_t handle, void *param)
+cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int flags, cupkee_timeout_handle_t handle, void *param)
 {
     cupkee_timeout_t *t;
 
@@ -112,7 +111,7 @@ cupkee_timeout_t *cupkee_timeout_register(uint32_t wait, int repeat, cupkee_time
         t->id     = timeout_next++;
         t->wait   = wait;
         t->from   = _cupkee_systicks;
-        t->flags  = repeat ? TIMEOUT_FL_REPEAT : 0;
+        t->flags  = flags;
 
         t->next = timeout_head;
         timeout_head = t;
