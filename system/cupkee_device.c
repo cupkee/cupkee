@@ -131,7 +131,8 @@ static cupkee_device_t *device_request(int type, int instance)
     dev->handle = NULL;
     dev->handle_param = 0;
 
-    dev->req = dev->res = NULL;
+    cupkee_buffer_init(&dev->req_buf, 0, NULL, 0);
+    cupkee_buffer_init(&dev->res_buf, 0, NULL, 0);
 
     return dev;
 }
@@ -148,6 +149,9 @@ static void device_destroy(void *entry)
     if (dev->conf) {
         cupkee_struct_release(dev->conf);
     }
+
+    cupkee_buffer_deinit(&dev->req_buf);
+    cupkee_buffer_deinit(&dev->res_buf);
 }
 
 static int device_read(cupkee_stream_t *s, size_t n, void *buf)
@@ -187,13 +191,13 @@ static void device_stream_init(cupkee_device_t *dev, int id)
 
     if (dev->driver->read) {
         // todo: get from conf
-        rx_size = 24;
+        rx_size = 32;
     } else {
         rx_size = 0;
     }
 
     if (dev->driver->write) {
-        tx_size = 24;
+        tx_size = 32;
     } else {
         tx_size = 0;
     }
@@ -208,7 +212,7 @@ static void device_stream_init(cupkee_device_t *dev, int id)
     }
 }
 
-static int device_query_start(cupkee_device_t *dev, void *req, int want, cupkee_callback_t cb, intptr_t param)
+static int device_query_start(cupkee_device_t *dev, int want, cupkee_callback_t cb, intptr_t param)
 {
     int err;
 
@@ -216,26 +220,17 @@ static int device_query_start(cupkee_device_t *dev, void *req, int want, cupkee_
         return -CUPKEE_EBUSY;
     }
 
-    if (want <= 0) {
-        dev->res = NULL;
-    } else
-    if (!(dev->res = cupkee_buffer_alloc(want))) {
+    if (want > 0 && (cupkee_buffer_space_to(&dev->res_buf, want) < want)) {
         return -CUPKEE_ENOMEM;
     }
 
     dev->handle = cb;
     dev->handle_param = param;
 
-    dev->req = req;
     dev->flags |= DEVICE_FL_BUSY;
 
     err = dev->driver->query(dev->instance, want);
     if (err < 0) {
-        if (dev->res) {
-            cupkee_buffer_release(dev->res);
-            dev->res = NULL;
-        }
-        dev->req = NULL;
         dev->flags &= ~DEVICE_FL_BUSY;
     }
 
@@ -260,13 +255,7 @@ static void device_event_handle(void *entry, uint8_t event)
             dev->handle(entry, event, dev->handle_param);
         }
         if (event == CUPKEE_EVENT_RESPONSE) {
-            if (dev->res) {
-                cupkee_buffer_release(dev->res);
-            }
-            if (dev->req) {
-                cupkee_buffer_release(dev->req);
-            }
-
+            cupkee_buffer_deinit(&dev->req_buf);
             dev->flags &= ~DEVICE_FL_BUSY;
         }
     }
@@ -617,41 +606,6 @@ int cupkee_device_is_enabled(void *entry)
     return device_is_enabled(dev);
 }
 
-void *cupkee_device_request_take(void *entry)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return NULL;
-    }
-
-    if (device_is_enabled(dev)) {
-        void *req = dev->req;
-        dev->req = NULL;
-        return req;
-    } else {
-        return NULL;
-    }
-}
-
-void *cupkee_device_response_take(void *entry)
-{
-    cupkee_device_t *dev = entry;
-
-    if (!is_device(entry)) {
-        return NULL;
-    }
-
-    if (device_is_enabled(dev)) {
-        void *res = dev->res;
-
-        dev->res = NULL;
-        return res;
-    } else {
-        return NULL;
-    }
-}
-
 int cupkee_device_request_len(void *entry)
 {
     cupkee_device_t *dev = entry;
@@ -661,11 +615,7 @@ int cupkee_device_request_len(void *entry)
     }
 
     if (device_is_enabled(dev)) {
-        if (dev->req) {
-            return cupkee_buffer_length(dev->req);
-        } else {
-            return 0;
-        }
+        return dev->req_buf.len;
     } else {
         return 0;
     }
@@ -679,14 +629,21 @@ void *cupkee_device_request_ptr(void *entry)
     }
 
     if (device_is_enabled(dev)) {
-        if (dev->req) {
-            return cupkee_buffer_ptr(dev->req);
-        } else {
-            return NULL;
-        }
+        return dev->req_buf.ptr;
     } else {
         return NULL;
     }
+}
+
+cupkee_buffer_t *cupkee_device_request_buffer(void *entry)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return NULL;
+    }
+
+    return &dev->req_buf;
 }
 
 int cupkee_device_request_load(void *entry, size_t n, void *data)
@@ -698,11 +655,22 @@ int cupkee_device_request_load(void *entry, size_t n, void *data)
     }
 
     if (device_is_enabled(dev)) {
-        if (dev->req) {
-            return cupkee_buffer_take(dev->req, n, data);
-        } else {
-            return 0;
-        }
+        return cupkee_buffer_take(&dev->req_buf, n, data);
+    } else {
+        return -1;
+    }
+}
+
+int cupkee_device_response_take(void *entry, void **pptr)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (device_is_enabled(dev)) {
+        return cupkee_buffer_xxx(&dev->res_buf, pptr);
     } else {
         return -1;
     }
@@ -716,8 +684,8 @@ int cupkee_device_response_push(void *entry, size_t n, void *data)
         return -CUPKEE_EINVAL;
     }
 
-    if (device_is_enabled(dev) && dev->res) {
-        return cupkee_buffer_give(dev->res, n, data);
+    if (device_is_enabled(dev)) {
+        return cupkee_buffer_give(&dev->res_buf, n, data);
     } else {
         return -1;
     }
@@ -737,7 +705,7 @@ void cupkee_device_response_end(void *entry)
 int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param)
 {
     int err;
-    void *req = NULL;
+    void *buf = NULL;
     cupkee_device_t *dev = entry;
 
     if (!is_device(entry)) {
@@ -752,19 +720,23 @@ int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, c
         return -CUPKEE_EIMPLEMENT;
     }
 
-    if (req_len && NULL == (req = cupkee_buffer_create(req_len, req_data))) {
-        return -CUPKEE_ENOMEM;
+    if (req_len) {
+        if (!(buf = cupkee_malloc(req_len))) {
+            return -CUPKEE_ENOMEM;
+        }
+        memcpy(buf, req_data, req_len);
+        cupkee_buffer_init(&dev->req_buf, req_len, buf, CUPKEE_FLAG_OWNED);
     }
 
-    err = device_query_start(dev, req, want, cb, param);
+    err = device_query_start(dev, want, cb, param);
     if (err < 0) {
-        cupkee_buffer_release(req);
+        cupkee_buffer_deinit(&dev->req_buf);
     }
 
     return err;
 }
 
-int cupkee_device_query2(void *entry, void *req, int want, cupkee_callback_t cb, intptr_t param)
+int cupkee_device_query_nocopy(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param)
 {
     cupkee_device_t *dev = entry;
 
@@ -779,8 +751,9 @@ int cupkee_device_query2(void *entry, void *req, int want, cupkee_callback_t cb,
     if (!dev->driver->query) {
         return -CUPKEE_EIMPLEMENT;
     }
+    cupkee_buffer_init(&dev->req_buf, req_len, req_data, 0);
 
-    return device_query_start(dev, req, want, cb, param);
+    return device_query_start(dev, want, cb, param);
 }
 
 int cupkee_device_push(void *entry, size_t n, const void *data)

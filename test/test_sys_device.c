@@ -34,7 +34,8 @@ struct mock_data_t {
 struct mock_handle_param_t {
     int id;
     int event;
-    void *resp;
+    int   resp_len;
+    void *resp_ptr;
 };
 
 static struct mock_data_t mock_data = {
@@ -47,7 +48,8 @@ static struct mock_data_t mock_data = {
 static struct mock_handle_param_t mock_handle_arg = {
     .id = 0,
     .event = 0,
-    .resp = NULL
+    .resp_len = 0,
+    .resp_ptr = NULL
 };
 
 static int mock_request(int inst)
@@ -115,14 +117,15 @@ static inline void mock_arg_clean(void)
 {
     mock_handle_arg.id    = CUPKEE_ID_INVALID;
     mock_handle_arg.event = 0;
-    mock_handle_arg.resp  = NULL;
+    mock_handle_arg.resp_len = 0;
+    if (mock_handle_arg.resp_ptr) {
+        cupkee_free(mock_handle_arg.resp_ptr);
+        mock_handle_arg.resp_ptr = NULL;
+    }
 }
 
 static void mock_arg_release(void)
 {
-    if (mock_handle_arg.resp) {
-        cupkee_buffer_release(mock_handle_arg.resp);
-    }
     mock_arg_clean();
 }
 
@@ -132,7 +135,7 @@ static int mock_handle(void *entry, int event, intptr_t param)
 
     arg->id = CUPKEE_ENTRY_ID(entry);
     arg->event = event;
-    arg->resp = cupkee_device_response_take(entry);
+    arg->resp_len = cupkee_device_response_take(entry, &arg->resp_ptr);
 
     return 0;
 }
@@ -307,7 +310,9 @@ static void test_query(void)
     CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
     CU_ASSERT(8  == mock_curr_want());
     // take request data, there is NULL
-    CU_ASSERT(NULL == (req = cupkee_device_request_take(d)));
+    CU_ASSERT(NULL != (req = cupkee_device_request_buffer(d)));
+    CU_ASSERT(0 == cupkee_buffer_length(req));
+
     // push reply to device
     CU_ASSERT(8   == cupkee_device_response_push(d, 8, "12345678"));
     // Call response_end to complete query
@@ -318,8 +323,7 @@ static void test_query(void)
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
-    CU_ASSERT_FATAL(NULL != mock_handle_arg.resp);
-    CU_ASSERT(8 == cupkee_buffer_length(mock_handle_arg.resp));
+    CU_ASSERT(8 == mock_handle_arg.resp_len);
 
     mock_arg_release();
 
@@ -333,9 +337,9 @@ static void test_query(void)
     CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
     CU_ASSERT(8 == mock_curr_want());
     // take request data
-    CU_ASSERT(NULL != (req = cupkee_device_request_take(d)));
-    CU_ASSERT(5   == cupkee_buffer_length(req));
-    cupkee_buffer_release(req);
+    CU_ASSERT(NULL != (req = cupkee_device_request_buffer(d)));
+    CU_ASSERT(5 == cupkee_buffer_length(req));
+    cupkee_buffer_deinit(req);
 
     // push reply to device
     CU_ASSERT(8   == cupkee_device_response_push(d, 8, "12345678"));
@@ -348,8 +352,7 @@ static void test_query(void)
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
-    CU_ASSERT_FATAL(NULL != mock_handle_arg.resp);
-    CU_ASSERT(8 == cupkee_buffer_length(mock_handle_arg.resp));
+    CU_ASSERT(8 == mock_handle_arg.resp_len);
     mock_arg_release();
 
     /*
@@ -371,7 +374,7 @@ static void test_query(void)
     CU_ASSERT(1   == cupkee_device_request_load(d, 2, buf));
     CU_ASSERT('6' == buf[0]);
     // push reply to device
-    CU_ASSERT(0   > cupkee_device_response_push(d, 8, "12345678"));
+    CU_ASSERT(0 == cupkee_device_response_push(d, 8, "12345678"));
     // Call response_end to complete query
     cupkee_device_response_end(d);
     // Bsp driver code end
@@ -379,15 +382,12 @@ static void test_query(void)
     CU_ASSERT(TU_object_event_dispatch());
     CU_ASSERT(mock_handle_arg.id    == CUPKEE_ENTRY_ID(d));
     CU_ASSERT(mock_handle_arg.event == CUPKEE_EVENT_RESPONSE);
-    CU_ASSERT(NULL == mock_handle_arg.resp);
-    mock_arg_release();
+    CU_ASSERT(0 == mock_handle_arg.resp_len);
 
     CU_ASSERT(0 == cupkee_device_disable(d));
     CU_ASSERT(!cupkee_device_is_enabled(d));
 
     cupkee_release(d);
-    TU_object_event_dispatch();
-    CU_ASSERT(mock_curr_event() == CUPKEE_EVENT_DESTROY);
 }
 
 static void test_read(void)

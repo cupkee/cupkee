@@ -48,8 +48,8 @@ struct cupkee_stream_t {
 
     uint32_t last_push;
 
-    void *rx_buf;
-    void *tx_buf;
+    cupkee_buffer_t rx_buf;
+    cupkee_buffer_t tx_buf;
 
     int (*_read) (cupkee_stream_t *s, size_t n, void *);
     int (*_write)(cupkee_stream_t *s, size_t n, const void *);

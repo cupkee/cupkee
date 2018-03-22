@@ -84,7 +84,7 @@ static uint16_t sdmp_message_pos = 0;
 static uint16_t sdmp_message_end = 0;
 static uint8_t  sdmp_message_buf[SDMP_MSG_BUF_SIZE];
 
-static void *   sdmp_mux_text_buf = NULL;
+static cupkee_buffer_t sdmp_mux_text_buf;
 
 static uint16_t sdmp_script_buf_size = 0;
 static char *   sdmp_script_buf = NULL;
@@ -137,9 +137,9 @@ static void sdmp_do_send(void *tty)
     }
 
     // Send text
-    while (cupkee_buffer_shift(sdmp_mux_text_buf, &c)) {
+    while (cupkee_buffer_shift(&sdmp_mux_text_buf, &c)) {
         if (!cupkee_write(tty, 1, &c)) {
-            cupkee_buffer_unshift(sdmp_mux_text_buf, c);
+            cupkee_buffer_unshift(&sdmp_mux_text_buf, c);
             break;
         }
     }
@@ -612,8 +612,7 @@ int cupkee_sdmp_init(void *stream)
     cupkee_listen(stream, CUPKEE_EVENT_DATA);
     cupkee_listen(stream, CUPKEE_EVENT_DRAIN);
 
-    sdmp_mux_text_buf = cupkee_buffer_alloc(SDMP_SEND_BUF_SIZE);
-    if (!sdmp_mux_text_buf) {
+    if (!cupkee_buffer_alloc(&sdmp_mux_text_buf, SDMP_SEND_BUF_SIZE)) {
         return -CUPKEE_ERESOURCE;
     }
 
@@ -626,9 +625,9 @@ int cupkee_sdmp_tty_write(size_t len, const char *text)
 {
 
     if (sdmp_io_stream) {
-        int cached = cupkee_buffer_give(sdmp_mux_text_buf, len, text);
+        int cached = cupkee_buffer_give(&sdmp_mux_text_buf, len, text);
 
-        if (cached > 0 && (size_t) cached == cupkee_buffer_length(sdmp_mux_text_buf)) {
+        if (cached > 0 && (size_t) cached == cupkee_buffer_length(&sdmp_mux_text_buf)) {
             sdmp_do_send(sdmp_io_stream);
         }
         return cached;

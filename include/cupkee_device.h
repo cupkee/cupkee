@@ -61,8 +61,8 @@ struct cupkee_device_t {
     cupkee_callback_t handle;
     intptr_t          handle_param;
 
-    void             *req;
-    void             *res;
+    cupkee_buffer_t req_buf;
+    cupkee_buffer_t res_buf;
 
     const cupkee_driver_t *driver;
 
@@ -90,18 +90,18 @@ int cupkee_device_disable(void *entry);
 int cupkee_device_is_enabled(void *entry);
 
 int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
-int cupkee_device_query2(void *entry, void *req, int want, cupkee_callback_t cb, intptr_t param);
+int cupkee_device_query_nocopy(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
 
 /* used by driver */
-void *cupkee_device_request_take(void *entry);
-void *cupkee_device_response_take(void *entry);
+cupkee_buffer_t *cupkee_device_request_buffer(void *entry);
 
 int   cupkee_device_request_len(void *entry);
 void *cupkee_device_request_ptr(void *entry);
 int   cupkee_device_request_load(void *entry, size_t n, void *data);
 
 void cupkee_device_response_end(void *entry);
-int  cupkee_device_response_push(void *entry, size_t n, void *data);
+int cupkee_device_response_push(void *entry, size_t n, void *data);
+int cupkee_device_response_take(void *entry, void **pbuf);
 
 int cupkee_device_push(void *entry, size_t n, const void *data);
 int cupkee_device_pull(void *entry, size_t n, void *buf);
