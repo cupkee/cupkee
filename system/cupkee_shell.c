@@ -203,6 +203,15 @@ static void shell_console_init(void)
     input_cached = 0;
 }
 
+static void shell_env_callback(env_t *env, int event)
+{
+    if (event == PANDA_EVENT_GC_START) {
+        shell_reference_gc(env);
+    } else
+    if (event == PANDA_EVENT_GC_END) {
+    }
+}
+
 static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const native_t *entrys)
 {
 
@@ -214,6 +223,8 @@ static void shell_interp_init(int heap_mem_sz, int stack_mem_sz, int n, const na
     shell_reference_init(&shell_env);
 
     env_native_set(&shell_env, entrys, n);
+
+    env_callback_set(&shell_env, shell_env_callback);
 
     shell_console_mode = CONSOLE_INPUT_LINE;
 }

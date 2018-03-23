@@ -141,8 +141,11 @@ void shell_reference_init(env_t *env)
     for (i = 0; i < VARIABLE_REF_MAX; i++) {
         val_set_undefined(&reference_vals[i]);
     }
+}
 
-    env_reference_set(env, reference_vals, VARIABLE_REF_MAX);
+void shell_reference_gc(env_t *env)
+{
+    gc_types_copy(env, VARIABLE_REF_MAX, reference_vals);
 }
 
 val_t *shell_reference_create(val_t *v)

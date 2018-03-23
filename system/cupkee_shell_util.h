@@ -26,6 +26,7 @@ void shell_reference_init(env_t *env);
 void shell_reference_release(val_t *ref);
 val_t *shell_reference_create(val_t *v);
 val_t *shell_reference_ptr(uint8_t id);
+void shell_reference_gc(env_t *env);
 
 void shell_print_value(val_t *v);
 void shell_print_error(int error);
