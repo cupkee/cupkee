@@ -19,7 +19,7 @@
 
 #include <cupkee.h>
 
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 #define FLAG_TIMEOUT      (0x80)
 #define FLAG_INTERVAL     (0x80 | CUPKEE_FLAG_REPEAT)

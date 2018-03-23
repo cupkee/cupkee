@@ -18,7 +18,7 @@
  **/
 
 #include "cupkee.h"
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 typedef struct timer_param_t {
     val_t *handle;
@@ -146,7 +146,7 @@ static const cupkee_meta_t timer_meta = {
     .prop_get = timer_prop_get
 };
 
-void cupkee_shell_init_timer(void)
+void shell_timer_init(void)
 {
     cupkee_object_set_meta(cupkee_timer_tag(), (void *)&timer_meta);
 }

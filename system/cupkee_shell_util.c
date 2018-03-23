@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 #define VARIABLE_REF_MAX (32)
 #if     VARIABLE_REF_MAX > 255
@@ -137,6 +137,8 @@ void shell_print_value(val_t *v)
 void shell_reference_init(env_t *env)
 {
     int i;
+
+    (void) env;
 
     for (i = 0; i < VARIABLE_REF_MAX; i++) {
         val_set_undefined(&reference_vals[i]);

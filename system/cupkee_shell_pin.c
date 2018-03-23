@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 val_t native_pin_group(env_t *env, int ac, val_t *av)
 {

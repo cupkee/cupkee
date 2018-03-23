@@ -17,8 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#include "cupkee_shell_sdmp.h"
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 static val_t *user_state_ref = NULL;
 static val_t *user_func_ref[16];

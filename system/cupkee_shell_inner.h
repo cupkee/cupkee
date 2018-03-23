@@ -17,18 +17,32 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#ifndef __CUPKEE_SHELL_DEVICE_INC__
-#define __CUPKEE_SHELL_DEVICE_INC__
+#ifndef __CUPKEE_SHELL_INNER_INC__
+#define __CUPKEE_SHELL_INNER_INC__
 
-const cupkee_device_desc_t *cupkee_device_query_by_name(const char *name);
-const cupkee_device_desc_t *cupkee_device_query_by_type(uint16_t type);
+#include <cupkee.h>
 
-val_t cupkee_device_config_set_one(cupkee_device_t *dev, env_t *env, val_t *which, val_t *val);
-val_t cupkee_device_config_get_one(cupkee_device_t *dev, env_t *env, val_t *which);
-int   cupkee_device_config_set_all(cupkee_device_t *dev, env_t *env, val_t *settings);
-val_t cupkee_device_config_get_all(cupkee_device_t *dev);
+// cupkee_shell_util.c
+void shell_reference_init(env_t *env);
+void shell_reference_release(val_t *ref);
+val_t *shell_reference_create(val_t *v);
+val_t *shell_reference_ptr(uint8_t id);
+void shell_reference_gc(env_t *env);
 
-void cupkee_shell_init_device(void);
+void shell_print_value(val_t *v);
+void shell_print_error(int error);
 
-#endif /* __CUPKEE_SHELL_DEVICE_INC__ */
+// cupkee_shell_timer.c
+void shell_timer_init(void);
+
+// cupkee_shell_object.c
+void shell_object_gc(void *env);
+
+// cupkee_shell_sdmp.c
+void shell_sdmp_init(void);
+
+// cupkee_shell_device.c
+void shell_device_init(void);
+
+#endif /* __CUPKEE_SHELL_INNER_INC__ */
 

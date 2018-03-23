@@ -18,7 +18,7 @@
  **/
 
 #include "cupkee.h"
-#include "cupkee_shell_util.h"
+#include "cupkee_shell_inner.h"
 
 val_t cupkee_shell_object_create(env_t *env, void *entry)
 {
@@ -36,5 +36,10 @@ void *cupkee_shell_object_entry (val_t *v)
         return (void*) val_2_intptr(v);
     }
     return NULL;
+}
+
+void shell_object_gc(void *env)
+{
+    (void) env;
 }
 

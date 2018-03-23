@@ -18,7 +18,6 @@
  **/
 
 #include "cupkee.h"
-#include "cupkee_shell_device.h"
 
 #define is_device(d)  cupkee_is_object((d), device_tag)
 

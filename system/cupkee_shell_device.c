@@ -19,8 +19,7 @@
 
 #include <cupkee.h>
 
-#include "cupkee_shell_util.h"
-#include "cupkee_shell_device.h"
+#include "cupkee_shell_inner.h"
 
 static int device_config(void *entry, env_t *env, val_t *setting)
 {
@@ -118,7 +117,7 @@ static const cupkee_meta_t device_meta = {
     .prop_get = device_prop_get
 };
 
-void cupkee_shell_init_device(void)
+void shell_device_init(void)
 {
     cupkee_object_set_meta(cupkee_device_tag(), (void *)&device_meta);
 }

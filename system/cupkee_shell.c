@@ -19,9 +19,7 @@
 
 #include <cupkee.h>
 
-#include "cupkee_shell_util.h"
-#include "cupkee_shell_sdmp.h"
-#include "cupkee_shell_device.h"
+#include "cupkee_shell_inner.h"
 #include "cupkee_sysdisk.h"
 
 #define CONSOLE_INPUT_LINE      0
@@ -209,6 +207,7 @@ static void shell_env_callback(env_t *env, int event)
         shell_reference_gc(env);
     } else
     if (event == PANDA_EVENT_GC_END) {
+        shell_object_gc(env);
     }
 }
 
@@ -427,8 +426,8 @@ int cupkee_shell_init(int n, const native_t *natives)
 
     shell_interp_init(heap_mem_sz, stack_mem_sz, n, natives);
 
-    cupkee_shell_init_timer();
-    cupkee_shell_init_device();
+    shell_timer_init();
+    shell_device_init();
 
     console_puts_sync(logo);
 
