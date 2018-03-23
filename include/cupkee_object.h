@@ -67,6 +67,7 @@ typedef struct cupkee_object_t {
 
 int  cupkee_object_setup(void);
 void cupkee_object_event_dispatch(uint16_t which, uint8_t code);
+void cupkee_object_gc(void);
 
 static inline int cupkee_is_object(void *entry, uint8_t tag) {
     return entry && (CUPKEE_OBJECT_PTR(entry)->tag == tag);
@@ -98,8 +99,8 @@ int cupkee_object_unshift(cupkee_object_t *obj, uint8_t data);
 const void *cupkee_object_meta(cupkee_object_t *obj);
 const void *cupkee_object_desc(cupkee_object_t *obj);
 
-int  cupkee_id(int tag);
-void *cupkee_entry(int id, uint8_t tag);
+int  cupkee_create_id(int tag);
+void *cupkee_id_entry(int id, uint8_t tag);
 
 int cupkee_release(void *entry);
 int cupkee_tag(void *entry);

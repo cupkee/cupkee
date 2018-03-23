@@ -24,6 +24,8 @@ val_t cupkee_shell_object_create(env_t *env, void *entry)
 {
     (void) env;
     if (entry) {
+        cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
+        obj->ref |= CUPKEE_FLAG_LANG;
         return val_mk_foreign((intptr_t)entry);
     } else {
         return VAL_UNDEFINED;
@@ -36,10 +38,5 @@ void *cupkee_shell_object_entry (val_t *v)
         return (void*) val_2_intptr(v);
     }
     return NULL;
-}
-
-void shell_object_gc(void *env)
-{
-    (void) env;
 }
 

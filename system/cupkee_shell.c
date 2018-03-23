@@ -207,7 +207,7 @@ static void shell_env_callback(env_t *env, int event)
         shell_reference_gc(env);
     } else
     if (event == PANDA_EVENT_GC_END) {
-        shell_object_gc(env);
+        cupkee_object_gc();
     }
 }
 
@@ -251,7 +251,9 @@ val_t foreign_set(void *env, val_t *self, val_t *data)
 
 void foreign_keep(intptr_t entry)
 {
-    (void) entry;
+    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
+
+    obj->ref |= CUPKEE_FLAG_KEEP;
 }
 
 int foreign_is_true(val_t *self)

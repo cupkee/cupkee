@@ -27,9 +27,9 @@ static uint8_t device_type_num = 0;
 static cupkee_device_desc_t const *device_descs[CUPKEE_DEVICE_TYPE_MAX];
 static cupkee_device_t      *device_work = NULL;
 
-static inline cupkee_device_t *device_data(int id)
+static inline cupkee_device_t *device_entry_by_id(int id)
 {
-    return (cupkee_device_t *) cupkee_entry(id, device_tag);
+    return (cupkee_device_t *) cupkee_id_entry(id, device_tag);
 }
 
 static inline int device_is_enabled(cupkee_device_t *dev) {
@@ -124,8 +124,7 @@ static cupkee_device_t *device_request(int type, int instance)
     } else {
         dev->conf = NULL;
     }
-
-    dev->s    = NULL;
+    dev->s = NULL;
 
     dev->handle = NULL;
     dev->handle_param = 0;
@@ -155,7 +154,7 @@ static void device_destroy(void *entry)
 
 static int device_read(cupkee_stream_t *s, size_t n, void *buf)
 {
-    cupkee_device_t *dev = device_data(s->id);
+    cupkee_device_t *dev = device_entry_by_id(s->id);
 
     if (!dev) {
         return -CUPKEE_EINVAL;
@@ -170,7 +169,7 @@ static int device_read(cupkee_stream_t *s, size_t n, void *buf)
 
 static int device_write(cupkee_stream_t *s, size_t n, const void *data)
 {
-    cupkee_device_t *dev = device_data(s->id);
+    cupkee_device_t *dev = device_entry_by_id(s->id);
 
     if (!dev) {
         return -CUPKEE_EINVAL;

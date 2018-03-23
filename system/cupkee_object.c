@@ -62,7 +62,7 @@ static inline void object_unmap(cupkee_object_t *obj)
     }
 }
 
-static int id_alloc(void)
+static int object_id_alloc(void)
 {
     if (obj_map_num < obj_map_size) {
         int id;
@@ -75,7 +75,7 @@ static int id_alloc(void)
     return -1;
 }
 
-static inline cupkee_object_t *id_object(int id) {
+static inline cupkee_object_t *object_get_by_id(int id) {
     if ((unsigned)id >= (unsigned)obj_map_size) {
         return NULL;
     }
@@ -102,9 +102,34 @@ int cupkee_object_setup(void)
     return 0;
 }
 
+void cupkee_object_gc(void)
+{
+    list_head_t *head = &obj_list_head;
+    list_head_t *curr = head->next;
+
+    while (curr != head) {
+        list_head_t *next = curr->next;
+        cupkee_object_t *obj = (cupkee_object_t *)curr;
+
+        if (obj->ref & CUPKEE_FLAG_LANG) {
+            if (obj->ref & CUPKEE_FLAG_KEEP) {
+                //console_log("gc keep: %p\r\n", obj);
+                obj->ref &= ~CUPKEE_FLAG_KEEP; // Clear mark for next GC
+            } else {
+                //console_log("gc free: %p\r\n", obj);
+                cupkee_object_destroy(obj);
+            }
+        } else {
+            //console_log("gc ignore: %p\r\n", obj);
+        }
+
+        curr = next;
+    }
+}
+
 void cupkee_object_event_dispatch(uint16_t id, uint8_t code)
 {
-    cupkee_object_t *obj = id_object(id);
+    cupkee_object_t *obj = object_get_by_id(id);
     const cupkee_desc_t *desc = object_desc(obj);
 
     if (code == CUPKEE_EVENT_DESTROY) {
@@ -179,7 +204,7 @@ cupkee_object_t *cupkee_object_create_with_id(int tag)
     int id;
     cupkee_object_t *obj;
 
-    if (0 > (id = id_alloc())) {
+    if (0 > (id = object_id_alloc())) {
         return NULL;
     }
 
@@ -318,12 +343,12 @@ int  cupkee_object_write_sync(cupkee_object_t *obj, size_t n, const void *data)
     return cupkee_stream_write_sync(s, n, data);
 }
 
-int cupkee_id(int tag)
+int cupkee_create_id(int tag)
 {
     int id;
     cupkee_object_t *obj;
 
-    if (0 > (id = id_alloc())) {
+    if (0 > (id = object_id_alloc())) {
         return -CUPKEE_ERESOURCE;
     }
 
@@ -338,21 +363,15 @@ int cupkee_id(int tag)
 
 int cupkee_release(void *entry)
 {
-    cupkee_object_t *obj = CUPKEE_OBJECT_PTR(entry);
-
-    if (obj) {
-        cupkee_object_destroy(obj);
-        return 0;
-    } else {
-        return -CUPKEE_EINVAL;
-    }
+    cupkee_object_destroy(CUPKEE_OBJECT_PTR(entry));
+    return 0;
 
     //cupkee_object_event_post(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_DESTROY);
 }
 
-void *cupkee_entry(int id, uint8_t tag)
+void *cupkee_id_entry(int id, uint8_t tag)
 {
-    cupkee_object_t *obj = id_object(id);
+    cupkee_object_t *obj = object_get_by_id(id);
 
     if (obj && obj->tag == tag) {
         return obj->entry;

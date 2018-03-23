@@ -19,6 +19,7 @@
 
 #include "cupkee.h"
 
+/*
 void *cupkee_buffer_alloc_x(size_t size)
 {
     cupkee_buffer_t *buf = cupkee_malloc(size + sizeof(cupkee_buffer_t));
@@ -48,6 +49,7 @@ void cupkee_buffer_release_x(void *p)
 {
     cupkee_free(p);
 }
+*/
 
 int cupkee_buffer_xxx(cupkee_buffer_t *b, void **pptr)
 {

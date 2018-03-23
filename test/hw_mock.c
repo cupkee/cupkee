@@ -137,7 +137,7 @@ void hw_cuid_get(uint8_t *cuid)
 
 intptr_t hw_storage_base(void)
 {
-    return mock_flash_base;
+    return (intptr_t)&mock_flash_base;
 }
 
 int hw_storage_erase(uint32_t base, uint32_t size)

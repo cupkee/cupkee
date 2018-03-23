@@ -46,6 +46,8 @@
 #define CUPKEE_SYSDISK_SECTOR_COUNT		1024 * 32
 
 #define CUPKEE_FLAG_REPEAT              0x01
+#define CUPKEE_FLAG_KEEP                0x40
+#define CUPKEE_FLAG_LANG                0x80
 
 typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
