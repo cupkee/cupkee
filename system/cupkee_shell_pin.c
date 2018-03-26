@@ -19,6 +19,87 @@
 
 #include "cupkee_shell_inner.h"
 
+static int pin_handler(void *entry, int event, intptr_t pin)
+{
+    if (event) {
+        val_t av[2];
+
+        val_set_number(av, (event & CUPKEE_EVENT_PIN_RISING) ? 1 : 0);
+        val_set_number(av + 1, pin);
+
+        cupkee_execute_function(entry, 2, av);
+    } else {
+        // ignore
+        shell_reference_release(entry);
+    }
+    return 0;
+}
+
+static int pin_listen(int pin, val_t *fn)
+{
+    val_t *ref = shell_reference_create(fn);
+
+    if (ref) {
+        if (cupkee_pin_listen(pin, CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING, pin_handler, ref)) {
+            shell_reference_release(ref);
+            return -1;
+        } else {
+            return 0;
+        }
+    } else {
+        return -CUPKEE_ENOMEM;
+    }
+}
+
+static int pin_setup(int ac, val_t *av, const char *setting)
+{
+    int i, dir;
+
+    if (!strcasecmp(setting, "in")) {
+        dir = HW_DIR_IN;
+    } else
+    if (!strcasecmp(setting, "out")) {
+        dir = HW_DIR_OUT;
+    } else
+    if (!strcasecmp(setting, "duplex")) {
+        dir = HW_DIR_DUPLEX;
+    } else
+    if (!strcasecmp(setting, "disable")) {
+        // disable pins
+        for (i = 0; i < ac; i++) {
+            if (val_is_number(av + i)) {
+                cupkee_pin_disable(val_2_integer(av + i));
+            }
+        }
+        return 1;
+    } else
+    if (!strcasecmp(setting, "ignore")) {
+        // ignore pins
+        for (i = 0; i < ac; i++) {
+            if (val_is_number(av + i)) {
+                cupkee_pin_ignore(val_2_integer(av + i));
+            }
+        }
+        return 1;
+    } else {
+        return 0;
+    }
+
+    for (i = 0; i < ac; ++i) {
+        if (!val_is_number(av + i) || CUPKEE_OK != cupkee_pin_enable(val_2_integer(av + i), dir)) {
+            goto DO_FAIL;
+        }
+    }
+
+    return 1;
+
+DO_FAIL:
+    for (--i; i >= 0; --i) {
+        cupkee_pin_disable(val_2_integer(av + i));
+    }
+    return 0;
+}
+
 val_t native_pin_group(env_t *env, int ac, val_t *av)
 {
     void *grp = cupkee_pin_group_create();
@@ -39,60 +120,42 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
     return cupkee_shell_object_create(env, grp);
 }
 
-val_t native_pin_enable(env_t *env, int ac, val_t *av)
+val_t native_pin(env_t *env, int ac, val_t *av)
 {
-    int pin, dir;
-    const char *str;
-    (void) env;
+    if (ac == 0 || !val_is_number(av)) {
+        return VAL_UNDEFINED;
+    } else {
+        int pin = val_2_integer(av);
 
-    if (ac < 1 || !val_is_number(av)) {
-        return VAL_FALSE;
-    }
-    pin  = val_2_integer(av);
-
-    dir = HW_DIR_OUT;  // default is output
-    if (ac > 1) {
-        str = val_2_cstring(av + 1);
-        if (str) {
-            if (!strcmp(str, "in")) {
-                dir = HW_DIR_IN;
+        if (ac == 1) {
+            return val_mk_number(cupkee_pin_get(pin));
+        } else {
+            if (val_is_number(av + 1)) {
+                return cupkee_pin_set(pin, val_is_true(av + 1)) > 0 ? VAL_TRUE : VAL_FALSE;
             } else
-            if (!strcmp(str, "duplex")) {
-                dir = HW_DIR_DUPLEX;
+            if (val_is_function(av + 1)) {
+                return pin_listen(pin, av + 1) == 0 ? VAL_TRUE : VAL_FALSE;
+            } else {
+                int end = ac - 1;
+
+                if (val_is_string(av + end)) {
+                    return val_mk_boolean(pin_setup(end, av, val_2_cstring(av + end)));
+                }
             }
         }
     }
-
-    if (CUPKEE_OK == cupkee_pin_enable(pin, dir)) {
-        return VAL_TRUE;
-    } else {
-        return VAL_FALSE;
-    }
-}
-
-val_t native_pin(env_t *env, int ac, val_t *av)
-{
-    (void) env;
-
-    if (ac > 0 && val_is_number(av)) {
-        int pin = val_2_integer(av);
-
-        if (ac > 1) {
-            return cupkee_pin_set(pin, val_is_true(av + 1)) > 0 ? VAL_TRUE : VAL_FALSE;
-        } else {
-            return val_mk_number(cupkee_pin_get(pin));
-        }
-    }
-
     return VAL_UNDEFINED;
 }
 
 val_t native_pin_toggle(env_t *env, int ac, val_t *av)
 {
-    (void) env;
+    int i;
 
-    if (ac > 0 && val_is_number(av)) {
-        return cupkee_pin_toggle(val_2_integer(av)) == 0 ? VAL_TRUE : VAL_FALSE;
+    (void) env;
+    for (i = 0; i < ac; i++) {
+        if (val_is_number(av + i)) {
+            cupkee_pin_toggle(val_2_integer(av + i));
+        }
     }
 
     return VAL_UNDEFINED;
