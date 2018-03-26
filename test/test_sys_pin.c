@@ -22,14 +22,18 @@
 
 #include "test.h"
 
+const cupkee_pinmap_t test_pinmap[4] = {
+    {0, 0}, // Bank 0, port 0
+    {0, 1}, // Bank 0, port 1
+    {0, 2}, // Bank 0, port 2
+    {0, 3}, // Bank 0, port 3
+};
+
 static int test_setup(void)
 {
     TU_pre_init();
 
-    cupkee_pin_map(0, 0, 0);
-    cupkee_pin_map(1, 0, 1);
-    cupkee_pin_map(2, 0, 2);
-    cupkee_pin_map(3, 0, 3);
+    cupkee_pin_map(4, test_pinmap);
     return 0;
 }
 
@@ -40,12 +44,6 @@ static int test_clean(void)
 
 static void test_basic(void)
 {
-    // remap
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_map(0, 0, 0));
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_map(1, 0, 1));
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_map(2, 0, 2));
-    CU_ASSERT(-CUPKEE_EINVAL == cupkee_pin_map(3, 0, 3));
-
     // enable & disable
     CU_ASSERT(0 == cupkee_pin_enable(0, CUPKEE_PIN_IN));
     CU_ASSERT(0 == cupkee_pin_disable(0));

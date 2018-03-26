@@ -23,9 +23,6 @@
 #include <cupkee.h>
 
 void board_setup(void);
-const uint8_t *board_id(void);
-int board_native_number(void);
-const native_t *board_native_entries(void);
 const char     *board_initial_script(void);
 
 #endif /* __BOARD_INC__ */

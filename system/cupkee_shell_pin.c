@@ -50,16 +50,6 @@ val_t native_pin_enable(env_t *env, int ac, val_t *av)
     }
     pin  = val_2_integer(av);
 
-    if (ac > 2 && val_is_number(av + 1) && val_is_number(av + 2)) {
-        int bank = val_2_integer(av + 1);
-        int port = val_2_integer(av + 2);
-
-        if (0 != cupkee_pin_map(pin, bank, port)) {
-            return VAL_FALSE;
-        }
-        ac -= 2; av += 2;
-    }
-
     dir = HW_DIR_OUT;  // default is output
     if (ac > 1) {
         str = val_2_cstring(av + 1);

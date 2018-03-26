@@ -22,8 +22,8 @@
 #define PIN_INVALID    0xFF
 #define GROUP_DEF_SIZE 32
 
-#define BANK_OF(pin)  ((pin_map_table[pin] >> 4) & 0x0F)
-#define PORT_OF(pin)  (pin_map_table[pin] & 0x0F)
+#define BANK_OF(pin)  (pin_map[pin].bank)
+#define PORT_OF(pin)  (pin_map[pin].port)
 
 typedef struct pin_group_t {
     uint8_t max;
@@ -38,7 +38,9 @@ typedef struct pin_event_handle_info_t {
     void *entry;
 } pin_event_handle_info_t;
 
-static uint8_t  pin_map_table[CUPKEE_PIN_MAX];
+static uint8_t pin_num = 0;
+static const cupkee_pinmap_t *pin_map = NULL;
+
 static uint8_t  pin_group_tag;
 static pin_event_handle_info_t *pin_event_handle_head;
 
@@ -60,8 +62,8 @@ static const cupkee_desc_t pin_group_desc = {
     .prop_get     = pin_group_get_prop,
 };
 
-static inline int pin_is_invalid(int pin) {
-    return pin >= CUPKEE_PIN_MAX || pin_map_table[pin] == 0xFF;
+static inline int pin_is_valid(uint8_t pin) {
+    return pin < pin_num;
 }
 
 static int pin_group_set (void *entry, int t, intptr_t v)
@@ -81,7 +83,7 @@ static int pin_group_set_elem (void *entry, int i, int t, intptr_t v)
     if (g && t == CUPKEE_OBJECT_ELEM_INT && i >= 0 && i < g->max) {
         uint8_t pin = g->pin[i];
 
-        if (!pin_is_invalid(pin)) {
+        if (pin_is_valid(pin)) {
             return hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v);
         }
     }
@@ -95,7 +97,7 @@ static int pin_group_get_elem (void *entry, int i, intptr_t *p)
     if (g && i >= 0 && i < g->max) {
         uint8_t pin = g->pin[i];
 
-        if (!pin_is_invalid(pin)) {
+        if (pin_is_valid(pin)) {
             *p = hw_gpio_get(BANK_OF(pin), PORT_OF(pin));
             return CUPKEE_OBJECT_ELEM_INT;
         }
@@ -171,7 +173,8 @@ int cupkee_pin_setup(void)
 {
     int tag;
 
-    memset(pin_map_table, 0xff, sizeof(pin_map_table));
+    pin_num = 0;
+    pin_map = NULL;
     pin_event_handle_head = NULL;
 
     tag = cupkee_object_register(sizeof(pin_group_t), &pin_group_desc);
@@ -195,20 +198,17 @@ void cupkee_pin_event_dispatch(uint16_t id, uint8_t code)
     }
 }
 
-int cupkee_pin_map(int pin, int bank, int port)
+int cupkee_pin_map(uint8_t num, const cupkee_pinmap_t *map)
 {
-    if (pin >= CUPKEE_PIN_MAX || pin_map_table[pin] != 0xFF) {
-        return -CUPKEE_EINVAL;
-    }
-
-    pin_map_table[pin] = ((bank & 0xf) << 4) | (port & 0xf);
+    pin_num = num;
+    pin_map = map;
 
     return 0;
 }
 
 int cupkee_pin_enable(int pin, int dir)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         return hw_gpio_enable(BANK_OF(pin), PORT_OF(pin), dir);
     } else {
         return -CUPKEE_EINVAL;
@@ -217,7 +217,7 @@ int cupkee_pin_enable(int pin, int dir)
 
 int cupkee_pin_disable(int pin)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         return hw_gpio_disable(BANK_OF(pin), PORT_OF(pin));
     } else {
         return -CUPKEE_EINVAL;
@@ -226,7 +226,7 @@ int cupkee_pin_disable(int pin)
 
 int cupkee_pin_get(int pin)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         return hw_gpio_get(BANK_OF(pin), PORT_OF(pin));
     } else {
         return -CUPKEE_EINVAL;
@@ -235,7 +235,7 @@ int cupkee_pin_get(int pin)
 
 int cupkee_pin_set(int pin, int v)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         return hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v);
     } else {
         return -CUPKEE_EINVAL;
@@ -244,7 +244,7 @@ int cupkee_pin_set(int pin, int v)
 
 int cupkee_pin_toggle(int pin)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         return hw_gpio_toggle(BANK_OF(pin), PORT_OF(pin));
     } else {
         return 0;
@@ -255,7 +255,7 @@ int cupkee_pin_listen(int pin, int events, cupkee_callback_t handler, void *entr
 {
     events &= CUPKEE_EVENT_PIN_RISING | CUPKEE_EVENT_PIN_FALLING;
 
-    if (events && !pin_is_invalid(pin)) {
+    if (events && pin_is_valid(pin)) {
         int err;
         err = pin_event_handle_set(pin, handler, entry);
         if (err) {
@@ -273,7 +273,7 @@ int cupkee_pin_listen(int pin, int events, cupkee_callback_t handler, void *entr
 
 int cupkee_pin_ignore(int pin)
 {
-    if (!pin_is_invalid(pin)) {
+    if (pin_is_valid(pin)) {
         pin_event_handle_clear(pin);
         return hw_gpio_ignore(BANK_OF(pin), PORT_OF(pin));
     } else {
@@ -309,7 +309,7 @@ int cupkee_pin_group_push(void *entry, int pin)
 {
     pin_group_t *g = entry;
     if (g) {
-        if (!pin_is_invalid(pin) && g->num < g->max) {
+        if (pin_is_valid(pin) && g->num < g->max) {
             g->pin[g->num++] = pin;
             return g->num;
         }
@@ -342,7 +342,7 @@ int cupkee_pin_group_get(void *entry)
         for (i = 0; i < g->num; i++) {
             uint8_t pin = g->pin[i];
 
-            if (!pin_is_invalid(pin) && hw_gpio_get(BANK_OF(pin), PORT_OF(pin)) > 0) {
+            if (pin_is_valid(pin) && hw_gpio_get(BANK_OF(pin), PORT_OF(pin)) > 0) {
                 retv |= 1 << i;
             }
             // else keep this bit zero
@@ -363,7 +363,7 @@ int cupkee_pin_group_set(void *entry, uint32_t v)
         for (i = 0; i < g->num; i++) {
             uint8_t pin = g->pin[i];
 
-            if (!pin_is_invalid(pin)) {
+            if (pin_is_valid(pin)) {
                 hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v & 1);
             }
             v >>= 1;

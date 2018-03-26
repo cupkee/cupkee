@@ -26,20 +26,13 @@ int main(void)
     /**********************************************************
      * Cupkee system initial
      *********************************************************/
-    cupkee_init(board_id());
+    cupkee_init(NULL);
 
-#ifdef USE_USB_CONSOLE
-    stream = cupkee_device_request("usb-cdc", 0);
-#else
     stream = cupkee_device_request("uart", 0);
-#endif
     if (cupkee_device_enable(stream)) {
         hw_halt();
     }
-
     cupkee_sdmp_init(stream);
-
-    cupkee_shell_init(board_native_number(), board_native_entries());
 
     /**********************************************************
      * user setup code

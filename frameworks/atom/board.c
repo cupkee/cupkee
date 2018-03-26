@@ -19,19 +19,11 @@
 
 #include "board.h"
 
-// Request from www.cupkee.com
-static const uint8_t BOARD_ID[] = {
-    0x01, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00
+static const cupkee_pinmap_t board_pins[] = {
+    {0, 8}, // pin0 : bank 0, port 1
 };
 
-const uint8_t *board_id(void)
-{
-    return BOARD_ID;
-}
-
-static const native_t native_entries[] = {
+static const native_t board_entries[] = {
     /* Panda natives */
 
     /* Cupkee natives */
@@ -56,19 +48,16 @@ static const native_t native_entries[] = {
     {"Timer",           native_create_timer},
 };
 
-int board_native_number(void)
-{
-    return sizeof(native_entries) / sizeof(native_t);
-}
-
-const native_t *board_native_entries(void)
-{
-    return native_entries;
-}
-
 void board_setup(void)
 {
-    // Setup code here
+    // Setup user modules here
+    // add user modules
+
+    // Setup board pins */
+    cupkee_pin_map(sizeof(board_pins) / sizeof(cupkee_pinmap_t), board_pins);
+
+    /* Setup shell */
+    cupkee_shell_init(sizeof(board_entries) / sizeof(native_t), board_entries);
 }
 
 const char *board_initial_script(void)

@@ -24,10 +24,15 @@
 #define CUPKEE_PIN_IN       HW_DIR_IN
 #define CUPKEE_PIN_DUPLEX   HW_DIR_DUPLEX
 
-int cupkee_pin_setup(void);
+typedef struct cupkee_pinmap_t {
+    uint8_t bank;
+    uint8_t port;
+} cupkee_pinmap_t;
+
+int  cupkee_pin_setup(void);
 void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
 
-int cupkee_pin_map(int pin, int bank, int port);
+int cupkee_pin_map(uint8_t pin_num, const cupkee_pinmap_t *pin_map);
 
 int cupkee_pin_enable(int pin, int dir);
 int cupkee_pin_disable(int pin);
