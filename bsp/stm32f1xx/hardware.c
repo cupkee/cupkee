@@ -26,7 +26,7 @@ extern vector_table_t vector_table;
 void *hw_memory_bgn = NULL;
 void *hw_memory_end = NULL;
 
-static int8_t boot_state = HW_BOOT_STATE_PRODUCT;
+static int8_t reset_flags = 0;
 
 static void hw_setup_memory(void)
 {
@@ -40,6 +40,37 @@ static void hw_setup_systick(void)
 
     systick_interrupt_enable();
     systick_counter_enable();
+}
+
+static void hw_reset_probe(void)
+{
+    reset_flags = MMIO32(BACKUP_REGS_BASE + 0x04);
+
+    rcc_periph_clock_enable(RCC_PWR);
+    rcc_periph_clock_enable(RCC_BKP);
+
+    PWR_CR |= PWR_CR_DBP;
+    MMIO32(BACKUP_REGS_BASE + 0x04) = 0;
+    PWR_CR &= ~PWR_CR_DBP;
+
+    rcc_periph_clock_disable(RCC_BKP);
+    rcc_periph_clock_disable(RCC_BKP);
+
+    if (!(reset_flags & HW_RESET_DEBUG)) {
+        rcc_periph_clock_enable(RCC_AFIO);
+
+        // Disable SW and JTAG
+        AFIO_MAPR = (AFIO_MAPR & ~AFIO_MAPR_SWJ_MASK) | AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_OFF;
+
+        rcc_periph_clock_disable(RCC_AFIO);
+    }
+    /*
+    if (0 == hw_gpio_enable(BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
+        boot_state = hw_gpio_get(BOOT_PROBE_BANK, BOOT_PROBE_PIN) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
+
+        hw_gpio_disable(BOOT_PROBE_BANK, BOOT_PROBE_PIN);
+    }
+    */
 }
 
 /* systick interrupt handle routing  */
@@ -108,30 +139,14 @@ void hw_info_get(hw_info_t *info)
     info->rom_base = (void *)0x08000000;
 }
 
-static void hw_boot_mode_probe(void)
-{
-    if (0 == hw_gpio_enable(BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
-        boot_state = hw_gpio_get(BOOT_PROBE_BANK, BOOT_PROBE_PIN) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
-
-        hw_gpio_disable(BOOT_PROBE_BANK, BOOT_PROBE_PIN);
-    }
-}
-
 void hw_setup(hw_info_t *info)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
     hw_setup_memory();
-
     hw_setup_gpio();
 
-    hw_boot_mode_probe();
-    if (boot_state == HW_BOOT_STATE_PRODUCT) {
-        rcc_periph_clock_enable(RCC_AFIO);
-
-        // Disable SW and JTAG
-        AFIO_MAPR = (AFIO_MAPR & ~AFIO_MAPR_SWJ_MASK) | AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_OFF;
-    }
+    hw_reset_probe();
 
     hw_setup_timer();
     hw_setup_storage();
@@ -140,11 +155,20 @@ void hw_setup(hw_info_t *info)
     hw_info_get(info);
 }
 
-void hw_reset(int mode)
+void hw_reset(int flags)
 {
-    (void) mode;
+    rcc_periph_clock_enable(RCC_PWR);
+    rcc_periph_clock_enable(RCC_BKP);
+    PWR_CR |= PWR_CR_DBP;
+
+    MMIO32(BACKUP_REGS_BASE + 0x04) = flags;
 
     scb_reset_system();
+}
+
+uint8_t hw_reset_flags(void)
+{
+    return reset_flags;
 }
 
 int hw_device_setup(void)
@@ -170,7 +194,3 @@ void hw_halt(void)
         ;
 }
 
-int  hw_boot_state(void)
-{
-    return boot_state;
-}

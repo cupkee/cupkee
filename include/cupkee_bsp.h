@@ -36,12 +36,9 @@
 #define HW_STORAGE_BANK_APP                 2
 #define HW_STORAGE_BANK_CFG                 3
 
-#define HW_RESET_NORMAL                     0
-#define HW_RESET_DEBUG                      1
-#define HW_RESET_UPGRADE                    2
-
-#define HW_BOOT_STATE_PRODUCT               0
-#define HW_BOOT_STATE_DEVEL                 1
+#define HW_RESET_DEBUG                      1 // JTAG Enabled
+#define HW_RESET_SAFE                       2 // JTAG Disabled
+#define HW_RESET_UPGRADE                    4 // JTAG Disabled
 
 enum HW_DIR {
     HW_DIR_IN,
@@ -61,10 +58,11 @@ typedef struct hw_info_t {
 /* hardware interface to implement                              */
 /****************************************************************/
 void hw_setup(hw_info_t *info);
-void hw_reset(int mode);
+void hw_reset(int flags);
 
 void hw_poll(void);
 void hw_halt(void);
+uint8_t hw_reset_flags(void);
 int  hw_boot_state(void);
 
 void hw_enter_critical(uint32_t *state);

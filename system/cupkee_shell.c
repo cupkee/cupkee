@@ -413,6 +413,7 @@ void foreign_opxx_elem(void *env, val_t *self, int id, val_t *data, val_t *res, 
     (void) res;
     (void) op;
 }
+
 env_t *cupkee_shell_env(void)
 {
     return &shell_env;
@@ -444,7 +445,7 @@ int cupkee_shell_start(const char *initial)
 
     (void) initial;
 
-    if (hw_boot_state() == HW_BOOT_STATE_PRODUCT && app) {
+    if (!(hw_reset_flags() & HW_RESET_SAFE) && app) {
         val_t *res;
 
         if (0 > interp_execute_stmts(&shell_env, app, &res)) {

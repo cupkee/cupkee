@@ -264,3 +264,16 @@ val_t native_erase(env_t *env, int ac, val_t *av)
     return cupkee_storage_erase(CUPKEE_STORAGE_BANK_APP) ? VAL_FALSE : VAL_TRUE;
 }
 
+val_t native_reset(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+
+    if (ac && val_is_number(av)) {
+        hw_reset(val_2_integer(av));
+    } else {
+        hw_reset(0);
+    }
+
+    return VAL_FALSE;
+}
+
