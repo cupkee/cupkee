@@ -117,7 +117,7 @@ static void shell_console_execute(env_t *env, int len, char *script)
     //console_log_sync("\r\nexecute: '%s'\r\n", script);
 
     err = interp_execute_interactive(env, script, shell_console_parser_cb, &res);
-    //console_log_sync("state: %d\r\n", err);
+    //console_log_sync("1 state: %d, mode: %d\r\n", err, shell_console_mode);
     if (err > 0) {
         cupkee_history_push(len, script);
 
@@ -132,7 +132,9 @@ static void shell_console_execute(env_t *env, int len, char *script)
     } else
     if (err < 0) {
         shell_error_proc(env, -err);
+        shell_console_mode = CONSOLE_INPUT_LINE;
     }
+    //console_log_sync("2 state: %d, mode: %d\r\n", err, shell_console_mode);
 }
 
 static int shell_console_load(void)
