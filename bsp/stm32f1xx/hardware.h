@@ -29,6 +29,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/vector.h>
 #include <libopencm3/cm3/scb.h>
+#include <libopencm3/stm32/pwr.h>
 #include <libopencm3/stm32/desig.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -59,12 +60,6 @@
 
 #define GPIO_PIN_MAX            16
 #define GPIO_PIN_MASK           15
-
-#define GPIO_MAP_MAX            32
-
-#define BOOT_PROBE_BANK         0  // GPIOA
-#define BOOT_PROBE_PIN          12 // GPIO12
-#define BOOT_PROBE_DEV          0  // Low
 
 #include "hw_usb.h"
 #include "hw_storage.h"

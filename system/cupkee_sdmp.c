@@ -233,7 +233,7 @@ static uint8_t sdmp_do_call(uint8_t func_id, cupkee_data_entry_t *entry)
         if (CUPKEE_DATA_NUMBER == cupkee_data_shift(entry, &av)) {
             hw_reset(av.number);
         } else {
-            hw_reset(HW_RESET_NORMAL);
+            hw_reset(0);
         }
         return 0; // Make gcc happy
     } else

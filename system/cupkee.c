@@ -103,6 +103,7 @@ void cupkee_loop(void)
     // Reset systick at first
     _cupkee_systicks = 0;
 
+    console_log("reset flags: %u\r\n", hw_reset_flags());
     while (1) {
         cupkee_device_poll();
 
