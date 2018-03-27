@@ -122,6 +122,8 @@ val_t native_pin_group(env_t *env, int ac, val_t *av)
 
 val_t native_pin(env_t *env, int ac, val_t *av)
 {
+    (void) env;
+
     if (ac == 0 || !val_is_number(av)) {
         return VAL_UNDEFINED;
     } else {
