@@ -309,7 +309,7 @@ static void test_query(void)
     // Bsp driver code start
     CU_ASSERT(CUPKEE_ENTRY_ID(d) == mock_curr_id());
     CU_ASSERT(8  == mock_curr_want());
-    // take request data, there is NULL
+    // take request data, there is empty
     CU_ASSERT(NULL != (req = cupkee_device_request_buffer(d)));
     CU_ASSERT(0 == cupkee_buffer_length(req));
 

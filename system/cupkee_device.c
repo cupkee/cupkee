@@ -618,6 +618,7 @@ int cupkee_device_request_len(void *entry)
         return 0;
     }
 }
+
 void *cupkee_device_request_ptr(void *entry)
 {
     cupkee_device_t *dev = entry;
@@ -653,9 +654,24 @@ int cupkee_device_request_load(void *entry, size_t n, void *data)
     }
 
     if (device_is_enabled(dev)) {
-        return cupkee_buffer_take(&dev->req_buf, n, data);
+        return cupkee_buffer_pop_n(&dev->req_buf, n, data);
     } else {
         return -1;
+    }
+}
+
+void *cupkee_device_response_ptr(void *entry)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return NULL;
+    }
+
+    if (device_is_enabled(dev)) {
+        return dev->res_buf.ptr;
+    } else {
+        return NULL;
     }
 }
 
@@ -668,7 +684,7 @@ int cupkee_device_response_take(void *entry, void **pptr)
     }
 
     if (device_is_enabled(dev)) {
-        return cupkee_buffer_xxx(&dev->res_buf, pptr);
+        return cupkee_buffer_take(&dev->res_buf, pptr);
     } else {
         return -1;
     }
@@ -683,7 +699,7 @@ int cupkee_device_response_push(void *entry, size_t n, void *data)
     }
 
     if (device_is_enabled(dev)) {
-        return cupkee_buffer_give(&dev->res_buf, n, data);
+        return cupkee_buffer_push_n(&dev->res_buf, n, data);
     } else {
         return -1;
     }
@@ -700,10 +716,25 @@ void cupkee_device_response_end(void *entry)
     }
 }
 
+void cupkee_device_response_submit(void *entry, size_t n)
+{
+    cupkee_device_t *dev = entry;
+
+    if (is_device(entry)) {
+        if (dev->res_buf.cap < n) {
+            dev->res_buf.len = dev->res_buf.cap;
+        } else {
+            dev->res_buf.len = n;
+        }
+        if (device_is_enabled(dev) && (dev->flags & DEVICE_FL_BUSY)) {
+            cupkee_object_event_post(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_RESPONSE);
+        }
+    }
+}
+
 int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param)
 {
     int err;
-    void *buf = NULL;
     cupkee_device_t *dev = entry;
 
     if (!is_device(entry)) {
@@ -719,11 +750,10 @@ int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, c
     }
 
     if (req_len) {
-        if (!(buf = cupkee_malloc(req_len))) {
+        if (req_len > (size_t) cupkee_buffer_space_to(&dev->req_buf, req_len)) {
             return -CUPKEE_ENOMEM;
         }
-        memcpy(buf, req_data, req_len);
-        cupkee_buffer_init(&dev->req_buf, req_len, buf, CUPKEE_FLAG_OWNED);
+        cupkee_buffer_push_n(&dev->req_buf, req_len, req_data);
     }
 
     err = device_query_start(dev, want, cb, param);

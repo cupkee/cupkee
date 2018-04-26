@@ -37,7 +37,7 @@ static inline void cupkee_buffer_reset(cupkee_buffer_t *b) {
     b->cap = 0;
     b->len = 0;
     b->bgn = 0;
-    b->ptr = 0;
+    b->ptr = NULL;
 }
 
 static inline void cupkee_buffer_init(cupkee_buffer_t *b, size_t size, void *ptr, int flags) {
@@ -93,7 +93,8 @@ static inline void *cupkee_buffer_ptr(cupkee_buffer_t *b) {
     return b->ptr;
 }
 
-int cupkee_buffer_xxx(cupkee_buffer_t *b, void **pptr);
+int cupkee_buffer_take(cupkee_buffer_t *b, void **pptr);
+int cupkee_buffer_give(cupkee_buffer_t *b, size_t n, void *buf);
 
 int cupkee_buffer_space_to(cupkee_buffer_t *b, size_t n);
 
@@ -104,14 +105,13 @@ int cupkee_buffer_pop(cupkee_buffer_t *b, uint8_t *d);
 int cupkee_buffer_unshift(cupkee_buffer_t *b, uint8_t d);
 int cupkee_buffer_shift(cupkee_buffer_t *b, uint8_t *d);
 
-int cupkee_buffer_take(cupkee_buffer_t *b, size_t n, void *buf);
-int cupkee_buffer_give(cupkee_buffer_t *b, size_t n, const void *buf);
+int cupkee_buffer_pop_n(cupkee_buffer_t *b, size_t n, void *buf);
+int cupkee_buffer_push_n(cupkee_buffer_t *b, size_t n, const void *buf);
 
 /*
+void *cupkee_buffer_dup(cupkee_buffer_t *b);
 void *cupkee_buffer_slice(cupkee_buffer_t *b, int start, int n);
-void *cupkee_buffer_copy(cupkee_buffer_t *b);
-void *cupkee_buffer_sort(cupkee_buffer_t *b);
-void *cupkee_buffer_reverse(cupkee_buffer_t *b);
+void *cupkee_buffer_splice(cupkee_buffer_t *b, int start, int n);
 */
 
 int cupkee_buffer_read_int8  (cupkee_buffer_t *b, int offset, int8_t *i);

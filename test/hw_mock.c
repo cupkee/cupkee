@@ -100,9 +100,9 @@ size_t hw_memory_size(void)
     return mock_memory_size - mock_memory_off;
 }
 
-int hw_boot_state(void)
+uint8_t hw_reset_flags(void)
 {
-    return HW_BOOT_STATE_PRODUCT;
+    return 0;
 }
 
 void hw_setup(hw_info_t *info)

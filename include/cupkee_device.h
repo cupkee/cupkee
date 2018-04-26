@@ -99,7 +99,9 @@ int   cupkee_device_request_len(void *entry);
 void *cupkee_device_request_ptr(void *entry);
 int   cupkee_device_request_load(void *entry, size_t n, void *data);
 
+void *cupkee_device_response_ptr(void *entry);
 void cupkee_device_response_end(void *entry);
+void cupkee_device_response_submit(void *entry, size_t n);
 int cupkee_device_response_push(void *entry, size_t n, void *data);
 int cupkee_device_response_take(void *entry, void **pbuf);
 

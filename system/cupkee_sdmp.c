@@ -625,7 +625,7 @@ int cupkee_sdmp_tty_write(size_t len, const char *text)
 {
 
     if (sdmp_io_stream) {
-        int cached = cupkee_buffer_give(&sdmp_mux_text_buf, len, text);
+        int cached = cupkee_buffer_push_n(&sdmp_mux_text_buf, len, text);
 
         if (cached > 0 && (size_t) cached == cupkee_buffer_length(&sdmp_mux_text_buf)) {
             sdmp_do_send(sdmp_io_stream);

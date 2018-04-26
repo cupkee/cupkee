@@ -19,84 +19,49 @@
 
 #include "hardware.h"
 
+#define HW_FL_I2C_RX    0x10
 
-#define I2C_REG_BASE(inst)                          ((inst) == 0 ? I2C1 : I2C2)
-
-#define I2C_EVENT_MASTER_MODE_SELECT                ((uint32_t)0x00030001) //           SR2_BUSY | SR2_MASTER | SR1_SB
-#define I2C_EVENT_STOP                              ((uint32_t)0x00000010) //                                   SR1_STOPF
-
-// EV6
-#define I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT    ((uint32_t)0x00070082) // SR2_TRA | SR2_BUSY | SR2_MASTER | SR1_TxE | SR1_ADDR
-#define I2C_EVENT_MASTER_RECEIVER_MODE_SELECT       ((uint32_t)0x00030002) //           SR2_BUSY | SR2_MASTER |           SR1_ADDR
-
-// EV7
-#define I2C_EVENT_MASTER_RECEIVED                   ((uint32_t)0x00030040) //           SR2_BUSY | SR2_MASTER | SR1_RxNE
-#define I2C_EVENT_MASTER_RECEIVE_HOLD               ((uint32_t)0x00030044) //           SR2_BUSY | SR2_MASTER | SR1_RxNE | SR1_BTF
-
-// EV8
-#define I2C_EVENT_MASTER_TRANSMITTING               ((uint32_t)0x00070080) // SR2_TRA | SR2_BUSY | SR2_MASTER | SR1_TxE
-// EV8_2
-#define I2C_EVENT_MASTER_TRANSMITTED                ((uint32_t)0x00070084) // SR2_TRA | SR2_BUSY | SR2_MASTER | SR1_TxE | SR1_BTF
-
-enum {
-    I2C_STATE_IDLE = 0,
-    I2C_STATE_ERROR,
-    I2C_STATE_WAIT_NBUSY,
-    I2C_STATE_WAIT_START,
-    I2C_STATE_WAIT_RADDR,
-    I2C_STATE_WAIT_WADDR,
-    I2C_STATE_SEND_DATA,
-    I2C_STATE_WAIT_DATA_1,
-    I2C_STATE_WAIT_DATA_2,
-    I2C_STATE_WAIT_DATA_N,
-    I2C_STATE_STOP,
-};
-
-enum {
-    I2C_PROP_SLAVE = 0,
-};
+#define I2C_MAX         2
 
 typedef struct hw_i2c_t {
-    uint8_t dev_id;
-    uint8_t state;
+    uint8_t flags;
+    uint8_t nv;
+    uint8_t self_addr;
+    uint8_t peer_addr;
 
-    uint8_t slave_addr;
-    uint8_t trans_time;
-    uint8_t trans_size;
-    uint8_t trans_pos;
+    uint32_t base;
 
-    void   *req_buf;
-    void   *rcv_buf;
+    void *entry;
+
+    uint8_t send_len;
+    uint8_t recv_len;
+    uint8_t *recv_buf;
+    uint8_t *send_buf;
 } hw_i2c_t;
 
-#if 0
-static uint8_t use_map;
+static hw_i2c_t device_data[I2C_MAX];
 
-static hw_i2c_t i2c_controls[HW_INSTANCES_I2C];
+static const cupkee_struct_desc_t device_conf_desc[] = {
+    {
+        .name = "speed",
+        .type = CUPKEE_STRUCT_UINT32
+    },
+    {
+        .name = "addr",
+        .type = CUPKEE_STRUCT_UINT32
+    },
+};
 
-static inline int hw_i2c_match_event(uint32_t i2c, uint32_t event)
+static inline hw_i2c_t *device_block(int inst)
 {
-    uint32_t status = I2C_SR1(i2c);
-
-    status = status | (I2C_SR2(i2c) << 16);
-
-    return (status & event) == event;
+    return inst < I2C_MAX ? &device_data[inst] : NULL;
 }
 
-static inline hw_i2c_t *hw_i2c_control(int instance)
-{
-    if (instance < HW_INSTANCES_I2C && (use_map & (1 << instance))) {
-        return &i2c_controls[instance];
-    } else {
-        return NULL;
-    }
-}
-
-static inline int hw_i2c_setup_pin(int instance)
+static int device_setup_io(int inst)
 {
     uint16_t pins;
 
-    if (instance == 0) {
+    if (inst == 0) {
         pins = GPIO6 | GPIO7;
     } else {
         pins = GPIO10 | GPIO11;
@@ -109,11 +74,89 @@ static inline int hw_i2c_setup_pin(int instance)
     }
 }
 
-static inline void hw_i2c_reset_pin(int instance)
+
+
+static void device_setup_dma(hw_i2c_t *i2c)
+{
+    if (i2c->base == I2C1) {
+        if (i2c->send_len > 0) {
+            DMA1_CMAR6 = (uint32_t)i2c->send_buf;
+            DMA1_CPAR6 = (uint32_t)&I2C1_DR;
+            DMA1_CNDTR6 = i2c->send_len;
+            DMA1_CCR6 = DMA_CCR_PL_HIGH |
+                        DMA_CCR_MSIZE_8BIT |
+                        DMA_CCR_PSIZE_8BIT |
+                        DMA_CCR_MINC |
+                        DMA_CCR_DIR | // READ from memory
+                        DMA_CCR_TCIE;
+            nvic_set_priority(NVIC_DMA1_CHANNEL6_IRQ, 0);
+        }
+        if (i2c->recv_len > 1) {
+            DMA1_CPAR7 = (uint32_t)&I2C1_DR;
+            DMA1_CMAR7 = (uint32_t)i2c->recv_buf;
+            DMA1_CNDTR7 = i2c->recv_len;
+            DMA1_CCR7 = DMA_CCR_PL_HIGH |
+                        DMA_CCR_MSIZE_8BIT |
+                        DMA_CCR_PSIZE_8BIT |
+                        DMA_CCR_MINC |
+                        // READ from peripheral
+                        DMA_CCR_TCIE;
+            nvic_set_priority(NVIC_DMA1_CHANNEL7_IRQ, 0);
+        }
+    } else {
+        if (i2c->send_len > 0) {
+            DMA1_CMAR4 = (uint32_t)i2c->send_buf;
+            DMA1_CPAR4 = (uint32_t)&I2C2_DR;
+            DMA1_CNDTR4 = i2c->send_len;
+            DMA1_CCR4 = DMA_CCR_PL_HIGH |
+                        DMA_CCR_MSIZE_8BIT |
+                        DMA_CCR_PSIZE_8BIT |
+                        DMA_CCR_MINC |
+                        DMA_CCR_DIR | // READ from memory
+                        DMA_CCR_TCIE;
+            nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
+        }
+        if (i2c->recv_len > 1) {
+            DMA1_CPAR5 = (uint32_t)&I2C2_DR;
+            DMA1_CMAR5 = (uint32_t)i2c->recv_buf;
+            DMA1_CNDTR5 = i2c->recv_len;
+            DMA1_CCR5 = DMA_CCR_PL_HIGH |
+                        DMA_CCR_MSIZE_8BIT |
+                        DMA_CCR_PSIZE_8BIT |
+                        DMA_CCR_MINC |
+                        // READ from peripheral
+                        DMA_CCR_TCIE;
+            nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
+        }
+    }
+}
+
+static void device_reset_dma(int inst)
+{
+    if (inst == 0) {
+        DMA1_CCR6 = 0;
+        DMA1_CCR7 = 0;
+        nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+        nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+
+        if (!device_data[1].flags & HW_FL_USED)
+            rcc_periph_clock_disable(RCC_DMA1);
+    } else {
+        DMA1_CCR4 = 0;
+        DMA1_CCR5 = 0;
+        nvic_disable_irq(NVIC_DMA1_CHANNEL4_IRQ);
+        nvic_disable_irq(NVIC_DMA1_CHANNEL5_IRQ);
+
+        if (!device_data[0].flags & HW_FL_USED)
+            rcc_periph_clock_disable(RCC_DMA1);
+    }
+}
+
+static inline void device_reset_io(int inst)
 {
     uint16_t pins;
 
-    if (instance == 0) {
+    if (inst == 0) {
         pins = GPIO6 | GPIO7;
     } else {
         pins = GPIO10 | GPIO11;
@@ -122,713 +165,407 @@ static inline void hw_i2c_reset_pin(int instance)
     hw_gpio_release(1, pins);
 }
 
-static int request_read(hw_i2c_t *control, size_t n)
-{
-    uint8_t req[2];
+static inline void device_send_start(hw_i2c_t *i2c) {
 
-    if (cupkee_buffer_space(control->req_buf) < 2 ||
-        cupkee_buffer_space(control->rcv_buf) < n) {
-        return 0;
-    }
-
-    req[0] = 1;
-    req[1] = n;
-
-    return cupkee_buffer_give(control->req_buf, 2, req);
-}
-
-static int request_write(hw_i2c_t *control, size_t n, const void *data)
-{
-    uint8_t req[2];
-
-    if (cupkee_buffer_space(control->req_buf) < 2 + n) {
-        return 0;
-    }
-
-    req[0] = 1;
-    req[1] = n;
-
-    cupkee_buffer_give(control->req_buf, 2, req);
-    return cupkee_buffer_give(control->req_buf, n, data);
-}
-
-static int request_go_trans(hw_i2c_t *control)
-{
-    uint8_t req[2];
-    int ret = cupkee_buffer_take(control->req_buf, 2, req);
-
-    if (ret == 2) {
-        if (req[0]) {
-            control->slave_addr |= 1;  // read
-        } else {
-            control->slave_addr &= ~1; // write
-        }
-        control->trans_size = req[1];
-        control->trans_time = 0;
-        control->trans_pos = 0;
-
-        return 1;
+    // Enable DMA
+    if (i2c->base == I2C1) {
+        DMA1_CCR6 |= DMA_CCR_EN;
+        nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
     } else {
-        return 0;
-    }
-}
-
-static void do_error_timeout(uint32_t i2c, hw_i2c_t *control)
-{
-    if (I2C_SR2(i2c) & I2C_SR2_MSL) {
-        I2C_CR1(i2c) |= I2C_CR1_STOP;
+        DMA1_CCR4 |= DMA_CCR_EN;
+        nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
     }
 
-    cupkee_device_set_error(control->dev_id, CUPKEE_ETIMEOUT);
-
-    control->state = I2C_STATE_IDLE;
-
-    //Todo: try next req OR clean req queue
+    // Enable I2C DMA
+    I2C_CR2(i2c->base) |= I2C_CR2_DMAEN;
+    // Start
+    I2C_CR1(i2c->base) |= I2C_CR1_START;
 }
 
-static void do_try_start(uint32_t i2c, hw_i2c_t *control)
-{
-    if (control->state == I2C_STATE_IDLE) {
-        if (request_go_trans(control)) {
-            if (I2C_SR2(i2c) & I2C_SR2_BUSY) {
-                control->state = I2C_STATE_WAIT_NBUSY;
-            } else {
-                I2C_CR1(i2c) |= I2C_CR1_START;
-                control->state = I2C_STATE_WAIT_START;
-            }
-        }
-    }
-}
+static inline void device_recv_start(hw_i2c_t *i2c) {
+    i2c->flags = HW_FL_I2C_RX | HW_FL_USED;
 
-static void do_wait_nbusy(uint32_t i2c, hw_i2c_t *control)
-{
-    if (!(I2C_SR2(i2c) & I2C_SR2_BUSY)) {
-        I2C_CR1(i2c) |= I2C_CR1_START;
-        control->state = I2C_STATE_WAIT_START;
-    }
-}
-
-static void do_wait_start(uint32_t i2c, hw_i2c_t *control)
-{
-    if (hw_i2c_match_event(i2c, I2C_EVENT_MASTER_MODE_SELECT)) {
-        I2C_DR(i2c) = control->slave_addr;
-        if (control->slave_addr & 1) {
-            control->state = I2C_STATE_WAIT_RADDR;
+    if (i2c->recv_len > 1) {
+        // Enable DMA
+        if (i2c->base == I2C1) {
+            DMA1_CCR7 |= DMA_CCR_EN;
+            nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
         } else {
-            control->state = I2C_STATE_WAIT_WADDR;
+            DMA1_CCR5 |= DMA_CCR_EN;
+            nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
         }
-        control->trans_pos = 0;
+
+        // Enable I2C DMA
+        I2C_CR2(i2c->base) |= I2C_CR2_DMAEN | I2C_CR2_LAST;
+    }
+
+    // Start
+    I2C_CR1(i2c->base) |= I2C_CR1_START;
+}
+
+static void device_stop(hw_i2c_t *i2c)
+{
+    i2c->flags = HW_FL_USED; // Clear all software flags
+
+    I2C_CR1(i2c->base) |= I2C_CR1_STOP;
+
+    cupkee_device_response_submit(i2c->entry, i2c->recv_len);
+
+    I2C_CR1(i2c->base) &= ~I2C_CR1_PE;
+}
+
+static void device_start(hw_i2c_t *i2c)
+{
+    device_setup_dma(i2c);
+
+    // Enable i2c device
+    I2C_CR2(i2c->base) |= I2C_CR2_ITEVTEN | I2C_CR2_ITERREN;
+    I2C_CR1(i2c->base) |= I2C_CR1_PE;
+
+    if (i2c->send_len == 0) {
+        device_recv_start(i2c);
+    } else {
+        device_send_start(i2c);
     }
 }
 
-static void do_wait_raddr(uint32_t i2c, hw_i2c_t *control)
+static void device_isr(int inst)
 {
-    if (I2C_SR1(i2c) & I2C_SR1_ADDR) {
-        uint32_t irq_state;
+    hw_i2c_t *i2c = device_block(inst);
 
-        switch (control->trans_size) {
-        case 1: // one byte read
-            I2C_CR1(i2c) &= ~I2C_CR1_ACK; // Nack for DataN
+    if (i2c) {
+        uint32_t base = i2c->base;
+        uint16_t SR1 = I2C_SR1(i2c->base);
+        uint16_t SR2;
 
-            hw_enter_critical(&irq_state);
-            hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT); // Clear addr
-            I2C_CR1(i2c) |= I2C_CR1_STOP;
-            hw_exit_critical(irq_state);
-            control->state = I2C_STATE_WAIT_DATA_1;
-
-            break;
-        case 2: // two bytes read
-            I2C_CR1(i2c) |= I2C_CR1_POS; // Trigger Nack at next shift complete
-
-            hw_enter_critical(&irq_state);
-            hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT); // Clear addr
-            I2C_CR1(i2c) &= ~I2C_CR1_ACK; // Nack
-            hw_exit_critical(irq_state);
-            control->state = I2C_STATE_WAIT_DATA_2;
-
-            break;
-        default: // n bytes read
-            hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT); // Clear addr
-            control->state = I2C_STATE_WAIT_DATA_N;
-            break;
-        }
-    }
-}
-
-static void do_wait_data_1(uint32_t i2c, hw_i2c_t *control)
-{
-    if(hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVED)) {
-        control->trans_pos++;
-        cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-        control->state = I2C_STATE_STOP;
-    }
-}
-
-static void do_wait_data_2(uint32_t i2c, hw_i2c_t *control)
-{
-    if(hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVE_HOLD)) {
-        uint32_t irq_state;
-
-        control->trans_pos += 2;
-
-        hw_enter_critical(&irq_state);
-        I2C_CR1(i2c) |= I2C_CR1_STOP;
-        cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-        hw_exit_critical(irq_state);
-        cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-
-        control->state = I2C_STATE_STOP;
-    }
-}
-
-static void do_wait_data_n(uint32_t i2c, hw_i2c_t *control)
-{
-    if(hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVE_HOLD)) {
-        unsigned lft = control->trans_size - control->trans_pos;
-        if (lft > 3) {
-            cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-            control->trans_pos++;
+        if (SR1 & I2C_SR1_SB) {
+            // Enter master mode
+            // Send addr & Set mode (Rx | Tx) & Clear SB flag
+            I2C_DR(base) = i2c->peer_addr | (i2c->flags & HW_FL_I2C_RX ? 1 : 0);
         } else
-        if (lft == 3) {
-            I2C_CR1(i2c) &= ~I2C_CR1_ACK; // Nack to last byte
-            cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-            control->trans_pos++;
-        } else {
-            uint32_t irq_state;
+        if (SR1 & I2C_SR1_ADDR) {
+            // Note: ACK always as reset
+            // Clear ADDR by read SR2 & Trigger TxE or TxNE event
+            SR2 = I2C_SR2(base);
 
-            hw_enter_critical(&irq_state);
-            I2C_CR1(i2c) |= I2C_CR1_STOP;
-            cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-            hw_exit_critical(irq_state);
-            cupkee_buffer_push(control->rcv_buf, I2C_DR(i2c));
-
-            control->trans_pos += 2;
-            control->state = I2C_STATE_STOP;
+            // Receive one
+            if ((SR2 & I2C_SR2_TRA)  && i2c->recv_len == 1) {
+                // Enable RxNE to trigger interrupt
+                I2C_CR2(base) |= I2C_CR2_ITBUFEN;
+                I2C_CR1(base) |= I2C_CR1_STOP;
+            }
+        } else
+        if (SR1 & I2C_SR1_BTF) {
+            if (i2c->flags & HW_FL_I2C_RX) {
+                if (i2c->recv_len == 1) {
+                    // Should not go here, some defence code
+                    I2C_CR2(base) &= ~I2C_CR2_ITBUFEN;
+                    i2c->recv_buf[0] = 1;
+                    device_stop(i2c);
+                } else {
+                    device_stop(i2c);
+                }
+            } else { // Transmit complete
+                if (i2c->recv_len) {
+                    device_recv_start(i2c);
+                } else {
+                    device_stop(i2c);
+                }
+            }
+        } else
+        if (SR1 & I2C_SR1_RxNE) {
+            // Only when 1 byte receive mode
+            // Disable RxNE to trigger interrupt
+            I2C_CR2(base) &= ~I2C_CR2_ITBUFEN;
+            i2c->recv_buf[0] = I2C_DR(base);
+            device_stop(i2c);
         }
     }
 }
 
-static void do_wait_waddr(uint32_t i2c, hw_i2c_t *control)
+static cupkee_struct_t *device_conf_init(void *curr)
 {
-    if (hw_i2c_match_event(i2c, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECT)) {
-        uint8_t data;
+    cupkee_struct_t *conf;
 
-        cupkee_buffer_shift(control->req_buf, &data);
-        I2C_DR(i2c) = data;
-
-        control->trans_pos = 1;
-        control->state = I2C_STATE_SEND_DATA;
-    }
-}
-
-static void do_send_data(uint32_t i2c, hw_i2c_t *control)
-{
-    if (hw_i2c_match_event(i2c, I2C_EVENT_MASTER_TRANSMITTING)) {
-        if (control->trans_pos < control->trans_size) {
-            uint8_t data;
-
-            cupkee_buffer_shift(control->req_buf, &data);
-            I2C_DR(i2c) = data;
-            control->trans_pos++;
-        } else {
-            I2C_CR1(i2c) |= I2C_CR1_STOP;
-            control->state = I2C_STATE_STOP;
-        }
-    }
-}
-
-static void do_stop(uint32_t i2c, hw_i2c_t *control)
-{
-    I2C_CR1(i2c) |= I2C_CR1_ACK;
-    control->state = I2C_STATE_IDLE;
-
-    if (control->slave_addr & 1) {
-        cupkee_event_post_device_data(control->dev_id);
+    if (curr) {
+        conf = curr;
     } else {
-        cupkee_event_post_device_drain(control->dev_id);
+        conf = cupkee_struct_alloc(2, device_conf_desc);
     }
 
-    do_try_start(i2c, control);
-}
-
-static void hw_i2c_reset(int instance)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-    uint32_t i2c = I2C_REG_BASE(instance);
-
-    // Reset hardware
-    I2C_CR1(i2c) = I2C_CR1_SWRST;
-
-    control->state = I2C_STATE_IDLE;
-
-    // Release pins
-    hw_i2c_reset_pin(instance);
-
-    I2C_CR1(i2c) = 0;
-    I2C_CR2(i2c) = 0;
-    I2C_OAR1(i2c) = 0;
-    I2C_OAR2(i2c) = 0;
-    I2C_TRISE(i2c) = 0;
-    I2C_CCR(i2c) = 0;
-
-    rcc_periph_clock_disable(RCC_I2C1);
-
-    // release resource
-    if (control->rcv_buf) {
-        cupkee_buffer_release(control->rcv_buf);
-        control->rcv_buf = NULL;
+    if (conf) {
+        cupkee_struct_set_uint(conf, 0, 50000);
+        cupkee_struct_set_uint(conf, 1, 0);
     }
-    if (control->req_buf) {
-        cupkee_buffer_release(control->req_buf);
-        control->req_buf = NULL;
+
+    return conf;
+}
+
+static int device_setup(int inst, void *entry)
+{
+    hw_i2c_t *i2c = device_block(inst);
+    cupkee_struct_t *conf;
+    unsigned speed, addr;
+    uint32_t base;
+
+    if (!i2c) {
+        return -CUPKEE_EINVAL;
     }
-}
 
-static void hw_i2c_release(int instance)
-{
-    hw_i2c_reset(instance);
-    hw_release_instance(instance, &use_map);
-}
+    conf = cupkee_device_config(entry);
+    if (!conf) {
+        return -CUPKEE_ERROR;
+    }
 
-static int hw_i2c_setup(int instance, uint8_t dev_id, const hw_config_t *conf)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-    const hw_config_i2c_t *config = (const hw_config_i2c_t *) conf;
-    uint32_t i2c, speed = config->speed;
-    uint8_t freq;
-
-    if (control == NULL || hw_i2c_setup_pin(instance)) {
+    if (i2c == NULL || device_setup_io(inst)) {
         return -CUPKEE_ERESOURCE;
     }
 
-    control->dev_id = dev_id;
-    control->state = I2C_STATE_IDLE;
-    control->slave_addr = 0;
-    control->trans_time = 0;
-    control->trans_size = 0;
-    control->trans_pos = 0;
+    cupkee_struct_get_uint(conf, 0, &speed);
+    cupkee_struct_get_uint(conf, 1, &addr);
 
-    if (NULL == (control->rcv_buf = cupkee_buffer_alloc(I2C_RCV_BUF_SIZE))) {
-        hw_i2c_reset_pin(instance);
-        return -CUPKEE_ERESOURCE;
-    }
-
-    if (NULL == (control->req_buf = cupkee_buffer_alloc(I2C_REQ_BUF_SIZE))) {
-        hw_i2c_reset_pin(instance);
-        cupkee_buffer_release(control->rcv_buf);
-        control->rcv_buf = NULL;
-        return -CUPKEE_ERESOURCE;
-    }
-
-    if (instance == 0) {
+    if (inst == 0) {
         rcc_periph_clock_enable(RCC_I2C1);
-        i2c = I2C1;
     } else {
         rcc_periph_clock_enable(RCC_I2C2);
-        i2c = I2C2;
-    }
-    I2C_CR1(i2c) = I2C_CR1_SWRST;
-
-    if (speed > 400000) {
-        speed = 400000;
-    } else
-    if (speed < 10000) {
-        speed = 10000;
-    }
-    freq = SYS_PCLK / 1000000;
-
-    I2C_CR1(i2c) = 0;
-    I2C_CR2(i2c) = freq;
-    I2C_OAR1(i2c) = config->addr & 0xFE;
-
-    // Set ccr
-    if (speed <= 100000) {
-        uint16_t ccr = SYS_PCLK / (speed * 2);
-        if (ccr < 4) {
-            ccr = 4;
-        }
-        I2C_TRISE(i2c) = freq + 1;
-        I2C_CCR(i2c) = ccr;
-    } else {
-        uint16_t ccr = SYS_PCLK/ (speed * 3);
-        if (ccr < 1) {
-            ccr = 1;
-        }
-        I2C_TRISE(i2c) = freq * 3 / 10 + 1;
-        I2C_CCR(i2c) = I2C_CCR_FS | ccr;
     }
 
-    //enable all interrupts
-    //I2C_CR2(i2c) |= I2C_CR2_ITBUFEN | I2C_CR2_ITEVTEN | I2C_CR2_ITERREN;
-    I2C_CR1(i2c) |= I2C_CR1_ACK | I2C_CR1_PE;
+    base = i2c->base;
+    I2C_CR1(base) = I2C_CR1_SWRST;
+
+    speed = (speed > 400000) ? 400000 : speed;
+    speed = (speed < 500) ? 500 : speed;
+
+    I2C_CR1(base) = 0;
+    I2C_CR2(base) = 8; // FREQ = 8M
+    I2C_OAR1(base) = addr & 0xFE;
+
+    // Set clock
+    if (speed <= 100000) { // SM
+        uint16_t ccr = 4000000 / speed;
+
+        I2C_CCR(base) = ccr;
+        I2C_TRISE(base) = 9;
+    } else { // FM
+        uint16_t ccr = 8000000 / (speed * 3);
+
+        I2C_CCR(base) = I2C_CCR_FS | ccr;
+        I2C_TRISE(base) = 5;
+    }
+
+    // Enable DMA
+    rcc_periph_clock_enable(RCC_DMA1);
 
     return 0; // CUPKEE_OK;
 }
 
-static void hw_i2c_poll(int instance)
+static int device_reset(int inst)
 {
-    hw_i2c_t *control = hw_i2c_control(instance);
-    uint32_t i2c = I2C_REG_BASE(instance);
+    hw_i2c_t *i2c = device_block(inst);
 
-    switch (control->state) {
-    case I2C_STATE_IDLE:
-    case I2C_STATE_ERROR: break;
-    case I2C_STATE_WAIT_NBUSY: do_wait_nbusy(i2c, control); break;
-    case I2C_STATE_WAIT_START: do_wait_start(i2c, control); break;
-    case I2C_STATE_WAIT_RADDR: do_wait_raddr(i2c, control); break;
-    case I2C_STATE_WAIT_WADDR: do_wait_waddr(i2c, control); break;
-    case I2C_STATE_SEND_DATA:  do_send_data(i2c, control); break;
-    case I2C_STATE_WAIT_DATA_1:  do_wait_data_1(i2c, control); break;
-    case I2C_STATE_WAIT_DATA_2:  do_wait_data_2(i2c, control); break;
-    case I2C_STATE_WAIT_DATA_N:  do_wait_data_n(i2c, control); break;
-    case I2C_STATE_STOP:  do_stop(i2c, control); break;
-    }
-}
+    // Reset hardware
+    I2C_CR1(i2c->base) = I2C_CR1_SWRST;
 
-static void hw_i2c_sync(int instance, uint32_t systick)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
+    // Release pins
+    device_reset_io(inst);
 
-    (void) systick;
+    // Release dma
+    device_reset_dma(inst);
 
-    if (!control || control->state <= I2C_STATE_ERROR) {
-        return;
-    }
+    I2C_CR1(i2c->base) = 0;
+    I2C_CR2(i2c->base) = 0;
+    I2C_OAR1(i2c->base) = 0;
+    I2C_OAR2(i2c->base) = 0;
+    I2C_TRISE(i2c->base) = 0;
+    I2C_CCR(i2c->base) = 0;
 
-    control->trans_time++;
-    if (control->trans_time > I2C_TOUT_THRESHOLD) {
-        do_error_timeout(I2C_REG_BASE(instance), control);
-    }
-}
-
-static int hw_i2c_read_req(int instance, size_t size)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    if (!control || size < 1) {
-        return -CUPKEE_EINVAL;
-    }
-
-    if (request_read(control, size) == 0) {
-        return -CUPKEE_EFULL;
-    }
-
-    do_try_start(I2C_REG_BASE(instance), control);
-    return 0;
-}
-
-static int hw_i2c_read(int instance, size_t n, void *buf)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    if (!control) {
-        return -CUPKEE_EINVAL;
-    }
-
-    return cupkee_buffer_take(control->rcv_buf, n, buf);
-}
-
-static int hw_i2c_write(int instance, size_t n, const void *data)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    if (!control || n < 1) {
-        return -CUPKEE_EINVAL;
-    }
-
-    if (request_write(control, n, data) == 0) {
-        return -CUPKEE_EFULL;
-    }
-
-    do_try_start(I2C_REG_BASE(instance), control);
-    return n;
-}
-
-#define TOUT_TRY(cond)  while (cond) { \
-    if (cupkee_systicks() - begin >= I2C_TOUT_THRESHOLD) return -1; \
-}
-
-static int hw_i2c_write_sync(int instance, size_t n, const void *data)
-{
-    hw_i2c_t *control;
-    uint32_t i2c;
-    uint8_t addr;
-    const uint8_t *byte = data;
-    uint32_t begin = cupkee_systicks();
-    unsigned i;
-
-    if (n < 1) {
-        return 0;
-    }
-
-    control = hw_i2c_control(instance);
-    i2c  = I2C_REG_BASE(instance);
-    addr = control->slave_addr & (~1);
-
-    if (!control) {
-        return -CUPKEE_EINVAL;
-    }
-
-    // Start
-    TOUT_TRY (I2C_SR2(i2c) & I2C_SR2_BUSY);
-    I2C_CR1(i2c) |= I2C_CR1_START;
-
-    // Send address
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_MODE_SELECT));
-    I2C_DR(i2c) = addr;
-
-    // Send data
-    for (i = 0; i < n; i++) {
-        TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_TRANSMITTING));
-        I2C_DR(i2c) = byte[i];
-    }
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_TRANSMITTED));
-
-    // Stop
-    I2C_CR1(i2c) |= I2C_CR1_STOP;
-    //while (hw_i2c_match_event(i2c, I2C_EVENT_STOP));
-
-    return i;
-}
-
-static int hw_i2c_read_1byte(uint32_t i2c, uint8_t addr, uint8_t *buf)
-{
-    uint32_t irq_state;
-    uint32_t begin = cupkee_systicks();
-
-    // Start
-    I2C_CR1(i2c) |= I2C_CR1_START;
-
-    // Send address
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_MODE_SELECT));
-    I2C_DR(i2c) = addr;
-
-    TOUT_TRY (!(I2C_SR1(i2c) & I2C_SR1_ADDR));
-    I2C_CR1(i2c) &= ~I2C_CR1_ACK; // Nack for DataN
-
-    hw_enter_critical(&irq_state);
-    hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT); // Clear addr
-    I2C_CR1(i2c) |= I2C_CR1_STOP;
-    hw_exit_critical(irq_state);
-
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVED));
-    *buf = I2C_DR(i2c);
-
-    // wait stop
-    //TOUT_TRY (hw_i2c_match_event(i2c, I2C_EVENT_STOP));
-    I2C_CR1(i2c) |= I2C_CR1_ACK;
-
-    return 1;
-}
-
-static int hw_i2c_read_2byte(uint32_t i2c, uint8_t addr, uint8_t *buf)
-{
-    uint32_t irq_state;
-    uint32_t begin = cupkee_systicks();
-
-    // trigger start for data receive
-    I2C_CR1(i2c) |= I2C_CR1_START;
-
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_MODE_SELECT));
-    I2C_DR(i2c) = addr;
-
-    TOUT_TRY (!(I2C_SR1(i2c) & I2C_SR1_ADDR));
-    I2C_CR1(i2c) |= I2C_CR1_POS; // Trigger Nack at next shift complete
-
-    hw_enter_critical(&irq_state);
-    hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT); // Clear addr
-    I2C_CR1(i2c) &= ~I2C_CR1_ACK; // Nack
-    hw_exit_critical(irq_state);
-
-    // Wait for Data1 and Data2 received
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVE_HOLD));
-    hw_enter_critical(&irq_state);
-    I2C_CR1(i2c) |= I2C_CR1_STOP;
-    buf[0] = I2C_DR(i2c);
-    hw_exit_critical(irq_state);
-
-    buf[1] = I2C_DR(i2c);
-
-    //TOUT_TRY (hw_i2c_match_event(i2c, I2C_EVENT_STOP));
-    I2C_CR1(i2c) |= I2C_CR1_ACK;
-
-    return 2;
-}
-
-static int hw_i2c_read_Nbyte(uint32_t i2c, uint8_t addr, uint8_t n, uint8_t *buf)
-{
-    uint8_t i;
-    uint32_t irq_state;
-    uint32_t begin = cupkee_systicks();
-
-    // trigger start for data receive
-    I2C_CR1(i2c) |= I2C_CR1_START;
-
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_MODE_SELECT));
-    I2C_DR(i2c) = addr; // Set the BIT0 of address for read
-
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVER_MODE_SELECT));
-    for (i = 0; i < n - 3; i++) {
-        TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVED));
-        buf[i] = I2C_DR(i2c);
-    }
-
-    // Wait for DataN-2 and DataN-1 received
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVE_HOLD));
-
-    // Nack for DataN
-    I2C_CR1(i2c) &= ~I2C_CR1_ACK;
-
-    // load DataN-2, to start the receiveing of DataN
-    buf[i++] = I2C_DR(i2c);
-
-    // Wait for DataN received
-    TOUT_TRY (!hw_i2c_match_event(i2c, I2C_EVENT_MASTER_RECEIVE_HOLD));
-
-    hw_enter_critical(&irq_state);
-    I2C_CR1(i2c) |= I2C_CR1_STOP;
-    buf[i++] = I2C_DR(i2c);
-    hw_exit_critical(irq_state);
-    buf[i++] = I2C_DR(i2c);
-
-    //TOUT_TRY (hw_i2c_match_event(i2c, I2C_EVENT_STOP));
-    I2C_CR1(i2c) |= I2C_CR1_ACK;
-
-    return i;
-}
-
-static int hw_i2c_read_sync(int instance, size_t n, void *buf)
-{
-    hw_i2c_t *control;
-    uint32_t i2c;
-    uint8_t addr;
-    uint32_t begin = cupkee_systicks();
-
-    if (n < 1) {
-        return 0;
-    }
-
-    control = hw_i2c_control(instance);
-    i2c  = I2C_REG_BASE(instance);
-    addr = control->slave_addr | 1;
-
-    if (!control) {
-        return -CUPKEE_EINVAL;
-    }
-
-    TOUT_TRY (I2C_SR2(i2c) & I2C_SR2_BUSY);
-
-    if (n == 1) {
-        return hw_i2c_read_1byte(i2c, addr, buf);
-    } else
-    if (n == 2) {
-        return hw_i2c_read_2byte(i2c, addr, buf);
+    if (inst == 0) {
+        rcc_periph_clock_disable(RCC_I2C1);
     } else {
-        return hw_i2c_read_Nbyte(i2c, addr, n, buf);
-    }
-}
-
-static int hw_i2c_prop_get(int instance, int which, uint32_t *value)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    if (!control || !value) {
-        return 0;
+        rcc_periph_clock_disable(RCC_I2C2);
     }
 
-    if (which == I2C_PROP_SLAVE) {
-        *value = control->slave_addr & (~1);
-        return 1;
-    }
     return 0;
 }
 
-static int hw_i2c_prop_set(int instance, int which, uint32_t value)
+static int device_request(int inst)
 {
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    value = value & 0xFE;
-
-    if (!control || (value & 0xfe) == 0) {
-        return 0;
-    }
-
-    if (which == I2C_PROP_SLAVE) {
-        control->slave_addr = (uint8_t) value;
-        return 1;
-    }
-    return 0;
-}
-
-static int hw_i2c_io_cached(int instance, size_t *in, size_t *out)
-{
-    hw_i2c_t *control = hw_i2c_control(instance);
-
-    if (!control) {
+    if (inst >= I2C_MAX || device_data[inst].flags) {
         return -CUPKEE_EINVAL;
     }
 
-    if (in) {
-        if (control->rcv_buf) {
-            *in = cupkee_buffer_length(control->rcv_buf);
-        } else {
-            *in = 0;
-        }
+    device_data[inst].flags = HW_FL_USED;
+    device_data[inst].entry = NULL;
+
+    return 0;
+}
+
+static int device_release(int inst)
+{
+    hw_i2c_t *i2c = device_block(inst);
+
+    if (i2c) {
+        i2c->flags = 0;
+        return 0;
+    } else {
+        return -CUPKEE_EINVAL;
     }
-    if (out) {
-        if (control->req_buf) {
-            *out = cupkee_buffer_length(control->req_buf);
-        } else {
-            *out = 0;
-        }
+}
+
+static int device_get(int inst, int i, uint32_t *data)
+{
+    hw_i2c_t *i2c = device_block(inst);
+
+    if (i2c && i == 0) {
+        *data = i2c->peer_addr;
+        return 1;
     }
     return 0;
 }
 
-static int hw_i2c_prop_num(int instance)
+static int device_set(int inst, int i, uint32_t data)
 {
-    (void) instance;
+    hw_i2c_t *i2c = device_block(inst);
+
+    if (i == 0) {
+        i2c->peer_addr = data & 0xFE;
+    }
+
     return 1;
 }
 
-static const hw_driver_t i2c_driver = {
-    .release = hw_i2c_release,
-    .reset   = hw_i2c_reset,
-    .setup   = hw_i2c_setup,
-    .sync    = hw_i2c_sync,
-    .poll    = hw_i2c_poll,
+static int device_query(int inst, int want)
+{
+    hw_i2c_t *i2c = device_block(inst);
 
-    .get     = hw_i2c_prop_get,
-    .set     = hw_i2c_prop_set,
-    .size    = hw_i2c_prop_num,
+    if (!i2c) {
+        return -CUPKEE_EINVAL;
+    }
 
-    .io_cached = hw_i2c_io_cached,
+    i2c->send_buf = cupkee_device_request_ptr(i2c->entry);
+    i2c->send_len = cupkee_device_request_len(i2c->entry);
+    if (want > 0) {
+        i2c->recv_buf = cupkee_device_response_ptr(i2c->entry);
+        i2c->recv_len = want;
+    } else {
+        i2c->recv_len = 0;
+    }
 
-    .read_req  = hw_i2c_read_req,
-    .read      = hw_i2c_read,
-    .write     = hw_i2c_write,
-    .read_sync = hw_i2c_read_sync,
-    .write_sync = hw_i2c_write_sync
+    device_start(i2c);
+
+    return 0;
+}
+
+static const cupkee_driver_t device_driver = {
+    .request = device_request,
+    .release = device_release,
+    .reset   = device_reset,
+    .setup   = device_setup,
+
+    .query = device_query,
+    .set = device_set,
+    .get = device_get,
 };
 
-const hw_driver_t *hw_request_i2c(int instance)
-{
-    if (instance >= HW_INSTANCES_I2C || 0 == hw_use_instance(instance, &use_map)) {
-        return NULL;
-    }
-
-    i2c_controls[instance].dev_id = DEVICE_ID_INVALID;
-    i2c_controls[instance].state  = I2C_STATE_IDLE;
-
-    i2c_controls[instance].req_buf = NULL;
-    i2c_controls[instance].rcv_buf = NULL;
-
-    return &i2c_driver;
-}
-
-#endif
+static const cupkee_device_desc_t hw_device_i2c = {
+    .name = "i2c",
+    .inst_max = I2C_MAX,
+    .conf_init = device_conf_init,
+    .driver = &device_driver
+};
 
 void hw_setup_i2c(void)
 {
+    device_data[0].flags = 0;
+    device_data[0].base = I2C1;
+
+    device_data[1].flags = 0;
+    device_data[1].base = I2C2;
+
+    cupkee_device_register(&hw_device_i2c);
+}
+
+void i2c1_ev_isr(void)
+{
+    device_isr(0);
+}
+
+void i2c2_ev_isr(void)
+{
+    device_isr(1);
+}
+
+void i2c1_er_isr(void)
+{
+    device_stop(&device_data[0]);
+}
+
+void i2c2_er_isr(void)
+{
+    device_stop(&device_data[1]);
+}
+
+void dma1_channel4_isr(void)
+{
+    hw_i2c_t *i2c = &device_data[1];
+
+    // Clear dma event flag
+    if (DMA1_ISR & DMA_ISR_TCIF4) {
+        DMA1_IFCR |= DMA_IFCR_CTCIF4;
+    }
+
+    // Stop DMA
+    DMA1_CCR4 &= ~DMA_CCR_EN;
+    nvic_disable_irq(NVIC_DMA1_CHANNEL4_IRQ);
+
+    I2C_CR2(i2c->base) &= ~I2C_CR2_DMAEN;
+}
+
+void dma1_channel5_isr(void)
+{
+    hw_i2c_t *i2c = &device_data[1];
+
+    // Clear dma event flag
+    if (DMA1_ISR & DMA_ISR_TCIF5) {
+        DMA1_IFCR |= DMA_IFCR_CTCIF5;
+    }
+
+    // Stop DMA
+    DMA1_CCR5 &= ~DMA_CCR_EN;
+    nvic_disable_irq(NVIC_DMA1_CHANNEL5_IRQ);
+
+    I2C_CR2(i2c->base) &= ~(I2C_CR2_DMAEN | I2C_CR2_LAST);
+}
+
+void dma1_channel6_isr(void)
+{
+    hw_i2c_t *i2c = &device_data[0];
+
+    // Clear dma event flag
+    if (DMA1_ISR & DMA_ISR_TCIF6) {
+        DMA1_IFCR |= DMA_IFCR_CTCIF6;
+    }
+
+    // Stop DMA
+    DMA1_CCR6 &= ~DMA_CCR_EN;
+    nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
+
+    I2C_CR2(i2c->base) &= ~I2C_CR2_DMAEN;
+}
+
+void dma1_channel7_isr(void)
+{
+    hw_i2c_t *i2c = &device_data[0];
+
+    // Clear dma event flag
+    if (DMA1_ISR & DMA_ISR_TCIF7) {
+        DMA1_IFCR |= DMA_IFCR_CTCIF7;
+    }
+
+    // Stop DMA
+    DMA1_CCR7 &= ~DMA_CCR_EN;
+    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+
+    I2C_CR2(i2c->base) &= ~(I2C_CR2_DMAEN | I2C_CR2_LAST);
 }
 

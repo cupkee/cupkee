@@ -51,7 +51,7 @@ void cupkee_buffer_release_x(void *p)
 }
 */
 
-int cupkee_buffer_xxx(cupkee_buffer_t *b, void **pptr)
+int cupkee_buffer_take(cupkee_buffer_t *b, void **pptr)
 {
     int retv = b->len;
 
@@ -63,11 +63,24 @@ int cupkee_buffer_xxx(cupkee_buffer_t *b, void **pptr)
             if (NULL == (*pptr = cupkee_malloc(retv))) {
                 return -CUPKEE_ENOMEM;
             }
-            cupkee_buffer_take(b, retv, *pptr);
+            cupkee_buffer_pop_n(b, retv, *pptr);
         }
     }
 
     return retv;
+}
+
+int cupkee_buffer_give(cupkee_buffer_t *b, size_t n, void *buf)
+{
+    if ((b->flags & CUPKEE_FLAG_OWNED) && b->ptr) {
+        cupkee_free(b->ptr);
+    }
+    b->ptr = buf;
+    b->cap = n;
+    b->len = n;
+    b->bgn = 0;
+
+    return n;
 }
 
 int cupkee_buffer_space_to(cupkee_buffer_t *b, size_t n) {
@@ -147,7 +160,7 @@ int cupkee_buffer_unshift(cupkee_buffer_t *b, uint8_t d)
     }
 }
 
-int cupkee_buffer_take(cupkee_buffer_t *b, size_t n, void *buf)
+int cupkee_buffer_pop_n(cupkee_buffer_t *b, size_t n, void *buf)
 {
     if (n > b->len) {
         n = b->len;
@@ -174,7 +187,7 @@ int cupkee_buffer_take(cupkee_buffer_t *b, size_t n, void *buf)
     return n;
 }
 
-int cupkee_buffer_give(cupkee_buffer_t *b, size_t n, const void *buf)
+int cupkee_buffer_push_n(cupkee_buffer_t *b, size_t n, const void *buf)
 {
     if (n + b->len > b->cap) {
         n = b->cap - b->len;
