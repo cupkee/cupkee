@@ -33,6 +33,7 @@ typedef struct cupkee_driver_t {
     int (*setup)(int inst, void *entry);
     int (*reset)(int inst);
     int (*poll)(int inst);
+    int (*sync)(int inst, uint32_t systicks);
 
     int (*query)(int inst, int want);
 
@@ -99,6 +100,7 @@ int   cupkee_device_request_len(void *entry);
 void *cupkee_device_request_ptr(void *entry);
 int   cupkee_device_request_load(void *entry, size_t n, void *data);
 
+int   cupkee_device_response_len(void *entry);
 void *cupkee_device_response_ptr(void *entry);
 void cupkee_device_response_end(void *entry);
 void cupkee_device_response_submit(void *entry, size_t n);

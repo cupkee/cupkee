@@ -19,24 +19,35 @@
 
 #include "hardware.h"
 
-#define HW_FL_I2C_RX    0x10
+#define HW_FL_I2C_RX        0x10
+
+enum {
+    S_IDLE = 0,
+    S_WAIT_START,
+    S_WAIT_ADDR,
+    S_WAIT_RECV1,
+    S_WAIT_RECV2,
+    S_WAIT_RECVn,
+    S_WAIT_SEND,
+    S_WAIT_STOP,
+};
 
 #define I2C_MAX         2
 
 typedef struct hw_i2c_t {
-    uint8_t flags;
-    uint8_t nv;
-    uint8_t self_addr;
-    uint8_t peer_addr;
-
     uint32_t base;
 
-    void *entry;
+    uint8_t flags;
+    uint8_t state;
+    uint8_t pos;
+    uint8_t self_addr;
+    uint8_t peer_addr;
 
     uint8_t send_len;
     uint8_t recv_len;
     uint8_t *recv_buf;
     uint8_t *send_buf;
+    void *entry;
 } hw_i2c_t;
 
 static hw_i2c_t device_data[I2C_MAX];
@@ -74,84 +85,6 @@ static int device_setup_io(int inst)
     }
 }
 
-
-
-static void device_setup_dma(hw_i2c_t *i2c)
-{
-    if (i2c->base == I2C1) {
-        if (i2c->send_len > 0) {
-            DMA1_CMAR6 = (uint32_t)i2c->send_buf;
-            DMA1_CPAR6 = (uint32_t)&I2C1_DR;
-            DMA1_CNDTR6 = i2c->send_len;
-            DMA1_CCR6 = DMA_CCR_PL_HIGH |
-                        DMA_CCR_MSIZE_8BIT |
-                        DMA_CCR_PSIZE_8BIT |
-                        DMA_CCR_MINC |
-                        DMA_CCR_DIR | // READ from memory
-                        DMA_CCR_TCIE;
-            nvic_set_priority(NVIC_DMA1_CHANNEL6_IRQ, 0);
-        }
-        if (i2c->recv_len > 1) {
-            DMA1_CPAR7 = (uint32_t)&I2C1_DR;
-            DMA1_CMAR7 = (uint32_t)i2c->recv_buf;
-            DMA1_CNDTR7 = i2c->recv_len;
-            DMA1_CCR7 = DMA_CCR_PL_HIGH |
-                        DMA_CCR_MSIZE_8BIT |
-                        DMA_CCR_PSIZE_8BIT |
-                        DMA_CCR_MINC |
-                        // READ from peripheral
-                        DMA_CCR_TCIE;
-            nvic_set_priority(NVIC_DMA1_CHANNEL7_IRQ, 0);
-        }
-    } else {
-        if (i2c->send_len > 0) {
-            DMA1_CMAR4 = (uint32_t)i2c->send_buf;
-            DMA1_CPAR4 = (uint32_t)&I2C2_DR;
-            DMA1_CNDTR4 = i2c->send_len;
-            DMA1_CCR4 = DMA_CCR_PL_HIGH |
-                        DMA_CCR_MSIZE_8BIT |
-                        DMA_CCR_PSIZE_8BIT |
-                        DMA_CCR_MINC |
-                        DMA_CCR_DIR | // READ from memory
-                        DMA_CCR_TCIE;
-            nvic_set_priority(NVIC_DMA1_CHANNEL4_IRQ, 0);
-        }
-        if (i2c->recv_len > 1) {
-            DMA1_CPAR5 = (uint32_t)&I2C2_DR;
-            DMA1_CMAR5 = (uint32_t)i2c->recv_buf;
-            DMA1_CNDTR5 = i2c->recv_len;
-            DMA1_CCR5 = DMA_CCR_PL_HIGH |
-                        DMA_CCR_MSIZE_8BIT |
-                        DMA_CCR_PSIZE_8BIT |
-                        DMA_CCR_MINC |
-                        // READ from peripheral
-                        DMA_CCR_TCIE;
-            nvic_set_priority(NVIC_DMA1_CHANNEL5_IRQ, 0);
-        }
-    }
-}
-
-static void device_reset_dma(int inst)
-{
-    if (inst == 0) {
-        DMA1_CCR6 = 0;
-        DMA1_CCR7 = 0;
-        nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-        nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-
-        if (!device_data[1].flags & HW_FL_USED)
-            rcc_periph_clock_disable(RCC_DMA1);
-    } else {
-        DMA1_CCR4 = 0;
-        DMA1_CCR5 = 0;
-        nvic_disable_irq(NVIC_DMA1_CHANNEL4_IRQ);
-        nvic_disable_irq(NVIC_DMA1_CHANNEL5_IRQ);
-
-        if (!device_data[0].flags & HW_FL_USED)
-            rcc_periph_clock_disable(RCC_DMA1);
-    }
-}
-
 static inline void device_reset_io(int inst)
 {
     uint16_t pins;
@@ -166,120 +99,48 @@ static inline void device_reset_io(int inst)
 }
 
 static inline void device_send_start(hw_i2c_t *i2c) {
-
-    // Enable DMA
-    if (i2c->base == I2C1) {
-        DMA1_CCR6 |= DMA_CCR_EN;
-        nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-    } else {
-        DMA1_CCR4 |= DMA_CCR_EN;
-        nvic_enable_irq(NVIC_DMA1_CHANNEL4_IRQ);
-    }
-
-    // Enable I2C DMA
-    I2C_CR2(i2c->base) |= I2C_CR2_DMAEN;
+    i2c->pos = 0;
     // Start
     I2C_CR1(i2c->base) |= I2C_CR1_START;
+    i2c->state = S_WAIT_START;
+
+    // console_log("Tx Start\r\n");
 }
 
-static inline void device_recv_start(hw_i2c_t *i2c) {
-    i2c->flags = HW_FL_I2C_RX | HW_FL_USED;
-
-    if (i2c->recv_len > 1) {
-        // Enable DMA
-        if (i2c->base == I2C1) {
-            DMA1_CCR7 |= DMA_CCR_EN;
-            nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-        } else {
-            DMA1_CCR5 |= DMA_CCR_EN;
-            nvic_enable_irq(NVIC_DMA1_CHANNEL5_IRQ);
-        }
-
-        // Enable I2C DMA
-        I2C_CR2(i2c->base) |= I2C_CR2_DMAEN | I2C_CR2_LAST;
-    }
+static void device_recv_start(hw_i2c_t *i2c)
+{
+    i2c->flags |= HW_FL_I2C_RX;
+    i2c->pos = 0;
 
     // Start
     I2C_CR1(i2c->base) |= I2C_CR1_START;
+    i2c->state = S_WAIT_START;
+
+    // console_log("Rx Start\r\n");
 }
 
 static void device_stop(hw_i2c_t *i2c)
 {
     i2c->flags = HW_FL_USED; // Clear all software flags
 
-    I2C_CR1(i2c->base) |= I2C_CR1_STOP;
-
     cupkee_device_response_submit(i2c->entry, i2c->recv_len);
 
-    I2C_CR1(i2c->base) &= ~I2C_CR1_PE;
+    i2c->state = S_IDLE;
+
+    // console_log("Complete+\r\n");
 }
 
 static void device_start(hw_i2c_t *i2c)
 {
-    device_setup_dma(i2c);
+//    device_setup_dma(i2c);
 
     // Enable i2c device
-    I2C_CR2(i2c->base) |= I2C_CR2_ITEVTEN | I2C_CR2_ITERREN;
-    I2C_CR1(i2c->base) |= I2C_CR1_PE;
+    // I2C_CR2(i2c->base) |= I2C_CR2_ITEVTEN | I2C_CR2_ITERREN;
 
     if (i2c->send_len == 0) {
         device_recv_start(i2c);
     } else {
         device_send_start(i2c);
-    }
-}
-
-static void device_isr(int inst)
-{
-    hw_i2c_t *i2c = device_block(inst);
-
-    if (i2c) {
-        uint32_t base = i2c->base;
-        uint16_t SR1 = I2C_SR1(i2c->base);
-        uint16_t SR2;
-
-        if (SR1 & I2C_SR1_SB) {
-            // Enter master mode
-            // Send addr & Set mode (Rx | Tx) & Clear SB flag
-            I2C_DR(base) = i2c->peer_addr | (i2c->flags & HW_FL_I2C_RX ? 1 : 0);
-        } else
-        if (SR1 & I2C_SR1_ADDR) {
-            // Note: ACK always as reset
-            // Clear ADDR by read SR2 & Trigger TxE or TxNE event
-            SR2 = I2C_SR2(base);
-
-            // Receive one
-            if ((SR2 & I2C_SR2_TRA)  && i2c->recv_len == 1) {
-                // Enable RxNE to trigger interrupt
-                I2C_CR2(base) |= I2C_CR2_ITBUFEN;
-                I2C_CR1(base) |= I2C_CR1_STOP;
-            }
-        } else
-        if (SR1 & I2C_SR1_BTF) {
-            if (i2c->flags & HW_FL_I2C_RX) {
-                if (i2c->recv_len == 1) {
-                    // Should not go here, some defence code
-                    I2C_CR2(base) &= ~I2C_CR2_ITBUFEN;
-                    i2c->recv_buf[0] = 1;
-                    device_stop(i2c);
-                } else {
-                    device_stop(i2c);
-                }
-            } else { // Transmit complete
-                if (i2c->recv_len) {
-                    device_recv_start(i2c);
-                } else {
-                    device_stop(i2c);
-                }
-            }
-        } else
-        if (SR1 & I2C_SR1_RxNE) {
-            // Only when 1 byte receive mode
-            // Disable RxNE to trigger interrupt
-            I2C_CR2(base) &= ~I2C_CR2_ITBUFEN;
-            i2c->recv_buf[0] = I2C_DR(base);
-            device_stop(i2c);
-        }
     }
 }
 
@@ -299,6 +160,144 @@ static cupkee_struct_t *device_conf_init(void *curr)
     }
 
     return conf;
+}
+
+static inline void device_poll_start(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_SB) {
+        // Enter master mode
+        // Send addr & Set mode (Rx | Tx) & Clear SB flag
+        I2C_DR(i2c->base) = i2c->peer_addr | (i2c->flags & HW_FL_I2C_RX ? 1 : 0);
+        i2c->state = S_WAIT_ADDR;
+    }
+}
+
+static void device_poll_addr(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_ADDR) {
+        uint32_t base = i2c->base;
+        uint32_t SR2;
+
+        // Note: ACK always as reset
+        if (i2c->flags & HW_FL_I2C_RX) {
+            if (i2c->recv_len == 1) {
+                uint32_t ctx = cm_mask_interrupts(1);
+                SR2 = I2C_SR2(base); // Clear ADDR by read SR2
+                I2C_CR1(base) |= I2C_CR1_STOP;
+                cm_mask_interrupts(ctx);
+                i2c->state = S_WAIT_RECV1;
+            } else
+            if (i2c->recv_len == 2) {
+                I2C_CR1(base) |= I2C_CR1_POS;
+                SR2 = I2C_SR2(base); // Clear ADDR by read SR2
+                i2c->state = S_WAIT_RECV2;
+            } else {
+                I2C_CR1(i2c->base) |= I2C_CR1_ACK;
+                SR2 = I2C_SR2(base); // Clear ADDR by read SR2
+                i2c->state = S_WAIT_RECVn;
+            }
+        } else {
+            SR2 = I2C_SR2(base); // Clear ADDR by read SR2
+            I2C_DR(base) = i2c->send_buf[i2c->pos++];
+            i2c->state = S_WAIT_SEND;
+        }
+
+        // Dummy code, make gcc happy
+        if (SR2 == 0) {
+            I2C_CR1(i2c->base) = 0;
+        }
+    }
+}
+
+
+static inline void device_poll_recv1(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_RxNE) {
+        i2c->recv_buf[i2c->pos++] = I2C_DR(i2c->base);
+        i2c->state = S_WAIT_STOP;
+    }
+}
+
+static inline void device_poll_recv2(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_BTF) {
+        uint32_t base = i2c->base;
+        uint32_t ctx;
+
+        I2C_CR1(base) &= ~(I2C_CR1_ACK | I2C_CR1_POS);
+        ctx = cm_mask_interrupts(1);
+        I2C_CR1(base) |= I2C_CR1_STOP;
+        i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+        cm_mask_interrupts(ctx);
+
+        i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+        i2c->state = S_WAIT_STOP;
+
+        //console_log("recv %u\r\n", i2c->pos);
+    }
+}
+
+static inline void device_poll_recvn(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_BTF) {
+        uint32_t base = i2c->base;
+        uint8_t lft = i2c->recv_len - i2c->pos;
+        if (lft > 3) {
+            i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+        } else
+        if (lft == 3) {
+            I2C_CR1(i2c->base) &= ~I2C_CR1_ACK;
+            i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+        } else {
+            uint32_t ctx = cm_mask_interrupts(1);
+            I2C_CR1(base) &= ~(I2C_CR1_ACK | I2C_CR1_POS);
+            I2C_CR1(i2c->base) |= I2C_CR1_STOP;
+            i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+            cm_mask_interrupts(ctx);
+
+            i2c->recv_buf[i2c->pos++] = I2C_DR(base);
+            i2c->state = S_WAIT_STOP;
+
+            //console_log("recv %u\r\n", i2c->pos);
+        }
+    }
+}
+
+static inline void device_poll_send(hw_i2c_t *i2c) {
+    if (I2C_SR1(i2c->base) & I2C_SR1_BTF) {
+        if (i2c->pos < i2c->send_len) {
+            I2C_DR(i2c->base) = i2c->send_buf[i2c->pos++];
+        } else {
+            I2C_CR1(i2c->base) |= I2C_CR1_STOP;
+            i2c->state = S_WAIT_STOP;
+            //console_log("send: %u\r\n", i2c->pos);
+        }
+    }
+}
+
+static inline void device_poll_stop(hw_i2c_t *i2c) {
+    if (!(I2C_CR1(i2c->base) & I2C_CR1_STOP)) {
+        if (i2c->recv_len && !(i2c->flags & HW_FL_I2C_RX)) {
+            device_recv_start(i2c);
+        } else {
+            device_stop(i2c);
+        }
+    }
+}
+
+static int device_poll(int inst)
+{
+    hw_i2c_t *i2c = device_block(inst);
+
+    if (i2c && i2c->state) {
+        switch (i2c->state) {
+        case S_WAIT_START: device_poll_start(i2c); break;
+        case S_WAIT_ADDR:  device_poll_addr(i2c); break;
+        case S_WAIT_RECV1: device_poll_recv1(i2c); break;
+        case S_WAIT_RECV2: device_poll_recv2(i2c); break;
+        case S_WAIT_RECVn: device_poll_recvn(i2c); break;
+        case S_WAIT_SEND:  device_poll_send(i2c); break;
+        case S_WAIT_STOP:  device_poll_stop(i2c); break;
+        default: break;
+        }
+    }
+
+    return 0;
 }
 
 static int device_setup(int inst, void *entry)
@@ -321,6 +320,7 @@ static int device_setup(int inst, void *entry)
         return -CUPKEE_ERESOURCE;
     }
 
+    i2c->entry = entry;
     cupkee_struct_get_uint(conf, 0, &speed);
     cupkee_struct_get_uint(conf, 1, &addr);
 
@@ -352,9 +352,8 @@ static int device_setup(int inst, void *entry)
         I2C_CCR(base) = I2C_CCR_FS | ccr;
         I2C_TRISE(base) = 5;
     }
-
-    // Enable DMA
-    rcc_periph_clock_enable(RCC_DMA1);
+    i2c->state = S_IDLE;
+    I2C_CR1(i2c->base) |= I2C_CR1_PE;
 
     return 0; // CUPKEE_OK;
 }
@@ -370,7 +369,7 @@ static int device_reset(int inst)
     device_reset_io(inst);
 
     // Release dma
-    device_reset_dma(inst);
+    // device_reset_dma(inst);
 
     I2C_CR1(i2c->base) = 0;
     I2C_CR2(i2c->base) = 0;
@@ -461,6 +460,7 @@ static const cupkee_driver_t device_driver = {
     .release = device_release,
     .reset   = device_reset,
     .setup   = device_setup,
+    .poll    = device_poll,
 
     .query = device_query,
     .set = device_set,
@@ -477,95 +477,13 @@ static const cupkee_device_desc_t hw_device_i2c = {
 void hw_setup_i2c(void)
 {
     device_data[0].flags = 0;
+    device_data[0].state = 0;
     device_data[0].base = I2C1;
 
     device_data[1].flags = 0;
+    device_data[1].state = 0;
     device_data[1].base = I2C2;
 
     cupkee_device_register(&hw_device_i2c);
-}
-
-void i2c1_ev_isr(void)
-{
-    device_isr(0);
-}
-
-void i2c2_ev_isr(void)
-{
-    device_isr(1);
-}
-
-void i2c1_er_isr(void)
-{
-    device_stop(&device_data[0]);
-}
-
-void i2c2_er_isr(void)
-{
-    device_stop(&device_data[1]);
-}
-
-void dma1_channel4_isr(void)
-{
-    hw_i2c_t *i2c = &device_data[1];
-
-    // Clear dma event flag
-    if (DMA1_ISR & DMA_ISR_TCIF4) {
-        DMA1_IFCR |= DMA_IFCR_CTCIF4;
-    }
-
-    // Stop DMA
-    DMA1_CCR4 &= ~DMA_CCR_EN;
-    nvic_disable_irq(NVIC_DMA1_CHANNEL4_IRQ);
-
-    I2C_CR2(i2c->base) &= ~I2C_CR2_DMAEN;
-}
-
-void dma1_channel5_isr(void)
-{
-    hw_i2c_t *i2c = &device_data[1];
-
-    // Clear dma event flag
-    if (DMA1_ISR & DMA_ISR_TCIF5) {
-        DMA1_IFCR |= DMA_IFCR_CTCIF5;
-    }
-
-    // Stop DMA
-    DMA1_CCR5 &= ~DMA_CCR_EN;
-    nvic_disable_irq(NVIC_DMA1_CHANNEL5_IRQ);
-
-    I2C_CR2(i2c->base) &= ~(I2C_CR2_DMAEN | I2C_CR2_LAST);
-}
-
-void dma1_channel6_isr(void)
-{
-    hw_i2c_t *i2c = &device_data[0];
-
-    // Clear dma event flag
-    if (DMA1_ISR & DMA_ISR_TCIF6) {
-        DMA1_IFCR |= DMA_IFCR_CTCIF6;
-    }
-
-    // Stop DMA
-    DMA1_CCR6 &= ~DMA_CCR_EN;
-    nvic_disable_irq(NVIC_DMA1_CHANNEL6_IRQ);
-
-    I2C_CR2(i2c->base) &= ~I2C_CR2_DMAEN;
-}
-
-void dma1_channel7_isr(void)
-{
-    hw_i2c_t *i2c = &device_data[0];
-
-    // Clear dma event flag
-    if (DMA1_ISR & DMA_ISR_TCIF7) {
-        DMA1_IFCR |= DMA_IFCR_CTCIF7;
-    }
-
-    // Stop DMA
-    DMA1_CCR7 &= ~DMA_CCR_EN;
-    nvic_disable_irq(NVIC_DMA1_CHANNEL7_IRQ);
-
-    I2C_CR2(i2c->base) &= ~(I2C_CR2_DMAEN | I2C_CR2_LAST);
 }
 

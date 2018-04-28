@@ -660,6 +660,21 @@ int cupkee_device_request_load(void *entry, size_t n, void *data)
     }
 }
 
+int cupkee_device_response_len(void *entry)
+{
+    cupkee_device_t *dev = entry;
+
+    if (!is_device(entry)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (device_is_enabled(dev)) {
+        return dev->res_buf.len;
+    } else {
+        return 0;
+    }
+}
+
 void *cupkee_device_response_ptr(void *entry)
 {
     cupkee_device_t *dev = entry;
@@ -726,6 +741,7 @@ void cupkee_device_response_submit(void *entry, size_t n)
         } else {
             dev->res_buf.len = n;
         }
+
         if (device_is_enabled(dev) && (dev->flags & DEVICE_FL_BUSY)) {
             cupkee_object_event_post(CUPKEE_ENTRY_ID(entry), CUPKEE_EVENT_RESPONSE);
         }

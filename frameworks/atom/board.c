@@ -30,6 +30,7 @@ static const native_t board_entries[] = {
     {"sysinfos",        native_sysinfos},
     {"systicks",        native_systicks},
     {"require",         native_require},
+    {"reset",           native_reset},
     {"report",          native_report},
     {"interface",       native_interface},
 
