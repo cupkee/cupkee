@@ -17,35 +17,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-
 #ifndef __CUPKEE_MODULE_INC__
 #define __CUPKEE_MODULE_INC__
 
-void cupkee_module_init(void);
+typedef struct cupkee_module_t {
+    const char *name;
+    void *(*init)(void);
+    int (*prop_get)(void *entry, const char *k, val_t *p);
+} cupkee_module_t;
 
-void *cupkee_module_create(const char *name, int members);
-void cupkee_module_release(void *mod);
-
-int cupkee_module_export(void *mod, const char *key, val_t val);
-
-static inline int cupkee_module_export_number(void *m, const char *k, double v) {
-    return cupkee_module_export(m, k, val_mk_number(v));
-};
-
-static inline int cupkee_module_export_boolean(void *m, const char *k, int v) {
-    return cupkee_module_export(m, k, val_mk_boolean(v));
-}
-
-static inline int cupkee_module_export_string(void *m, const char *k, const char *v) {
-    return cupkee_module_export(m, k, val_mk_foreign_string((intptr_t)v));
-}
-
-static inline int cupkee_module_export_native(void *m, const char *k, void *v) {
-    return cupkee_module_export(m, k, val_mk_native((intptr_t)v));
-}
-
-int cupkee_module_register(void *mod);
-
+void cupkee_module_init(int max, const cupkee_module_t *mods);
+val_t native_require_module(env_t *env, int ac, val_t *av);
 
 #endif /* __CUPKEE_MODULE_INC__ */
 

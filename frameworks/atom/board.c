@@ -29,7 +29,7 @@ static const native_t board_entries[] = {
     /* Cupkee natives */
     {"sysinfos",        native_sysinfos},
     {"systicks",        native_systicks},
-    {"require",         native_require},
+    {"require",         native_require_module},
     {"reset",           native_reset},
     {"report",          native_report},
     {"interface",       native_interface},

@@ -90,8 +90,6 @@ void cupkee_init(const uint8_t *id)
 
     cupkee_sysdisk_init();
 
-    cupkee_module_init();
-
     /* Board device setup */
     hw_device_setup();
 

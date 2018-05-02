@@ -19,123 +19,73 @@
 
 #include "cupkee.h"
 
-typedef struct cupkee_module_t cupkee_module_t;
+typedef struct module_entry_t {
+    void *data;
+    int (*prop_get)(void *entry, const char *k, val_t *p);
+} module_entry_t;
 
-typedef struct kv_pair_t {
-    intptr_t key;
-    val_t    val;
-} kv_pair_t;
-
-struct cupkee_module_t {
-    uint8_t reserved[2];
-    uint8_t prop_cap;
-    uint8_t prop_num;
-    cupkee_module_t *next;
-    const char *name;
-    kv_pair_t props[0];
+static uint8_t module_tag = 0;
+static uint8_t module_max = 0;
+static const cupkee_module_t *module_descs;
+static void **module_entries;
+static const cupkee_desc_t module_desc = {
+    .name = "Module",
 };
 
-static cupkee_module_t *module_head;
-
-void cupkee_module_init(void)
+static int module_prop_get(void *entry, const char *key, val_t *prop)
 {
-    module_head = NULL;
+    module_entry_t *m = entry;
+
+    return m->prop_get(m->data, key, prop);
 }
 
-void *cupkee_module_create(const char *name, int prop_max)
-{
-    cupkee_module_t *mod;
+static const cupkee_meta_t module_meta = {
+    .prop_get = module_prop_get
+};
 
-    if (!name || !prop_max) {
-        return NULL;
+void cupkee_module_init(int max, const cupkee_module_t *mods)
+{
+    int i;
+
+    module_max = max;
+    module_descs = mods;
+    module_entries = cupkee_malloc(sizeof(void *) * max);
+
+    for (i = 0; i < max; i++) {
+        module_entries[i] = NULL;
     }
-    mod = cupkee_malloc(sizeof(cupkee_module_t) + sizeof(kv_pair_t) * prop_max);
-    if (mod) {
-        mod->prop_cap = prop_max;
-        mod->prop_num = 0;
-        mod->name = name;
-        mod->next = NULL;
-    }
-    return mod;
+
+    module_tag = cupkee_object_register(sizeof(module_entry_t), &module_desc);
+    cupkee_object_set_meta(module_tag, (void *)&module_meta);
 }
 
-void cupkee_module_release(void *mod)
-{
-    cupkee_module_t *curr = module_head, *prev = NULL;
-
-    // drop from module list
-    while (curr) {
-        cupkee_module_t *next = curr->next;
-
-        if (curr == mod) {
-            if (prev) {
-                prev->next = next;
-            } else {
-                module_head = next;
-            }
-            break;
-        }
-        prev = curr;
-        curr = next;
-    }
-
-    cupkee_free(mod);
-}
-
-int cupkee_module_export(void *m, const char *name, val_t val)
-{
-    cupkee_module_t *mod = (cupkee_module_t *) m;
-    intptr_t key = env_symbal_add_static(cupkee_shell_env(), name);
-
-    if (name && mod->prop_num < mod->prop_cap) {
-        kv_pair_t *prop = &mod->props[mod->prop_num++];
-
-        prop->key = key;
-        prop->val = val;
-        return 0;
-    } else {
-        return -CUPKEE_ELIMIT;
-    }
-}
-
-
-int cupkee_module_register(void *m)
-{
-    cupkee_module_t *mod = (cupkee_module_t *) m;
-    cupkee_module_t *cur = module_head;
-
-    while (cur) {
-        if (strcmp(cur->name, mod->name) == 0) {
-            return -CUPKEE_ENAME;
-        } else {
-            cur = cur->next;
-        }
-    }
-
-    mod->next = module_head;
-    module_head = mod;
-    return 0;
-}
-
-val_t native_require(env_t *env, int ac, val_t *av)
+val_t native_require_module(env_t *env, int ac, val_t *av)
 {
     const char *name = ac ? val_2_cstring(av) : NULL;
-    val_t mod = VAL_UNDEFINED;
-
-    (void) env;
+    module_entry_t *mod;
+    int i;
 
     if (name) {
-        cupkee_module_t *cur = module_head;
-        while (cur) {
-            if (strcmp(cur->name, name) == 0) {
-                val_set_foreign(&mod, (intptr_t)cur);
-                break;
-            } else {
-                cur = cur->next;
+        for (i = 0; i < module_max; i++) {
+            if (strcmp(module_descs[i].name, name) == 0) {
+                goto DO_MOD;
             }
         }
     }
+    return VAL_UNDEFINED;
 
-    return mod;
+DO_MOD:
+    mod = module_entries[i];
+    if (!mod) {
+        cupkee_object_t *obj = cupkee_object_create(module_tag);
+
+        if (obj) {
+            module_entries[i] = mod = (void *)obj->entry;
+            mod->data = module_descs[i].init();
+            mod->prop_get = module_descs[i].prop_get;
+        }
+    }
+
+    return cupkee_shell_object_create(env, mod);
 }
 
