@@ -249,12 +249,11 @@ static void device_event_handle(void *entry, uint8_t event)
     cupkee_device_t *dev = entry;
 
     if (is_device(dev)) {
+        if (event == CUPKEE_EVENT_RESPONSE) {
+            dev->flags &= ~DEVICE_FL_BUSY;
+        }
         if (dev->handle) {
             dev->handle(entry, event, dev->handle_param);
-        }
-        if (event == CUPKEE_EVENT_RESPONSE) {
-            cupkee_buffer_deinit(&dev->req_buf);
-            dev->flags &= ~DEVICE_FL_BUSY;
         }
     }
 }
@@ -748,7 +747,7 @@ void cupkee_device_response_submit(void *entry, size_t n)
     }
 }
 
-int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param)
+int cupkee_device_query(void *entry, size_t req_len, const void *req_data, int want, cupkee_callback_t cb, intptr_t param)
 {
     int err;
     cupkee_device_t *dev = entry;

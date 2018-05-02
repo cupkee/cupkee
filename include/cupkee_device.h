@@ -90,7 +90,7 @@ int cupkee_device_enable(void *entry);
 int cupkee_device_disable(void *entry);
 int cupkee_device_is_enabled(void *entry);
 
-int cupkee_device_query(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
+int cupkee_device_query(void *entry, size_t req_len, const void *req_data, int want, cupkee_callback_t cb, intptr_t param);
 int cupkee_device_query_nocopy(void *entry, size_t req_len, void *req_data, int want, cupkee_callback_t cb, intptr_t param);
 
 /* used by driver */
