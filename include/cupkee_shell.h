@@ -27,7 +27,7 @@ typedef struct cupkee_meta_t {
     int (*prop_get)(void *entry, const char *key, val_t *res);
 } cupkee_meta_t;
 
-int cupkee_shell_init(int n, const native_t *natives);
+int cupkee_shell_init(void *stream, int n, const native_t *natives);
 int cupkee_shell_start(const char *initial);
 
 static inline void cupkee_shell_loop(const char *initial) {

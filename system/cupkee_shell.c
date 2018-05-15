@@ -419,9 +419,11 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(int n, const native_t *natives)
+int cupkee_shell_init(void *stream, int n, const native_t *natives)
 {
     int heap_mem_sz, stack_mem_sz;
+
+    cupkee_sdmp_init(stream);
 
     shell_console_init();
 

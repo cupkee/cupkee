@@ -48,20 +48,27 @@ static const native_t board_entries[] = {
     {"Timer",           native_create_timer},
 };
 
-void board_setup(void)
+void board_setup(void *stream)
 {
-    // Setup user modules here
-    // add user modules
+    /**********************************************************
+     * Custom Setup here
+     *********************************************************/
 
     // Setup board pins */
     cupkee_pin_map(sizeof(board_pins) / sizeof(cupkee_pinmap_t), board_pins);
 
-    /* Setup shell */
-    cupkee_shell_init(sizeof(board_entries) / sizeof(native_t), board_entries);
-}
 
-const char *board_initial_script(void)
-{
-    return "";
+    // Setup user modules here
+    //
+
+    /**********************************************************
+     * Setup shell
+     *********************************************************/
+    cupkee_shell_init(stream, sizeof(board_entries) / sizeof(native_t), board_entries);
+
+    /**********************************************************
+     * Let's Go!
+     *********************************************************/
+    cupkee_shell_loop(NULL);
 }
 

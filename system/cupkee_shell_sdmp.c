@@ -34,6 +34,11 @@ static int state_handler(uint16_t flags)
     }
 }
 
+static int script_handler(const char *script)
+{
+    return cupkee_execute_string(script, NULL);
+}
+
 static int call_handler(int which, void *args)
 {
     if (which < 16 && user_func_ref[which]) {
@@ -71,6 +76,8 @@ void shell_sdmp_init(void)
     user_state_ref = NULL;
 
     memset(user_func_ref, 0, sizeof(user_func_ref));
+
+    cupkee_sdmp_set_script_handler(script_handler);
 }
 
 val_t native_report(env_t *env, int ac, val_t *av)
@@ -109,27 +116,31 @@ val_t native_report(env_t *env, int ac, val_t *av)
 
 val_t native_interface(env_t *env, int ac, val_t *av)
 {
-    const char *id;
     int i;
 
     (void) env;
 
-    if (ac < 2 || (!val_is_function(av + 1) || NULL == (id = val_2_cstring(av)))) {
-        return VAL_FALSE;
+    if (val_is_string(av)) {
+        const char *id = id = val_2_cstring(av);
+
+        if (cupkee_sdmp_set_interface_id(id)) {
+            return VAL_FALSE;
+        }
+        ac -= 1;
+        av += 1;
     }
 
-    if (cupkee_sdmp_set_interface_id(id)) {
+    if (ac < 1 || (!val_is_function(av + 1))) {
         return VAL_FALSE;
     }
 
     shell_reference_release(user_state_ref);
-    user_state_ref = shell_reference_create(av + 1);
+    user_state_ref = shell_reference_create(av);
     if (!user_state_ref) {
         return -1;
     }
 
-    ac -= 2;
-    for (i = 0, av += 2; i < ac && i < 16 && val_is_function(av); ++i, ++av) {
+    for (i = 0, ac -= 1, av += 1; i < ac && i < 16 && val_is_function(av); ++i, ++av) {
         shell_reference_release(user_func_ref[i]);
         user_func_ref[i] = shell_reference_create(av);
         if (!user_func_ref[i]) {

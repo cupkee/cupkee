@@ -19,41 +19,24 @@
 
 #include "board.h"
 
-#ifndef COMMAND_BUF_SIZE
-#define COMMAND_BUF_SIZE    80
-#endif
-
-static char command_buf[COMMAND_BUF_SIZE];
-
 int main(void)
 {
     void *stream;
 
-    cupkee_init();
+    /**********************************************************
+     * Cupkee system initial
+     *********************************************************/
+    cupkee_init(NULL);
 
-
-#ifdef USE_USB_CONSOLE
-    stream = cupkee_device_request("usb-cdc", 0);
-#else
     stream = cupkee_device_request("uart", 0);
-#endif
-    cupkee_device_enable(stream);
-    cupkee_sdmp_init(stream);
-
-    cupkee_command_init(board_commands(), board_command_entries(),
-                        COMMAND_BUF_SIZE, command_buf);
-    cupkee_history_init();
-    cupkee_console_init(cupkee_command_handle);
+    if (cupkee_device_enable(stream)) {
+        hw_halt();
+    }
 
     /**********************************************************
-     * app device create & setup
+     * user setup code
      *********************************************************/
-    board_setup();
-
-    /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    cupkee_loop();
+    board_setup(stream);
 
     /**********************************************************
      * Should not go here, make gcc happy!

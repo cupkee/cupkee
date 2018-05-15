@@ -22,7 +22,7 @@
 
 #include <cupkee.h>
 
-void board_setup(void);
+void board_setup(void *stream);
 const char     *board_initial_script(void);
 
 #endif /* __BOARD_INC__ */

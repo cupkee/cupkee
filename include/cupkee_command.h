@@ -26,8 +26,10 @@ typedef struct cupkee_command_entry_t {
     int (*handle)(int ac, char **av);
 } cupkee_command_entry_t;
 
-int cupkee_command_init(int command_num, cupkee_command_entry_t *command_entrys,
-                        int command_buf_size, char *command_buf);
+int cupkee_command_init(void *stream,
+                        cupkee_command_entry_t *command_entrys,
+                        int command_num, int command_buf_size, char *command_buf);
+
 int cupkee_command_handle(int type, int ch);
 
 #endif /* __CUPKEE_COMMAND_INC__ */

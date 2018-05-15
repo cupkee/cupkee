@@ -39,9 +39,19 @@ static const native_t native_entries[] = {
     {"require",         native_require},
 };
 
-static void board_setup(void)
+static void board_setup(void *stream)
 {
     module_example_init();
+
+    /**********************************************************
+     * Setup shell
+     *********************************************************/
+    cupkee_shell_init(stream, sizeof(board_entries) / sizeof(native_t), board_entries);
+
+    /**********************************************************
+     * Let's Go!
+     *********************************************************/
+    cupkee_shell_loop(NULL);
 }
 
 static int board_native_number(void)
@@ -56,34 +66,25 @@ static const native_t *board_native_entries(void)
 
 int main(void)
 {
-    void *tty;
+    void *stream;
 
     /**********************************************************
      * Cupkee system initial
      *********************************************************/
-    cupkee_init();
+    cupkee_init(NULL);
 
-#ifdef USE_USB_CONSOLE
-    tty = cupkee_device_request("usb-cdc", 0);
-#else
-    tty = cupkee_device_request("uart", 0);
-#endif
-    cupkee_device_enable(tty);
-
-    cupkee_shell_init(tty, board_native_number(), board_native_entries());
+    stream = cupkee_device_request("uart", 0);
+    if (cupkee_device_enable(stream)) {
+        hw_halt();
+    }
 
     /**********************************************************
      * user setup code
      *********************************************************/
-    board_setup();
+    board_setup(stream);
 
     /**********************************************************
-     * Let's Go!
-     *********************************************************/
-    cupkee_shell_loop(NULL);
-
-    /**********************************************************
-     * Let's Go!
+     * Should not go here, make gcc happy!
      *********************************************************/
     return 0;
 }

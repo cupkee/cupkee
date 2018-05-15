@@ -22,9 +22,7 @@
 
 #include "cupkee.h"
 
-int board_setup(void);
-int board_commands(void);
-cupkee_command_entry_t *board_command_entries(void);
+void board_setup(void *);
 
 #endif /* __BOARD_INC__ */
 

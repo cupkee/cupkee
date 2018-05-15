@@ -28,6 +28,7 @@ int cupkee_sdmp_set_interface_id(const char *id);
 int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *));
 int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args));
 int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags));
+int cupkee_sdmp_set_script_handler(int (*handler)(const char *));
 
 int cupkee_sdmp_update_state_trigger(int id);
 int cupkee_sdmp_update_state_boolean(int id, int v);

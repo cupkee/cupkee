@@ -82,17 +82,7 @@ static int command_complete(void)
     return CON_EXECUTE_DEF;
 }
 
-int cupkee_command_init(int n, cupkee_command_entry_t *entrys, int buf_size, char *buf)
-{
-    command_buf = buf;
-    command_buf_size = buf_size;
-    command_num = n;
-    command_entrys = entrys;
-
-    return 0;
-}
-
-int cupkee_command_handle(int type, int ch)
+static int command_handle(int type, int ch)
 {
     (void) ch;
 
@@ -124,3 +114,17 @@ int cupkee_command_handle(int type, int ch)
     return CON_EXECUTE_DEF;
 }
 
+
+int cupkee_command_init(void *stream, cupkee_command_entry_t *entrys, int n, int buf_size, char *buf)
+{
+    command_buf = buf;
+    command_buf_size = buf_size;
+    command_num = n;
+    command_entrys = entrys;
+
+    cupkee_sdmp_init(stream);
+    cupkee_history_init();
+    cupkee_console_init(command_handle);
+
+    return 0;
+}

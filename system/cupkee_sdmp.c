@@ -92,6 +92,7 @@ static char *   sdmp_script_buf = NULL;
 static void (*sdmp_text_handler)(int, const void *) = NULL;
 static int (*sdmp_user_call_handler)(int, void *) = NULL;
 static int (*sdmp_user_query_handler)(uint16_t flags) = NULL;
+static int (*sdmp_user_script_handler)(const char *) = NULL;
 
 static int sdmp_request_filter(uint8_t);
 
@@ -437,7 +438,10 @@ static void sdmp_execute_script(uint16_t req_len, uint8_t *req)
 
     next = cur + 1;
     if (next == end) {
-        if (0 > cupkee_execute_string(sdmp_script_buf, NULL)) {
+        if (!sdmp_user_script_handler) {
+            sdmp_response_status(req[0], SDMP_NotImplemented);
+        } else
+        if (0 > sdmp_user_script_handler(sdmp_script_buf)) {
             sdmp_response_status(req[0], SDMP_ExecuteError);
         } else {
             sdmp_response_status(req[0], SDMP_OK);
@@ -604,6 +608,7 @@ int cupkee_sdmp_init(void *stream)
     sdmp_text_handler = NULL;
     sdmp_user_call_handler = NULL;
     sdmp_user_query_handler = NULL;
+    sdmp_user_script_handler = NULL;
 
     if (0 != cupkee_device_handle_set(stream, sdmp_stream_handle, 0)) {
         return -CUPKEE_EINVAL;
@@ -673,6 +678,12 @@ int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args))
 int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags))
 {
     sdmp_user_query_handler = handler;
+    return 0;
+}
+
+int cupkee_sdmp_set_script_handler(int (*handler)(const char *))
+{
+    sdmp_user_script_handler = handler;
     return 0;
 }
 
