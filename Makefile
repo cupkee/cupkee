@@ -88,6 +88,9 @@ module: build bsp sys lang
 	@mkdir -p ${BUILD_DIR}/lib
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/module.mk extend
 
+loader: build bsp sys
+	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/loader.mk extend
+
 ogin: build bsp sys
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/ogin.mk extend
 

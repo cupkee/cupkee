@@ -52,6 +52,7 @@
 
 // core module
 
+void cupkee_loader_init(void);
 void cupkee_init(const uint8_t *id);
 void cupkee_loop(void);
 void cupkee_event_poll(void);

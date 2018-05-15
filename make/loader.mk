@@ -16,29 +16,21 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-
-
-ifeq ($(LOADER),yes)
-LDSCRIPT    = ${MAKE_DIR}/ld/$(MCU)_loader.ld
-else
-LDSCRIPT    = ${MAKE_DIR}/ld/$(MCU).ld
+ifeq (${MAIN_DIR},)
+MAIN_DIR = ${FRAMEWORK_DIR}/loader
 endif
 
-ARCH_FLAGS	= -mthumb -mcpu=cortex-m3 -msoft-float -mfix-cortex-m3-ldrd
+LOADER=yes
 
-OPENCM3_DIR = ${BASE_DIR}/share/libopencm3
-OPENCM3_LIB = opencm3_stm32f1
+elf_NAMES = loader
+loader_SRCS = ${notdir ${wildcard ${MAIN_DIR}/*.c}}
 
-DEFS		+= -DSTM32F1
-DEFS		+= -I$(OPENCM3_DIR)/include
+loader_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include
+loader_CFLAGS   =
+loader_LDFLAGS  = -L${BUILD_DIR} -L${BSP_BUILD_DIR} -L${SYS_BUILD_DIR} \
+				  -lsys -lbsp
 
-ARCH_LDFLAGS += -T$(LDSCRIPT) -L$(OPENCM3_DIR)/lib -l$(OPENCM3_LIB)
-ARCH_LDFLAGS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
-ARCH_LDFLAGS += --static -nostartfiles
-ARCH_LDFLAGS += -Wl,--gc-sections
-ifeq ($(V),99)
-ARCH_LDFLAGS += -Wl,--print-gc-sections
-endif
+include ${MAKE_DIR}/cupkee.ruls.mk
 
-PREFIX  ?= arm-none-eabi-
+VPATH = ${MAIN_DIR}
 
