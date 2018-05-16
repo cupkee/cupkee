@@ -19,27 +19,13 @@
 
 #include <cupkee.h>
 
-static const cupkee_pinmap_t board_pins[] = {
-    {0, 8}, // pin0 : bank 0, port 1
-};
-
-int main(void)
+int main(uint32_t base, uint32_t size, void (*fn)(const char *, ...))
 {
-    int i;
-
     cupkee_loader_init();
 
-    cupkee_pin_map(sizeof(board_pins) / sizeof(cupkee_pinmap_t), board_pins);
+    fn("Hello loader: %.8x: %.8x\r\n", base, size);
 
-    cupkee_pin_enable(0, CUPKEE_PIN_OUT);
-
-    /**********************************************************
-     * Never go here!
-     *********************************************************/
-    while (1) {
-        for (i = 0; i < 10000000; i++)
-            cupkee_pin_toggle(0);
-    }
+    return 0;
 }
 
 

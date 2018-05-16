@@ -139,6 +139,11 @@ void hw_info_get(hw_info_t *info)
     info->rom_base = (void *)0x08000000;
 }
 
+void hw_setup_loader(void)
+{
+    hw_setup_storage();
+}
+
 void hw_setup(hw_info_t *info)
 {
 	rcc_clock_setup_in_hse_8mhz_out_72mhz();

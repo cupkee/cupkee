@@ -66,16 +66,8 @@ void cupkee_sysinfo_get(uint8_t *info_buf)
 
 void cupkee_loader_init(void)
 {
-    hw_info_t info;
-
     /* Hardware startup */
-    hw_setup(&info);
-
-    cupkee_storage_init(info.rom_sz / CUPKEE_SECTOR_SIZE);
-
-    cupkee_memory_setup();
-
-    cupkee_pin_setup();
+    hw_setup_loader();
 }
 
 void cupkee_init(const uint8_t *id)

@@ -18,6 +18,8 @@
 
 ifeq (${MAIN_DIR},)
 MAIN_DIR = ${FRAMEWORK_DIR}/loader
+else
+MAIN_DIR := ${MAIN_DIR}/loader
 endif
 
 LOADER=yes
