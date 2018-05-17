@@ -44,13 +44,19 @@
 #define START_CLUSTER(s)     (((s) - FILEDATA_START_SECTOR) / SECTORS_PER_CLUSTER + 2)
 #define COUNT_CLUSTER(s)     (((s) + BYTES_PER_CLUSTER - 1) / BYTES_PER_CLUSTER)
 
-#define APP_HEAD    "/* CUPKEE APP */"
+#define APP_HEAD    "#! panda"
+
+#define WSTATE_APP      (1)
+#define WSTATE_PKT      (2)
 
 static const char *app_head = APP_HEAD;
 static const char *app_data = NULL;
 static uint16_t app_size = 0;
 static uint16_t write_start_sector = 0;
+
 static uint8_t  write_state = 0;
+static uint8_t  write_bank = 0xff;
+static uint16_t write_end = 0;
 static uint16_t write_offset = 0;
 
 static const uint8_t boot_sector[] = {
@@ -179,6 +185,77 @@ static void sysdisk_file_read(uint32_t lba, uint8_t *buf)
     }
 }
 
+static int sysdisk_app_header(const uint8_t *data)
+{
+    int i;
+
+    for (i = 2; i < 10; ++i) {
+        if (data[i] != ' ') {
+            break;
+        }
+    }
+
+    return (strncasecmp((const char *)data + i, "panda", 5) == 0);
+}
+
+static uint8_t sysdisk_pkt_header(const uint8_t *data, uint8_t *bank, uint16_t *sectors)
+{
+    uint32_t base;
+    uint32_t size;
+
+    if (strcmp((const char *)data, "#!cupkee-packet")) {
+        return 0;
+    }
+
+    base = get_u32be(data + 32);
+    size = CUPKEE_SIZE_ALIGN(get_u32be(data + 36), SECTOR_SIZE);
+
+    if (base == (uint32_t)cupkee_storage_base(CUPKEE_STORAGE_BANK_SYS_BACK) &&
+        size <= cupkee_storage_size(CUPKEE_STORAGE_BANK_SYS_BACK)) {
+
+        *bank = CUPKEE_STORAGE_BANK_SYS_BACK;
+        *sectors = size / SECTOR_SIZE;
+
+        return WSTATE_PKT;
+    } else
+    if (base == (uint32_t)cupkee_storage_base(CUPKEE_STORAGE_BANK_CFG) &&
+        size <= cupkee_storage_size(CUPKEE_STORAGE_BANK_CFG)) {
+
+        *bank = CUPKEE_STORAGE_BANK_CFG;
+        *sectors = size / SECTOR_SIZE;
+
+        return WSTATE_PKT;
+    } else {
+        return 0;
+    }
+}
+
+static int sysdisk_write_location(const uint8_t *data)
+{
+    if (data[0] != '#' || data[1] != '!') {
+        return 0;
+    }
+
+    if (sysdisk_app_header(data)) {
+        write_state = WSTATE_APP;
+        write_bank = CUPKEE_STORAGE_BANK_APP;
+        write_end = CUPKEE_SECTOR_SIZE / SECTOR_SIZE;
+        write_offset = 0;
+        cupkee_storage_erase(write_bank);
+        return 1;
+    } else {
+        write_state = sysdisk_pkt_header(data, &write_bank, &write_end);
+        if (write_state) {
+            write_offset = 0;
+            cupkee_storage_erase(write_bank);
+        }
+
+        // Skip header sector
+        return 0;
+    }
+}
+
+/*
 static void sysdisk_write_init(const uint8_t *data)
 {
     const uint8_t *type;
@@ -206,8 +283,9 @@ static void sysdisk_write_init(const uint8_t *data)
     }
     return;
 }
+*/
 
-static int sysdisk_write_finish(const uint8_t *entry)
+static int sysdisk_write_entry(const uint8_t *entry)
 {
     uint16_t cluster;
     uint32_t max_size;
@@ -232,13 +310,19 @@ static int sysdisk_write_finish(const uint8_t *entry)
     return 1; // done
 }
 
-static void sysdisk_write_parse(const uint8_t *info)
+static void sysdisk_write_finish(const uint8_t *info)
 {
     int pos = 0;
 
     while (pos < SECTOR_SIZE) {
-        sysdisk_write_finish(info + pos);
+        sysdisk_write_entry(info + pos);
         pos += ROOT_ENTRY_LENGTH;
+    }
+
+    if (write_state) {
+        console_log_sync("storage update ...\r\n");
+        write_state = 0;
+        hw_reset(0);
     }
 }
 
@@ -282,18 +366,22 @@ int cupkee_sysdisk_read(uint32_t lba, uint8_t *copy_to)
 int cupkee_sysdisk_write(uint32_t lba, const uint8_t *copy_from)
 {
     if (lba >= ROOT_START_SECTOR && lba < ROOT_END_SECTOR) {
-        sysdisk_write_parse(copy_from);
-        write_state = 0;
+        sysdisk_write_finish(copy_from);
     } else
     if (lba >= FILEDATA_START_SECTOR) {
+        int do_write = 0;
+
         if (write_state == 0) {
-            sysdisk_write_init(copy_from);
+            do_write = sysdisk_write_location(copy_from);
+        } else
+        if (write_offset < write_end) {
+            do_write = 1;
         }
 
-        if (write_state == 1) {
-            cupkee_storage_write(CUPKEE_STORAGE_BANK_APP,
-                    write_offset, SECTOR_SIZE, copy_from);
-            write_offset += SECTOR_SIZE;
+        if (do_write) {
+            cupkee_storage_write(write_bank, write_offset * SECTOR_SIZE,
+                                 SECTOR_SIZE, copy_from);
+            write_offset += 1;
         }
     }
 

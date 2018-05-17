@@ -64,6 +64,14 @@ static inline void list_add_tail(list_head_t *node, list_head_t *head) {
     __list_add(node, head->prev, head);
 }
 
+static inline uint32_t get_u32be(const void *p) {
+    const uint8_t *b = p;
+    return b[0] * 0x1000000 +
+           b[1] * 0x10000 +
+           b[2] * 0x100 +
+           b[3];
+}
+
 #define list_for_each(pos, head) \
     for (pos = (head)->next; pos != (head); pos = pos->next)
 

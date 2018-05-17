@@ -62,6 +62,7 @@ export BSP_BUILD_DIR = ${BUILD_DIR}/bsp
 export SYS_BUILD_DIR = ${BUILD_DIR}/sys
 export MOD_BUILD_DIR = ${BUILD_DIR}/modules
 export LANG_BUILD_DIR = ${BUILD_DIR}/lang
+export BOOT_ADDR
 
 all: test
 	@printf "ok\n"
