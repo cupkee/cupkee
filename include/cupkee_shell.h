@@ -25,6 +25,7 @@
 
 typedef struct cupkee_meta_t {
     int (*prop_get)(void *entry, const char *key, val_t *res);
+    int (*prop_set)(void *entry, const char *key, val_t *val);
 } cupkee_meta_t;
 
 int cupkee_shell_init(void *stream, int n, const native_t *natives);
@@ -34,7 +35,6 @@ static inline void cupkee_shell_loop(const char *initial) {
     cupkee_shell_start(initial);
     cupkee_loop();
 }
-
 
 env_t *cupkee_shell_env(void);
 val_t *cupkee_shell_reference_create(val_t *v);

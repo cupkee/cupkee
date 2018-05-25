@@ -340,8 +340,16 @@ val_t foreign_get_elem(void *env, val_t *self, int id)
 void foreign_set_prop(void *env, val_t *self, const char *key, val_t *data)
 {
     void *entry = (void *)val_2_intptr(self);
+    const cupkee_meta_t *meta;
 
     (void) env;
+
+    meta = cupkee_meta(entry);
+    if (meta && meta->prop_set) {
+        if (meta->prop_set(entry, key, data) > 0) {
+            return;
+        }
+    }
 
     if (val_is_number(data)) {
         cupkee_prop_set(entry, key, CUPKEE_OBJECT_ELEM_INT, val_2_integer(data));
