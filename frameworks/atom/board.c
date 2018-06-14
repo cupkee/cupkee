@@ -64,7 +64,7 @@ void board_setup(void *stream)
     /**********************************************************
      * Setup shell
      *********************************************************/
-    cupkee_shell_init(stream, sizeof(board_entries) / sizeof(native_t), board_entries);
+    cupkee_shell_init(stream, sizeof(board_entries) / sizeof(native_t), board_entries, NULL);
 
     /**********************************************************
      * Let's Go!

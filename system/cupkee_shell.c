@@ -25,7 +25,7 @@
 #define CONSOLE_INPUT_LINE      0
 #define CONSOLE_INPUT_MULTI     1
 
-static const char *logo = "\r\n\
+static const char *cupkee_logo = "\r\n\
     ______               __                  \r\n\
   /   ___ \\ __ ________ |  | __ ____   ____  \r\n\
  /    \\  \\/|  |  \\____ \\|  |/ // __ \\_/ __ \\ \r\n\
@@ -427,7 +427,7 @@ env_t *cupkee_shell_env(void)
     return &shell_env;
 }
 
-int cupkee_shell_init(void *stream, int n, const native_t *natives)
+int cupkee_shell_init(void *stream, int n, const native_t *natives, const char *logo)
 {
     int heap_mem_sz, stack_mem_sz;
 
@@ -444,7 +444,7 @@ int cupkee_shell_init(void *stream, int n, const native_t *natives)
     shell_timer_init();
     shell_device_init();
 
-    console_puts_sync(logo);
+    console_puts_sync(logo ? logo : cupkee_logo);
 
     return 0;
 }
