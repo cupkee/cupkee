@@ -27,11 +27,7 @@
 static val_t reference_vals[VARIABLE_REF_MAX];
 
 static inline void print_number(val_t *v) {
-    if (*v & 0xffff) {
-        console_log("%f", val_2_double(v));
-    } else {
-        console_log("%lld", (int64_t)val_2_double(v));
-    }
+    console_log("%g", val_2_double(v));
 }
 
 static inline void print_boolean(val_t *v) {

@@ -83,9 +83,13 @@ int hw_gpio_use_setup(int bank, uint16_t pins, uint8_t mode, uint8_t cnf)
 
 int hw_gpio_release(int bank, uint16_t pins)
 {
+    uint32_t bank_base;
     if (bank >= GPIO_BANK_MAX) {
         return 0;
     }
+
+    bank_base = hw_gpio_bank[bank];
+    gpio_set_mode(bank_base, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, pins);
 
     hw_gpio_used[bank] &= ~pins;
     if (!hw_gpio_used[bank]) {

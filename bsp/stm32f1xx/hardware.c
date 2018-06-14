@@ -64,13 +64,12 @@ static void hw_reset_probe(void)
 
         rcc_periph_clock_disable(RCC_AFIO);
     }
-    /*
-    if (0 == hw_gpio_enable(BOOT_PROBE_BANK, BOOT_PROBE_PIN, HW_DIR_IN)) {
-        boot_state = hw_gpio_get(BOOT_PROBE_BANK, BOOT_PROBE_PIN) == BOOT_PROBE_DEV ? HW_BOOT_STATE_DEVEL : HW_BOOT_STATE_PRODUCT;
 
-        hw_gpio_disable(BOOT_PROBE_BANK, BOOT_PROBE_PIN);
+    /* Probe start mode by PC13 */
+    if (0 == hw_gpio_enable(2, 13, HW_DIR_IN)) {
+        reset_flags |= hw_gpio_get(2, 13) == 0 ? HW_RESET_SAFE : 0;
+        hw_gpio_disable(2, 13);
     }
-    */
 }
 
 /* systick interrupt handle routing  */

@@ -238,7 +238,7 @@ static uint8_t sdmp_do_call(uint8_t func_id, cupkee_data_entry_t *entry)
         }
         return 0; // Make gcc happy
     } else
-    if (func_id < 16){
+    if (func_id < 16) {
         if (sdmp_user_call_handler) {
             return sdmp_user_call_handler(func_id, entry) ? SDMP_ExecuteError : SDMP_OK;
         } else {
@@ -256,7 +256,7 @@ static void sdmp_hello(void)
 
     if ((len = sdmp_message_init(&msg, SDMP_RESPONSE, 3, 0)) > 0) {
         msg.param[0] = SDMP_REQ_HELLO;
-        msg.param[1] = SDMP_CONT;
+        msg.param[1] = SDMP_OK;
         msg.param[2] = SDMP_VERSION;
 
         sdmp_message_send(len);
@@ -787,7 +787,6 @@ static int char2hex(char c)
 int cupkee_sdmp_set_interface_id(const char *id)
 {
     int pos = 0;
-
 
     while (*id) {
         int hi = char2hex(*id++);
