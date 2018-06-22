@@ -25,7 +25,7 @@
 #define CONSOLE_INPUT_LINE      0
 #define CONSOLE_INPUT_MULTI     1
 
-static const char *cupkee_logo = "\r\n\
+static const char cupkee_logo[] = "\r\n\
     ______               __                  \r\n\
   /   ___ \\ __ ________ |  | __ ____   ____  \r\n\
  /    \\  \\/|  |  \\____ \\|  |/ // __ \\_/ __ \\ \r\n\

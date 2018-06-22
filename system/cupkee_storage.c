@@ -28,7 +28,7 @@ int cupkee_storage_init(uint32_t sectors)
     sector_total_num = sectors;
 
     sector_bgn[CUPKEE_STORAGE_BANK_APP] = sectors - 1;
-    sector_bgn[CUPKEE_STORAGE_BANK_CFG] = sector_bgn[CUPKEE_STORAGE_BANK_APP] - 1;
+    sector_bgn[CUPKEE_STORAGE_BANK_CFG] = sectors - 2;
     sector_bgn[CUPKEE_STORAGE_BANK_SYS_BACK] = sectors / 2;
     sector_bgn[CUPKEE_STORAGE_BANK_SYS] = 0;
 
