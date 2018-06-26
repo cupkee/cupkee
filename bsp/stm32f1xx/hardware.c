@@ -138,9 +138,11 @@ void hw_info_get(hw_info_t *info)
     info->rom_base = (void *)0x08000000;
 }
 
-void hw_setup_loader(void)
+void hw_setup_loader(hw_info_t *info)
 {
     hw_setup_storage();
+
+    hw_info_get(info);
 }
 
 void hw_setup(hw_info_t *info)

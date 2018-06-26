@@ -57,7 +57,7 @@ typedef struct hw_info_t {
 /****************************************************************/
 /* hardware interface to implement                              */
 /****************************************************************/
-void hw_setup_loader(void);
+void hw_setup_loader(hw_info_t *info);
 void hw_setup(hw_info_t *info);
 void hw_reset(int flags);
 
