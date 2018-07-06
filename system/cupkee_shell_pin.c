@@ -132,7 +132,7 @@ val_t native_pin(env_t *env, int ac, val_t *av)
         if (ac == 1) {
             return val_mk_number(cupkee_pin_get(pin));
         } else {
-            if (val_is_number(av + 1)) {
+            if (ac == 2 && val_is_number(av + 1)) {
                 return cupkee_pin_set(pin, val_is_true(av + 1)) > 0 ? VAL_TRUE : VAL_FALSE;
             } else
             if (val_is_function(av + 1)) {
