@@ -26,8 +26,12 @@ cupkee_SRCS = ${notdir ${wildcard ${MAIN_DIR}/*.c}}
 
 cupkee_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include ${mod_INC}
 cupkee_CFLAGS   =
-cupkee_LDFLAGS  = -L${BUILD_DIR} -L${BSP_BUILD_DIR} -L${SYS_BUILD_DIR} -L${LANG_BUILD_DIR} \
-				  ${mod_LDFLAGS} -lsys -lbsp -llang -lm
+cupkee_LDFLAGS  = -L${BUILD_DIR} \
+				  -L${BSP_BUILD_DIR} \
+				  -L${SYS_BUILD_DIR} \
+				  -L${UTL_BUILD_DIR} \
+				  -L${LANG_BUILD_DIR} \
+				  ${mod_LDFLAGS} -lsys -lbsp -lutils -llang -lm
 
 include ${MAKE_DIR}/cupkee.ruls.mk
 

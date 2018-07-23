@@ -44,6 +44,7 @@ export MAKE_DIR = ${BASE_DIR}/make
 
 export INC_DIR = ${BASE_DIR}/include
 export BSP_DIR = ${BASE_DIR}/bsp
+export UTL_DIR = ${BASE_DIR}/utils
 export SYS_DIR = ${BASE_DIR}/system
 export TST_DIR = ${BASE_DIR}/test
 export FRAMEWORK_DIR = ${BASE_DIR}/frameworks
@@ -59,6 +60,7 @@ endif
 
 export BUILD_DIR
 export BSP_BUILD_DIR = ${BUILD_DIR}/bsp
+export UTL_BUILD_DIR = ${BUILD_DIR}/utils
 export SYS_BUILD_DIR = ${BUILD_DIR}/sys
 export MOD_BUILD_DIR = ${BUILD_DIR}/modules
 export LANG_BUILD_DIR = ${BUILD_DIR}/lang
@@ -74,10 +76,13 @@ setup:
 	make -C share/libopencm3
 
 build:
-	@mkdir -p ${LANG_BUILD_DIR} ${BSP_BUILD_DIR} ${SYS_BUILD_DIR}
+	@mkdir -p ${LANG_BUILD_DIR} ${BSP_BUILD_DIR} ${UTL_BUILD_DIR} ${SYS_BUILD_DIR}
 
 bsp:
 	@make -C ${BSP_BUILD_DIR} -f ${MAKE_DIR}/bsp.mk
+
+utils:
+	@make -C ${UTL_BUILD_DIR} -f ${MAKE_DIR}/utils.mk
 
 sys:
 	@make -C ${SYS_BUILD_DIR} -f ${MAKE_DIR}/sys.mk
@@ -85,20 +90,20 @@ sys:
 lang:
 	@make -C ${LANG_BUILD_DIR} -f ${MAKE_DIR}/lang.mk
 
-module: build bsp sys lang
+module: build bsp sys utils lang
 	@mkdir -p ${BUILD_DIR}/lib
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/module.mk extend
 
-loader: build bsp sys
+loader: build bsp sys utils
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/loader.mk extend
 
-ogin: build bsp sys
+ogin: build bsp sys utils
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/ogin.mk extend
 
-atom: build bsp sys lang
+atom: build bsp sys utils lang
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/atom.mk extend
 
-test: build sys lang
+test: build sys utils lang
 	@rm -rf ${BUILD_DIR}/test.elf
 	@make -C ${BUILD_DIR} -f ${MAKE_DIR}/test.mk
 	${BUILD_DIR}/test.elf
@@ -106,5 +111,5 @@ test: build sys lang
 clean:
 	@rm -rf ${BUILD_DIR}
 
-.PHONY: clean build main bsp lang sys ogin atom
+.PHONY: clean build main bsp utils lang sys ogin atom
 

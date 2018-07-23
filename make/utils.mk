@@ -1,6 +1,6 @@
 ## GPLv2 License
 ##
-## Copyright (C) 2016-2018 Lixing Ding <ding.lixing@gmail.com>
+## Copyright (C) 2018 Lixing Ding <ding.lixing@gmail.com>
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -16,23 +16,14 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-ifeq (${MAIN_DIR},)
-MAIN_DIR = ${FRAMEWORK_DIR}/ogin
-endif
+lib_NAMES = utils
 
-include ${MAKE_DIR}/cupkee.modules.mk
-
-elf_NAMES = cupkee
-cupkee_SRCS = ${notdir ${wildcard ${MAIN_DIR}/*.c}}
-
-cupkee_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include ${mod_INC}
-cupkee_CFLAGS   =
-cupkee_LDFLAGS  = -L${BUILD_DIR} \
-				  -L${BSP_BUILD_DIR} \
-				  -L${SYS_BUILD_DIR} \
-				  -L${UTL_BUILD_DIR} \
-				  -lsys -lbsp -lutils ${mod_LDFLAGS}
+utils_SRCS = ${notdir ${wildcard ${UTL_DIR}/*.c}}
+utils_CPPFLAGS =
+utils_CFLAGS   =
+utils_LDFLAGS  =
 
 include ${MAKE_DIR}/cupkee.ruls.mk
 
-VPATH = ${MAIN_DIR}
+VPATH = ${UTL_DIR}
+

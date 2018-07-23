@@ -27,7 +27,9 @@
 static val_t reference_vals[VARIABLE_REF_MAX];
 
 static inline void print_number(val_t *v) {
-    console_log("%g", val_2_double(v));
+    char buf[32];
+
+    console_puts(gconvert(val_2_double(v), 8, buf));
 }
 
 static inline void print_boolean(val_t *v) {

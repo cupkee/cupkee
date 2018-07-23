@@ -17,20 +17,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#ifndef __CUPKEE_UTILS_INC__
-#define __CUPKEE_UTILS_INC__
+#ifndef __UTIL_GCONVERT_INC__
+#define __UTIL_GCONVERT_INC__
 
-static inline uint32_t get_u32be(const void *p) {
-    const uint8_t *b = p;
-    return b[0] * 0x1000000 +
-           b[1] * 0x10000 +
-           b[2] * 0x100 +
-           b[3];
-}
+char *gconvert(double f, size_t ndigit, char *buf);
 
-#include "../utils/listhead.h"
-#include "../utils/gconvert.h"
-
-
-#endif /* __CUPKEE_UTILS_INC__ */
+#endif /* __UTIL_GCONVERT_INC__ */
 
