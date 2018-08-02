@@ -42,6 +42,7 @@
 
 // Pin
 #define CUPKEE_PIN_SCHEDULE_POOL        16
+#define CUPKEE_PIN_SCHEDULE_MASK        (0x0f)
 
 #endif /* __CUPKEE_CONFIG_INC__ */
 

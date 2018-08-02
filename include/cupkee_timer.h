@@ -52,6 +52,10 @@ int cupkee_timer_duration(cupkee_timer_t *timer);
 
 int cupkee_is_timer(void *entry);
 
+static inline uint32_t cupkee_auxticks_of(uint32_t us) {
+    return (us >> CUPKEE_AUXTICKS_SHIFT) + ((us & CUPKEE_AUXTICKS_MASK) ? 1 : 0);
+}
+
 static inline intptr_t cupkee_timer_callback_param(void *entry) {
     cupkee_timer_t *timer = entry;
 

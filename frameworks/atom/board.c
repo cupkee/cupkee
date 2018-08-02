@@ -36,8 +36,10 @@ static const native_t board_entries[] = {
 
     {"print",           native_print},
     {"pin",             native_pin},
-    {"pinGroup",        native_pin_group},
     {"toggle",          native_pin_toggle},
+    {"pluse",           native_pin_pluse},
+    {"wave",            native_pin_wave},
+    {"pinGroup",        native_pin_group},
 
     {"setTimeout",      native_set_timeout},
     {"setInterval",     native_set_interval},

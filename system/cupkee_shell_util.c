@@ -96,9 +96,9 @@ static void print_object_value(val_t *o)
             } while(object_iter_next(&it, &k, &v));
         }
         if (i > 0) console_putc(' ');
-        console_puts("}\r\n");
+        console_puts("}");
     } else {
-        console_puts("null\r\n");
+        console_puts("null");
     }
 }
 
@@ -116,7 +116,7 @@ static void print_array_value(val_t *v)
     }
     if (i > 0) console_putc(' ');
 
-    console_puts("]\r\n");
+    console_puts("]");
 }
 
 void shell_print_value(val_t *v)
@@ -128,8 +128,8 @@ void shell_print_value(val_t *v)
         print_object_value(v);
     } else {
         print_simple_value(v);
-        console_puts("\r\n");
     }
+    console_puts("\r\n");
 }
 
 void shell_reference_init(env_t *env)
@@ -246,8 +246,19 @@ val_t native_print(env_t *env, int ac, val_t *av)
 
     if (ac) {
         for (i = 0; i < ac; i++) {
-            shell_print_value(av+i);
+            val_t *v = av + i;
+
+            if (val_is_array(v)) {
+                print_array_value(v);
+            } else
+            if (val_is_object(v)) {
+                print_object_value(v);
+            } else {
+                print_simple_value(v);
+            }
+            console_puts(" ");
         }
+        console_puts("\r\n");
     }
 
     return VAL_UNDEFINED;

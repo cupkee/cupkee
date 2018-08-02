@@ -29,6 +29,8 @@ typedef struct cupkee_pinmap_t {
     uint8_t port;
 } cupkee_pinmap_t;
 
+typedef uint32_t (*cupkee_wave_engine_t)(uint32_t edge_cnt, uint32_t next_half, void *data);
+
 int  cupkee_pin_setup(void);
 void cupkee_pin_schedule(uint32_t ticks);
 void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
@@ -43,6 +45,12 @@ int cupkee_pin_ignore(int pin);
 int cupkee_pin_set(int pin, int v);
 int cupkee_pin_get(int pin);
 int cupkee_pin_toggle(int pin);
+int cupkee_pin_wave_gen(int pin, uint32_t first, uint32_t second,
+                        cupkee_wave_engine_t engine, void *data);
+int cupkee_pin_wave_update(int pin, uint32_t first);
+int cupkee_pin_wave_stop(int pin, int v);
+
+uint32_t cupkee_pin_duration(int pin);
 
 int cupkee_is_pin_group(void *entry);
 int cupkee_pin_group_tag(void);

@@ -68,5 +68,9 @@ static inline void list_add_tail(list_head_t *node, list_head_t *head) {
 #define list_for_each(pos, head) \
     for (pos = (head)->next; pos != (head); pos = pos->next)
 
+#define list_for_each_safe(pos, n, head) \
+    for (pos = (head)->next, n = pos->next; pos != (head); \
+            pos = n, n = pos->next)
+
 #endif /* __UTIL_LISTHEAD_INC__ */
 

@@ -22,12 +22,13 @@
 static int pin_handler(void *entry, int event, intptr_t pin)
 {
     if (event) {
-        val_t av[2];
+        val_t av[3];
 
         val_set_number(av, (event & CUPKEE_EVENT_PIN_RISING) ? 1 : 0);
-        val_set_number(av + 1, pin);
+        val_set_number(av + 1, cupkee_pin_duration(pin));
+        val_set_number(av + 2, pin);
 
-        cupkee_execute_function(entry, 2, av);
+        cupkee_execute_function(entry, 3, av);
     } else {
         // ignore
         shell_reference_release(entry);
@@ -161,5 +162,62 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     }
 
     return VAL_UNDEFINED;
+}
+
+val_t native_pin_pluse(env_t *env, int ac, val_t *av)
+{
+    int i, n, param[2];
+    int retv;
+
+    (void) env;
+
+    for (i = 0, n = 0; i < ac && n < 2; i++) {
+        if (val_is_number(av + i)) {
+            param[n++] = val_2_integer(av + i);
+        }
+    }
+
+    if (n != 2) {
+        return VAL_FALSE;
+    }
+
+    retv = cupkee_pin_wave_gen(param[0], param[1], 0, NULL, NULL);
+
+    return retv ? VAL_FALSE : VAL_TRUE;
+}
+
+val_t native_pin_wave(env_t *env, int ac, val_t *av)
+{
+    int i, n, param[3];
+    int retv = -1;
+
+    (void) env;
+
+    for (i = 0, n = 0; i < ac && n < 3; i++) {
+        if (val_is_number(av + i)) {
+            param[n++] = val_2_integer(av + i);
+        }
+    }
+
+    if (n == 3) {
+        uint32_t first = param[2];
+        uint32_t second = param[1] - first;
+
+        if (param[1] > param[2]) {
+            retv = cupkee_pin_wave_gen(param[0], first, second, NULL, NULL);
+        } else
+        if (param[1] == 0) {
+            retv = cupkee_pin_wave_stop(param[0], param[2]);
+        }
+    } else
+    if (n == 2) {
+        if (param[1] < 1) {
+            retv = cupkee_pin_wave_stop(param[0], 0);
+        } else {
+            retv = cupkee_pin_wave_update(param[0], param[1]);
+        }
+    }
+
+    return retv ? VAL_FALSE : VAL_TRUE;
 }
 

@@ -30,6 +30,8 @@ val_t native_reset(env_t *env, int ac, val_t *av);
 /* cupkee_shell_pin.c */
 val_t native_pin(env_t *env, int ac, val_t *av);
 val_t native_pin_toggle(env_t *env, int ac, val_t *av);
+val_t native_pin_pluse(env_t *env, int ac, val_t *av);
+val_t native_pin_wave(env_t *env, int ac, val_t *av);
 val_t native_pin_group(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_sdmp.c */
