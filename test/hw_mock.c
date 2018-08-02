@@ -110,6 +110,11 @@ void hw_setup(hw_info_t *info)
     hw_info_get(info);
 }
 
+void hw_setup_loader(hw_info_t *info)
+{
+    hw_info_get(info);
+}
+
 void hw_reset(int mode)
 {
     (void) mode;
@@ -160,7 +165,8 @@ int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data)
 /* GPIO */
 #define GPIO_BANK_MAX 8
 #define GPIO_PORT_MAX 32
-static uint8_t  gpio_event_id[GPIO_BANK_MAX * GPIO_PORT_MAX];
+
+static hw_pindata_t *gpio_data[GPIO_PORT_MAX];
 static uint32_t gpio_listen_rising[GPIO_BANK_MAX];
 static uint32_t gpio_listen_falling[GPIO_BANK_MAX];
 static uint32_t gpio_state[GPIO_BANK_MAX];
@@ -192,13 +198,18 @@ int hw_gpio_disable(uint8_t bank, uint8_t port)
 
 static void gpio_changed(uint8_t bank, uint8_t port)
 {
-    uint16_t pin = gpio_event_id[bank * GPIO_PORT_MAX + port];
+    hw_pindata_t *pdata = gpio_data[port];
 
-    if ((gpio_value[bank] & (1 << port)) && (gpio_listen_rising[bank] & (1 << port))) {
-        cupkee_event_post_pin(pin, 1);
-    }
-    if (!(gpio_value[bank] & (1 << port)) && (gpio_listen_falling[bank] & (1 << port))) {
-        cupkee_event_post_pin(pin, 0);
+    if (pdata) {
+        if (gpio_value[bank] & (1 << port)) {
+            if (gpio_listen_rising[bank] & (1 << port)) {
+                cupkee_event_post_pin(pdata->id, 1);
+            }
+        } else {
+            if (gpio_listen_falling[bank] & (1 << port)) {
+                cupkee_event_post_pin(pdata->id, 0);
+            }
+        }
     }
 }
 
@@ -243,21 +254,23 @@ int hw_gpio_toggle(uint8_t bank, uint8_t port)
     return 0;
 }
 
-int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t pin)
+int hw_gpio_listen(uint8_t bank, uint8_t port, hw_pindata_t *pdata)
 {
     if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
         return -CUPKEE_EINVAL;
     }
 
-    gpio_event_id[bank * GPIO_PORT_MAX + port] = pin;
-
-    if (events & CUPKEE_EVENT_PIN_RISING) {
-        gpio_listen_rising[bank] |= 1 << port;
+    if (gpio_data[port]) {
+        if (gpio_data[port] != pdata) {
+            return -CUPKEE_ERESOURCE;
+        }
+    } else {
+        pdata->data8 = bank;
+        gpio_data[port] = pdata;
     }
 
-    if (events & CUPKEE_EVENT_PIN_FALLING) {
-        gpio_listen_falling[bank] |= 1 << port;
-    }
+    gpio_listen_rising[bank] |= 1 << port;
+    gpio_listen_falling[bank] |= 1 << port;
 
     gpio_value[bank] ^= (1 << port);
 
@@ -266,12 +279,17 @@ int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t pin)
 
 int hw_gpio_ignore(uint8_t bank, uint8_t port)
 {
+    hw_pindata_t *pdata = gpio_data[port];
+
     if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
         return -CUPKEE_EINVAL;
     }
 
-    gpio_listen_rising[bank] &= ~(1 << port);
-    gpio_listen_falling[bank] &= ~(1 << port);
+    if (pdata && pdata->data8 == bank) {
+        gpio_listen_rising[bank] &= ~(1 << port);
+        gpio_listen_falling[bank] &= ~(1 << port);
+        gpio_data[port] = NULL;
+    }
 
     return 0;
 }
@@ -287,6 +305,13 @@ void hw_timer_release(int inst)
     if (inst == mock_timer_curr_inst) {
         mock_timer_curr_state = -1;
     }
+}
+
+int hw_timer_start_aux(uint16_t us)
+{
+    (void) us;
+
+    return 0;
 }
 
 int hw_timer_start(int inst, int id, int us)

@@ -26,7 +26,7 @@ typedef struct hw_timer_t {
     uint8_t ccr_x;
     uint16_t ccr_hi;
     uint16_t ccr_lo;
-    int16_t timer_id;
+    int16_t object_id;
 } hw_timer_t;
 
 static hw_timer_t  device_controls[HW_TIMER_NUM];
@@ -34,9 +34,9 @@ static const uint32_t device_base[] = {TIM2, TIM3, TIM4, TIM5};
 static const uint32_t device_rcc[] = {RCC_TIM2, RCC_TIM3, RCC_TIM4, RCC_TIM5};
 static const uint32_t device_irq[] = {NVIC_TIM2_IRQ, NVIC_TIM3_IRQ, NVIC_TIM4_IRQ, NVIC_TIM5_IRQ};
 
-static inline hw_timer_t *hw_device(unsigned id) {
-    if (id < HW_TIMER_NUM) {
-        return &device_controls[id];
+static inline hw_timer_t *hw_device(unsigned inst) {
+    if (inst < HW_TIMER_NUM) {
+        return &device_controls[inst];
     } else {
         return NULL;
     }
@@ -97,7 +97,7 @@ int hw_timer_start(int inst, int id, int us)
         us = 1;
     }
 
-    timer->timer_id = id;
+    timer->object_id = id;
 
     base = device_base[inst];
     TIM_SR(base) = 0;
@@ -106,6 +106,38 @@ int hw_timer_start(int inst, int id, int us)
     TIM_DIER(base) = TIM_DIER_UIE;
 
     hw_timer_setup(timer, base, us);
+
+    nvic_enable_irq(device_irq[inst]);
+    TIM_CR1(base) = TIM_CR1_CEN;
+
+    return 0;
+}
+
+int hw_timer_start_aux(uint16_t us)
+{
+    int inst = hw_timer_alloc();
+    hw_timer_t *timer = hw_device(inst);
+    uint32_t base;
+
+    if (!timer) {
+        return -CUPKEE_EINVAL;
+    }
+
+    if (us < 1) {
+        us = 1;
+    }
+
+    timer->object_id = -2;
+    timer->ccr_x  = 0;
+    timer->ccr_hi = 0;
+    timer->ccr_lo = us;
+
+    base = device_base[inst];
+    TIM_SR(base) = 0;
+    TIM_CNT(base) = 0;
+    TIM_PSC(base) = 72; // 1 us
+    TIM_DIER(base) = TIM_DIER_UIE;
+    TIM_ARR(base) = us;
 
     nvic_enable_irq(device_irq[inst]);
     TIM_CR1(base) = TIM_CR1_CEN;
@@ -165,7 +197,7 @@ void hw_setup_timer(void)
 
     for (i = 0; i < HW_TIMER_NUM; i++) {
         device_controls[i].inused = 0;
-        device_controls[i].timer_id = -1;
+        device_controls[i].object_id = -1;
     }
 }
 
@@ -174,6 +206,10 @@ static inline void timer_isr(int x) {
     uint32_t    base = device_base[x];
 
     TIM_SR(base) &= ~TIM_SR_UIF;
+    if (timer->object_id == -2) {
+        _cupkee_auxticks += 1;
+        cupkee_event_post_auxtick();
+    } else
     if (timer->inused) {
         if (timer->ccr_x) {
             if (--timer->ccr_x == 0) {
@@ -192,7 +228,7 @@ static inline void timer_isr(int x) {
                 TIM_ARR(base) = 50000;
             }
         }
-        cupkee_timer_rewind(device_controls[x].timer_id);
+        cupkee_timer_rewind(device_controls[x].object_id);
     }
 }
 

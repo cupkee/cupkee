@@ -20,6 +20,8 @@
 #ifndef __CUPKEE_TIMER_INC__
 #define __CUPKEE_TIMER_INC__
 
+extern volatile uint32_t _cupkee_auxticks;
+
 typedef struct cupkee_timer_t {
     uint8_t inst;
     uint8_t state;
@@ -56,11 +58,12 @@ static inline intptr_t cupkee_timer_callback_param(void *entry) {
     return timer->cb_param;
 };
 
-// Should only be call in BSP
+// This functions Should only be call in BSP
 static inline void cupkee_timer_rewind(int id)
 {
     cupkee_object_event_post(id, CUPKEE_EVENT_REWIND);
 }
+
 
 #endif /* __CUPKEE_TIMER_INC__ */
 

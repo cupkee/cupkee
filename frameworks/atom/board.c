@@ -20,7 +20,7 @@
 #include "board.h"
 
 static const cupkee_pinmap_t board_pins[] = {
-    {0, 8}, // pin0 : bank 0, port 1
+    {2, 13}, // pin0 : bank C, port 13
 };
 
 static const native_t board_entries[] = {
@@ -56,7 +56,6 @@ void board_setup(void *stream)
 
     // Setup board pins */
     cupkee_pin_map(sizeof(board_pins) / sizeof(cupkee_pinmap_t), board_pins);
-
 
     // Setup user modules here
     //

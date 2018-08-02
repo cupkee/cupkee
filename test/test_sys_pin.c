@@ -68,7 +68,6 @@ static void test_basic(void)
     CU_ASSERT(1 == hw_gpio_get(0, 1));
     CU_ASSERT(0 == hw_gpio_get(0, 2));
     CU_ASSERT(1 == hw_gpio_get(0, 3));
-
 }
 
 static void test_group(void)
@@ -138,11 +137,15 @@ static void test_event(void)
     CU_ASSERT(0 == changed_pin && CUPKEE_EVENT_PIN_RISING == change_type);
 
     hw_gpio_set(0, 0, 0);
-    CU_ASSERT(0 == TU_pin_event_dispatch());
+    TU_pin_event_dispatch();
+    // falling event should not emit, event handle not apply
+    CU_ASSERT(0 == changed_pin && CUPKEE_EVENT_PIN_RISING == change_type);
 
     /* pin 1 listen FALLING event*/
     hw_gpio_set(0, 1, 1);
-    CU_ASSERT(0 == TU_pin_event_dispatch());
+    TU_pin_event_dispatch();
+    // falling event should not emit, event handle not apply
+    CU_ASSERT(0 == changed_pin && CUPKEE_EVENT_PIN_RISING == change_type);
 
     hw_gpio_set(0, 1, 0);
     CU_ASSERT(1 == TU_pin_event_dispatch());

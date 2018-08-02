@@ -23,7 +23,8 @@
 enum CUPKEE_EVENT_TYPE {
     EVENT_SYSTICK = 0,
     EVENT_OBJECT  = 1,
-    EVENT_PIN     = 2
+    EVENT_PIN     = 2,
+    EVENT_AUXTICK = 3,
 };
 
 enum CUPKEE_EVENT_OBJECT {
@@ -71,6 +72,10 @@ int cupkee_event_take(cupkee_event_t *event);
 
 static inline int cupkee_event_post_systick(void) {
     return cupkee_event_post(EVENT_SYSTICK, 0, 0);
+}
+
+static inline int cupkee_event_post_auxtick(void) {
+    return cupkee_event_post(EVENT_AUXTICK, 0, 0);
 }
 
 static inline int cupkee_event_post_pin(uint8_t which, uint8_t event) {

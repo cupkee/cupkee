@@ -30,6 +30,7 @@ typedef struct cupkee_pinmap_t {
 } cupkee_pinmap_t;
 
 int  cupkee_pin_setup(void);
+void cupkee_pin_schedule(uint32_t ticks);
 void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
 
 int cupkee_pin_map(uint8_t pin_num, const cupkee_pinmap_t *pin_map);

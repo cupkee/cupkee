@@ -21,13 +21,8 @@
 
 #define PIN_MASK        0x3F
 
-typedef struct hw_gpio_isr_t {
-    uint8_t pin;
-    uint8_t bank;
-} hw_gpio_isr_t;
-
 static uint16_t hw_gpio_used[GPIO_BANK_MAX];
-static hw_gpio_isr_t hw_gpio_isr_info[GPIO_PIN_MAX];
+static hw_pindata_t *hw_gpio_data[GPIO_PIN_MAX];
 
 static const uint32_t hw_gpio_rcc[GPIO_BANK_MAX] = {
     RCC_GPIOA, RCC_GPIOB, RCC_GPIOC, RCC_GPIOD, RCC_GPIOE, RCC_GPIOF, RCC_GPIOF
@@ -46,8 +41,8 @@ int hw_setup_gpio(void)
     }
 
     /* initial all port isr useable */
-    for (i = 0; i < 16; i++) {
-        hw_gpio_isr_info[i].pin = ~PIN_MASK;
+    for (i = 0; i < GPIO_PIN_MAX; i++) {
+        hw_gpio_data[i] = NULL;
     }
 
     /* initial pin device control blocks */
@@ -171,21 +166,23 @@ int hw_gpio_toggle(uint8_t bank, uint8_t port)
     }
 }
 
-int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which)
+int hw_gpio_listen(uint8_t bank, uint8_t port, hw_pindata_t *data)
 {
-    if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX && which <= PIN_MASK) {
-        hw_gpio_isr_t *isr_info = &hw_gpio_isr_info[port];
+    if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX) {
+        hw_pindata_t *pdata = hw_gpio_data[port];
         uint32_t exti;
-        enum exti_trigger_type type;
 
-        //console_log("exti %u:%u %u\r\n", bank, port, isr_info->pin);
-        if ((isr_info->pin & PIN_MASK)) {
-            return -CUPKEE_ERESOURCE;
+        if (pdata) {
+            if (pdata != data) {
+                return -CUPKEE_ERESOURCE;
+            }
+        } else {
+            pdata = hw_gpio_data[port] = data;
+            // Use data8 to keep pin bank
+            pdata->data8 = bank;
         }
 
-        isr_info->pin = which;
-        isr_info->bank = bank;
-
+        pdata->data32 = _cupkee_systicks;
         exti = 1 << port;
         rcc_periph_clock_enable(RCC_AFIO);
         if (port < 5) {
@@ -197,20 +194,9 @@ int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which)
             nvic_enable_irq(NVIC_EXTI15_10_IRQ);
         }
 
-        if (events == CUPKEE_EVENT_PIN_RISING) {
-            type = EXTI_TRIGGER_RISING;
-        } else
-        if (events == CUPKEE_EVENT_PIN_FALLING) {
-            type = EXTI_TRIGGER_FALLING;
-        } else {
-            type = EXTI_TRIGGER_BOTH;
-        }
-
         exti_select_source(exti, hw_gpio_bank[bank]);
-        exti_set_trigger(exti, type);
+        exti_set_trigger(exti, EXTI_TRIGGER_BOTH);
         exti_enable_request(exti);
-
-        //console_log("exti %u:%u enable\r\n", bank, port);
 
         return 0;
     } else {
@@ -221,12 +207,13 @@ int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which)
 int hw_gpio_ignore(uint8_t bank, uint8_t port)
 {
     if (bank < GPIO_BANK_MAX && port < GPIO_PIN_MAX) {
-        hw_gpio_isr_t *isr_info = &hw_gpio_isr_info[port];
-        int i;
+        hw_pindata_t *pdata = hw_gpio_data[port];
 
-        if ((isr_info->pin & PIN_MASK) == 0) {
+        if (!pdata || pdata->data8 != bank) {
             return 0;
         }
+
+        hw_gpio_data[port] = NULL;
 
         if (port < 5) {
             nvic_disable_irq(NVIC_EXTI0_IRQ + port);
@@ -238,14 +225,6 @@ int hw_gpio_ignore(uint8_t bank, uint8_t port)
         }
 
         exti_disable_request(1 << port);
-        isr_info->pin = ~PIN_MASK;
-
-        for (i = 0; i < GPIO_PIN_MAX; i++) {
-            if (hw_gpio_isr_info[i].pin & PIN_MASK) {
-                return 0;
-            }
-        }
-
         rcc_periph_clock_enable(RCC_AFIO);
 
         return 0;
@@ -254,11 +233,14 @@ int hw_gpio_ignore(uint8_t bank, uint8_t port)
     }
 }
 
-static inline void exti_isr_handler(int i)
+static inline void exti_isr_handler(int port)
 {
-    hw_gpio_isr_t *isr_info = &hw_gpio_isr_info[i];
+    hw_pindata_t *pdata = hw_gpio_data[port];
 
-    cupkee_event_post_pin(isr_info->pin, (GPIO_IDR(hw_gpio_bank[isr_info->bank]) >> i) & 1);
+    pdata->duration = _cupkee_auxticks - pdata->data32;
+    pdata->data32 = _cupkee_auxticks;
+
+    cupkee_event_post_pin(pdata->id, (GPIO_IDR(hw_gpio_bank[pdata->data8]) >> port) & 1);
 }
 
 void exti0_isr(void)

@@ -97,6 +97,8 @@ int cupkee_timer_setup(void)
         return -1;
     }
 
+    hw_timer_start_aux(CUPKEE_AUXTICKS_STEP);
+
     return 0;
 }
 
@@ -197,3 +199,4 @@ int cupkee_is_timer(void *p)
     return is_timer(p);
 }
 
+volatile uint32_t _cupkee_auxticks;

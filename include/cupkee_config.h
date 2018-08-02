@@ -20,11 +20,14 @@
 #ifndef __CUPKEE_CONFIG_INC__
 #define __CUPKEE_CONFIG_INC__
 
+// Systicks & Auxticks
+#define CUPKEE_AUXTICKS_SHIFT           3  // 8us pre ticks
+
+#define CUPKEE_AUXTICKS_MASK            (0xff >> (8 - CUPKEE_AUXTICKS_SHIFT))
+#define CUPKEE_AUXTICKS_STEP            (1 << CUPKEE_AUXTICKS_SHIFT)
+
 // Device
 #define CUPKEE_DEVICE_TYPE_MAX          16
-
-// Pin
-#define CUPKEE_PIN_MAX                  32
 
 // Memory
 #define CUPKEE_ZONE_MAX                 2
@@ -37,5 +40,9 @@
 #define CUPKEE_MUNIT_SHIFT              (5)
 #define CUPKEE_MUNIT_SIZE               (1U << CUPKEE_MUNIT_SHIFT)
 
+// Pin
+#define CUPKEE_PIN_SCHEDULE_POOL        16
+
 #endif /* __CUPKEE_CONFIG_INC__ */
+
 

@@ -32,6 +32,9 @@ void cupkee_event_poll(void)
             cupkee_device_sync(_cupkee_systicks);
             cupkee_timeout_sync(_cupkee_systicks);
         } else
+        if (e.type == EVENT_AUXTICK) {
+            cupkee_pin_schedule(_cupkee_auxticks);
+        } else
         if (e.type == EVENT_OBJECT) {
             cupkee_object_event_dispatch(e.which, e.code);
         } else
@@ -86,15 +89,15 @@ void cupkee_init(const uint8_t *id)
     /* System setup */
     cupkee_memory_setup();
 
+    cupkee_event_setup();
+
     cupkee_object_setup();
+
+    cupkee_pin_setup();
 
     cupkee_timeout_setup();
 
     cupkee_timer_setup();
-
-    cupkee_event_setup();
-
-    cupkee_pin_setup();
 
     cupkee_device_setup();
 
@@ -110,6 +113,7 @@ void cupkee_loop(void)
 {
     // Reset systick at first
     _cupkee_systicks = 0;
+    _cupkee_auxticks = 0;
 
     while (1) {
         cupkee_device_poll();

@@ -54,6 +54,15 @@ typedef struct hw_info_t {
     uint32_t sys_freq;
 } hw_info_t;
 
+typedef struct hw_pindata_t {
+    uint8_t id;  // used by bsp
+    uint8_t data8;  // used by bsp
+    uint16_t data16;   // used by bsp
+    uint32_t data32;   // used by bsp
+
+    uint32_t duration; // keep duration, before falling or rising edge
+} hw_pindata_t;
+
 /****************************************************************/
 /* hardware interface to implement                              */
 /****************************************************************/
@@ -84,7 +93,7 @@ int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data);
 /* GPIO */
 int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir);
 int hw_gpio_disable(uint8_t bank, uint8_t port);
-int hw_gpio_listen(uint8_t bank, uint8_t port, uint8_t events, uint8_t which);
+int hw_gpio_listen(uint8_t bank, uint8_t port, hw_pindata_t *data);
 int hw_gpio_ignore(uint8_t bank, uint8_t port);
 int hw_gpio_get(uint8_t bank, uint8_t port);
 int hw_gpio_set(uint8_t bank, uint8_t port, int v);
@@ -98,6 +107,7 @@ int hw_timer_start(int inst, int id, int us);
 int hw_timer_stop(int inst);
 int hw_timer_update(int inst, int us);
 int hw_timer_duration_get(int inst);
+int hw_timer_start_aux(uint16_t us);
 
 /* DEVICE */
 int hw_device_setup(void);
