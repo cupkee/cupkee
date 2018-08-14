@@ -57,62 +57,62 @@ static inline hw_spi_t *hw_device(int inst)
 static void hw_reset_pin(int inst)
 {
     if (inst == 0) {
-        hw_gpio_release(0, GPIO4 | GPIO5 | GPIO7);
-        hw_gpio_release(0, GPIO6);
+        hw_gpio_unuse(0, GPIO4 | GPIO5 | GPIO7);
+        hw_gpio_unuse(0, GPIO6);
     } else
     if (inst == 1) {
-        hw_gpio_release(1, GPIO12 | GPIO13 | GPIO15);
-        hw_gpio_release(1, GPIO14);
+        hw_gpio_unuse(1, GPIO12 | GPIO13 | GPIO15);
+        hw_gpio_unuse(1, GPIO14);
     } else {
-        hw_gpio_release(0, GPIO15);
-        hw_gpio_release(1, GPIO5 | GPIO7);
-        hw_gpio_release(1, GPIO6);
+        hw_gpio_unuse(0, GPIO15);
+        hw_gpio_unuse(1, GPIO5 | GPIO7);
+        hw_gpio_unuse(1, GPIO6);
     }
 }
 
 static int hw_setup_pin(int inst)
 {
     if (inst == 0) {
-        if (!hw_gpio_use_setup(0, GPIO4 | GPIO5 | GPIO7,
-                               GPIO_MODE_OUTPUT_50_MHZ,
-                               GPIO_CNF_OUTPUT_ALTFN_PUSHPULL)) {
+        if (!hw_gpio_setup(0, GPIO4 | GPIO5 | GPIO7,
+                           GPIO_MODE_OUTPUT_50_MHZ,
+                           GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, 0)) {
             return -1;
         }
-        if (!hw_gpio_use_setup(0, GPIO6,
-                               GPIO_MODE_INPUT,
-                               GPIO_CNF_INPUT_FLOAT)) {
-            hw_gpio_release(0, GPIO4 | GPIO5 | GPIO7);
+        if (!hw_gpio_setup(0, GPIO6,
+                           GPIO_MODE_INPUT,
+                           GPIO_CNF_INPUT_FLOAT, 0)) {
+            hw_gpio_unuse(0, GPIO4 | GPIO5 | GPIO7);
             return -1;
         }
     } else
     if (inst == 1) {
-        if (!hw_gpio_use_setup(1, GPIO12 | GPIO13 | GPIO15,
-                               GPIO_MODE_OUTPUT_50_MHZ,
-                               GPIO_CNF_OUTPUT_ALTFN_PUSHPULL)) {
+        if (!hw_gpio_setup(1, GPIO12 | GPIO13 | GPIO15,
+                           GPIO_MODE_OUTPUT_50_MHZ,
+                           GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, 0)) {
             return -1;
         }
-        if (!hw_gpio_use_setup(1, GPIO14,
-                               GPIO_MODE_INPUT,
-                               GPIO_CNF_INPUT_FLOAT)) {
-            hw_gpio_release(0, GPIO12 | GPIO13 | GPIO15);
+        if (!hw_gpio_setup(1, GPIO14,
+                           GPIO_MODE_INPUT,
+                           GPIO_CNF_INPUT_FLOAT, 0)) {
+            hw_gpio_unuse(0, GPIO12 | GPIO13 | GPIO15);
             return -1;
         }
     } else {
-        if (!hw_gpio_use_setup(0, GPIO15,
-                               GPIO_MODE_OUTPUT_50_MHZ,
-                               GPIO_CNF_OUTPUT_ALTFN_PUSHPULL)) {
+        if (!hw_gpio_setup(0, GPIO15,
+                           GPIO_MODE_OUTPUT_50_MHZ,
+                           GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, 0)) {
             return -1;
         }
-        if (!hw_gpio_use_setup(1, GPIO5 | GPIO7,
-                               GPIO_MODE_OUTPUT_50_MHZ,
-                               GPIO_CNF_OUTPUT_ALTFN_PUSHPULL)) {
-            hw_gpio_release(0, GPIO15);
+        if (!hw_gpio_setup(1, GPIO5 | GPIO7,
+                           GPIO_MODE_OUTPUT_50_MHZ,
+                           GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, 0)) {
+            hw_gpio_unuse(0, GPIO15);
             return -1;
         }
-        if (!hw_gpio_use_setup(1, GPIO6,
-                               GPIO_MODE_INPUT,
-                               GPIO_CNF_INPUT_FLOAT)) {
-            hw_gpio_release(1, GPIO5 | GPIO7);
+        if (!hw_gpio_setup(1, GPIO6,
+                           GPIO_MODE_INPUT,
+                           GPIO_CNF_INPUT_FLOAT, 0)) {
+            hw_gpio_unuse(1, GPIO5 | GPIO7);
             return -1;
         }
     }

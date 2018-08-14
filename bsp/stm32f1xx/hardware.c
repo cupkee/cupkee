@@ -66,9 +66,9 @@ static void hw_reset_probe(void)
     }
 
     /* Probe start mode by PC13 */
-    if (0 == hw_gpio_enable(2, 13, HW_DIR_IN)) {
+    if (0 == hw_gpio_mode_set(2, 13, CUPKEE_PIN_MODE_IN)) {
         reset_flags |= hw_gpio_get(2, 13) == 0 ? HW_RESET_SAFE : 0;
-        hw_gpio_disable(2, 13);
+        hw_gpio_mode_set(2, 13, CUPKEE_PIN_MODE_NE);
     }
 }
 

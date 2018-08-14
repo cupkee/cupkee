@@ -37,8 +37,8 @@ void cupkee_pin_event_dispatch(uint16_t id, uint8_t code);
 
 int cupkee_pin_map(uint8_t pin_num, const cupkee_pinmap_t *pin_map);
 
-int cupkee_pin_enable(int pin, int dir);
-int cupkee_pin_disable(int pin);
+int cupkee_pin_mode_set(int pin, int mode);
+int cupkee_pin_mode_get(int pin);
 int cupkee_pin_listen(int pin, int events, cupkee_callback_t handler, void *entry);
 int cupkee_pin_ignore(int pin);
 
@@ -49,17 +49,9 @@ int cupkee_pin_wave_gen(int pin, uint32_t first, uint32_t second,
                         cupkee_wave_engine_t engine, void *data);
 int cupkee_pin_wave_update(int pin, uint32_t first);
 int cupkee_pin_wave_stop(int pin, int v);
+int cupkee_pin_wave_get(int pin, int i);
 
 uint32_t cupkee_pin_duration(int pin);
-
-int cupkee_is_pin_group(void *entry);
-int cupkee_pin_group_tag(void);
-void *cupkee_pin_group_create(void);
-int cupkee_pin_group_push(void *entry, int pin);
-int cupkee_pin_group_pop(void *entry);
-
-int cupkee_pin_group_get(void *entry);
-int cupkee_pin_group_set(void *entry, uint32_t v);
 
 #endif /* __CUPKEE_PIN_INC__ */
 

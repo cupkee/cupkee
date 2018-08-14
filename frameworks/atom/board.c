@@ -31,15 +31,22 @@ static const native_t board_entries[] = {
     {"systicks",        native_systicks},
     {"require",         native_require_module},
     {"reset",           native_reset},
+    {"erase",           native_erase},
     {"report",          native_report},
     {"interface",       native_interface},
-
     {"print",           native_print},
-    {"pin",             native_pin},
+
+    /*
+    {"pinMode",         native_pin_mode},
+    {"pinRead",         native_pin_read},
+    {"pinWrite",        native_pin_read},
     {"toggle",          native_pin_toggle},
-    {"pluse",           native_pin_pluse},
+    {"pulse",           native_pin_pulse},
     {"wave",            native_pin_wave},
-    {"pinGroup",        native_pin_group},
+    {"watch",           native_pin_watch},
+    {"ignore",          native_pin_ignore},
+    {"Serial",          native_pin_serial},
+    */
 
     {"setTimeout",      native_set_timeout},
     {"setInterval",     native_set_interval},

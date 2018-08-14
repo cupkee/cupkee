@@ -39,55 +39,34 @@ static const uint32_t rcc_base[] = {
 
 static int uart_gpio_setup(int inst)
 {
-    uint32_t bank_rx, bank_tx;
-    uint16_t gpio_rx, gpio_tx;
-    int port_rx, port_tx;
+    uint8_t rx_mod = GPIO_MODE_INPUT;
+    uint8_t rx_cnf = GPIO_CNF_INPUT_PULL_UPDOWN;
+    uint8_t tx_mod = GPIO_MODE_OUTPUT_50_MHZ;
+    uint8_t tx_cnf = GPIO_CNF_OUTPUT_ALTFN_PUSHPULL;
 
     switch(inst) {
     case 0:
-        gpio_rx = GPIO_USART1_RX; gpio_tx = GPIO_USART1_TX;
-        bank_rx = bank_tx = GPIOA;
-        port_rx = port_tx = 0;
+        hw_gpio_setup(0, GPIO_USART1_RX, rx_mod, rx_cnf, 0);
+        hw_gpio_setup(0, GPIO_USART1_TX, tx_mod, tx_cnf, 0);
         break;
     case 1:
-        gpio_rx = GPIO_USART2_RX; gpio_tx = GPIO_USART2_TX;
-        bank_rx = bank_tx = GPIOA;
-        port_rx = port_tx = 0;
+        hw_gpio_setup(0, GPIO_USART2_RX, rx_mod, rx_cnf, 0);
+        hw_gpio_setup(0, GPIO_USART2_TX, tx_mod, tx_cnf, 0);
         break;
     case 2:
-        gpio_rx = GPIO_USART3_RX; gpio_tx = GPIO_USART3_TX;
-        bank_rx = bank_tx = GPIOB;
-        port_rx = port_tx = 1;
+        hw_gpio_setup(1, GPIO_USART3_RX, rx_mod, rx_cnf, 0);
+        hw_gpio_setup(1, GPIO_USART3_TX, tx_mod, tx_cnf, 0);
         break;
     case 3:
-        gpio_rx = GPIO_UART4_RX; gpio_tx = GPIO_UART4_TX;
-        bank_rx = bank_tx = GPIOC;
-        port_rx = port_tx = 2;
+        hw_gpio_setup(2, GPIO_UART4_RX, rx_mod, rx_cnf, 0);
+        hw_gpio_setup(2, GPIO_UART4_TX, tx_mod, tx_cnf, 0);
         break;
     case 4:
-        gpio_rx = GPIO_UART5_RX; gpio_tx = GPIO_UART5_TX;
-        bank_rx = GPIO_BANK_UART5_RX; bank_tx = GPIO_BANK_UART5_TX;
-        port_rx = 3; port_tx = 2;
+        hw_gpio_setup(3, GPIO_UART5_RX, rx_mod, rx_cnf, 0);
+        hw_gpio_setup(2, GPIO_UART5_TX, tx_mod, tx_cnf, 0);
         break;
     default: return -1;
     }
-
-    if (port_rx == port_tx) {
-        if (!hw_gpio_use(port_rx, gpio_rx | gpio_tx)) {
-            return -1;
-        }
-    } else {
-        if (!hw_gpio_use(port_rx, gpio_rx)) {
-            return -1;
-        }
-        if (!hw_gpio_use(port_tx, gpio_tx)) {
-            hw_gpio_release(port_rx, gpio_rx);
-            return -1;
-        }
-    }
-
-    gpio_set_mode(bank_tx, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, gpio_tx);
-    gpio_set_mode(bank_rx, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, gpio_rx);
 
     return CUPKEE_OK;
 }

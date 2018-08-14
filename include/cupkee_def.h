@@ -49,6 +49,18 @@
 #define CUPKEE_FLAG_KEEP                0x40
 #define CUPKEE_FLAG_LANG                0x80
 
+enum CUPKEE_PIN_MODE {
+    CUPKEE_PIN_MODE_NE = 0,
+    CUPKEE_PIN_MODE_IN,
+    CUPKEE_PIN_MODE_OUT,
+    CUPKEE_PIN_MODE_AIN,
+    CUPKEE_PIN_MODE_AOUT,
+    CUPKEE_PIN_MODE_IN_PULLUP,
+    CUPKEE_PIN_MODE_IN_PULLDOWN,
+    CUPKEE_PIN_MODE_OPENDRAIN,
+    CUPKEE_PIN_MODE_ALTFN,
+};
+
 typedef int (*cupkee_callback_t)(void *entry, int event, intptr_t param);
 
 void cupkee_sysinfo_get(uint8_t *info_buf);

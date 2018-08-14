@@ -28,11 +28,17 @@ val_t native_erase(env_t *env, int ac, val_t *av);
 val_t native_reset(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_pin.c */
-val_t native_pin(env_t *env, int ac, val_t *av);
+val_t native_pin_mode(env_t *env, int ac, val_t *av);
 val_t native_pin_toggle(env_t *env, int ac, val_t *av);
-val_t native_pin_pluse(env_t *env, int ac, val_t *av);
+val_t native_pin_read(env_t *env, int ac, val_t *av);
+val_t native_pin_write(env_t *env, int ac, val_t *av);
+val_t native_pin_analog_read(env_t *env, int ac, val_t *av);
+val_t native_pin_analog_write(env_t *env, int ac, val_t *av);
+val_t native_pin_pulse(env_t *env, int ac, val_t *av);
 val_t native_pin_wave(env_t *env, int ac, val_t *av);
-val_t native_pin_group(env_t *env, int ac, val_t *av);
+val_t native_pin_watch(env_t *env, int ac, val_t *av);
+
+val_t native_pin(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_sdmp.c */
 val_t native_report(env_t *env, int ac, val_t *av);
@@ -44,6 +50,7 @@ val_t native_require(env_t *env, int ac, val_t *av);
 /* cupkee_shell_systice.c */
 val_t native_set_timeout(env_t *env, int ac, val_t *av);
 val_t native_set_interval(env_t *env, int ac, val_t *av);
+val_t native_update_interval(env_t *env, int ac, val_t *av);
 val_t native_clear_timeout(env_t *env, int ac, val_t *av);
 val_t native_clear_interval(env_t *env, int ac, val_t *av);
 

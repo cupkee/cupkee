@@ -91,8 +91,8 @@ int hw_storage_erase(uint32_t base, uint32_t size);
 int hw_storage_program(uint32_t base, uint32_t len, const uint8_t *data);
 
 /* GPIO */
-int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir);
-int hw_gpio_disable(uint8_t bank, uint8_t port);
+int hw_gpio_mode_set(uint8_t bank, uint8_t port, uint8_t mode);
+int hw_gpio_mode_get(uint8_t bank, uint8_t port);
 int hw_gpio_listen(uint8_t bank, uint8_t port, hw_pindata_t *data);
 int hw_gpio_ignore(uint8_t bank, uint8_t port);
 int hw_gpio_get(uint8_t bank, uint8_t port);

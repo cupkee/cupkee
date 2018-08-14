@@ -172,27 +172,25 @@ static uint32_t gpio_listen_falling[GPIO_BANK_MAX];
 static uint32_t gpio_state[GPIO_BANK_MAX];
 static uint32_t gpio_value[GPIO_BANK_MAX];
 
-int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
+int hw_gpio_mode_set(uint8_t bank, uint8_t port, uint8_t mode)
 {
-    (void) dir;
-
     if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
         return -CUPKEE_EINVAL;
     }
 
-    gpio_state[bank] |= 1 << port;
+    if (mode == CUPKEE_PIN_MODE_NE) {
+        gpio_state[bank] &= ~(1 << port);
+    } else {
+        gpio_state[bank] |= 1 << port;
+    }
 
     return 0;
 }
 
-int hw_gpio_disable(uint8_t bank, uint8_t port)
+int hw_gpio_mode_get(uint8_t bank, uint8_t port)
 {
-    if (bank >= GPIO_BANK_MAX || port >= GPIO_PORT_MAX) {
-        return -CUPKEE_EINVAL;
-    }
-
-    gpio_state[bank] &= ~(1 << port);
-
+    (void) bank;
+    (void) port;
     return 0;
 }
 

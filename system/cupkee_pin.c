@@ -62,88 +62,8 @@ typedef struct pin_control_t {
 
 static pin_control_t pin_control;
 
-static uint8_t  pin_group_tag;
-
-static int pin_group_set (void *entry, int t, intptr_t v);
-static int pin_group_set_elem (void *entry, int i, int t, intptr_t v);
-static int pin_group_get_elem (void *entry, int i, intptr_t *p);
-static int pin_group_get_prop (void *entry, const char *k, intptr_t *p);
-static void pin_group_destroy(void *entry);
-
-static const cupkee_desc_t pin_group_desc = {
-    .name         = "PinGroup",
-
-    .destroy      = pin_group_destroy,
-
-    .set          = pin_group_set,
-
-    .elem_get     = pin_group_get_elem,
-    .elem_set     = pin_group_set_elem,
-    .prop_get     = pin_group_get_prop,
-};
-
 static inline int pin_is_valid(uint8_t pin) {
     return pin < pin_control.pin_num;
-}
-
-static int pin_group_set (void *entry, int t, intptr_t v)
-{
-    pin_group_t *g = entry;
-
-    if (g && t == CUPKEE_OBJECT_ELEM_INT) {
-        return cupkee_pin_group_set(entry, v);
-    }
-    return -CUPKEE_EINVAL;
-}
-
-static int pin_group_set_elem (void *entry, int i, int t, intptr_t v)
-{
-    pin_group_t *g = entry;
-
-    if (g && t == CUPKEE_OBJECT_ELEM_INT && i >= 0 && i < g->max) {
-        uint8_t pin = g->pin[i];
-
-        if (pin_is_valid(pin)) {
-            return hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v);
-        }
-    }
-    return -CUPKEE_EINVAL;
-}
-
-static int pin_group_get_elem (void *entry, int i, intptr_t *p)
-{
-    pin_group_t *g = entry;
-
-    if (g && i >= 0 && i < g->max) {
-        uint8_t pin = g->pin[i];
-
-        if (pin_is_valid(pin)) {
-            *p = hw_gpio_get(BANK_OF(pin), PORT_OF(pin));
-            return CUPKEE_OBJECT_ELEM_INT;
-        }
-    }
-    return CUPKEE_OBJECT_ELEM_NV;
-}
-
-static int pin_group_get_prop (void *entry, const char *k, intptr_t *p)
-{
-    pin_group_t *g = entry;
-
-    if (g && !strcmp(k, "length")) {
-        *p = g->num;
-        return CUPKEE_OBJECT_ELEM_INT;
-    } else {
-        return CUPKEE_OBJECT_ELEM_NV;
-    }
-}
-
-static void pin_group_destroy(void *entry)
-{
-    pin_group_t *g = entry;
-
-    if (g && g->pin) {
-        cupkee_free(g->pin);
-    }
 }
 
 static pin_data_t *pin_get_data(int pin)
@@ -200,17 +120,9 @@ static void pin_event_handle_clear(int pin)
 
 int cupkee_pin_setup(void)
 {
-    int tag;
-
     pin_control.pin_num = 0;
     pin_control.pin_map = NULL;
     pin_control.pin_data = NULL;
-
-    tag = cupkee_object_register(sizeof(pin_group_t), &pin_group_desc);
-    if (tag < 0) {
-        return tag;
-    }
-    pin_group_tag = tag;
 
     return 0;
 }
@@ -306,19 +218,19 @@ int cupkee_pin_map(uint8_t num, const cupkee_pinmap_t *map)
     return 0;
 }
 
-int cupkee_pin_enable(int pin, int dir)
+int cupkee_pin_mode_get(int pin)
 {
     if (pin_is_valid(pin)) {
-        return hw_gpio_enable(BANK_OF(pin), PORT_OF(pin), dir);
+        return hw_gpio_mode_get(BANK_OF(pin), PORT_OF(pin));
     } else {
         return -CUPKEE_EINVAL;
     }
 }
 
-int cupkee_pin_disable(int pin)
+int cupkee_pin_mode_set(int pin, int mode)
 {
     if (pin_is_valid(pin)) {
-        return hw_gpio_disable(BANK_OF(pin), PORT_OF(pin));
+        return hw_gpio_mode_set(BANK_OF(pin), PORT_OF(pin), mode);
     } else {
         return -CUPKEE_EINVAL;
     }
@@ -370,9 +282,9 @@ static int pin_wave_start(
     uint32_t curr_ticks;
     uint8_t index;
 
-    curr_ticks = _cupkee_auxticks;
-    hw_gpio_toggle(BANK_OF(pin), PORT_OF(pin));
+    (void) pin;
 
+    curr_ticks = _cupkee_auxticks;
     if (engine) {
         if (0 == (first = engine(0, first, data))) {
             return 0;
@@ -392,6 +304,22 @@ static int pin_wave_start(
     return 0;
 }
 
+int cupkee_pin_wave_get(int pin, int i)
+{
+    pin_data_t *pdata;
+
+    if (!pin_is_valid(pin)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    pdata = pin_get_data(pin);
+    if (!pdata || list_is_empty(&pdata->link)) {
+        return 0;
+    }
+
+    return pdata->wave_period[i & 1];
+}
+
 
 int cupkee_pin_wave_gen(
     int pin,
@@ -400,7 +328,7 @@ int cupkee_pin_wave_gen(
 ) {
     pin_data_t *pdata;
 
-    if (!pin_is_valid(pin) || first == 0) {
+    if (!pin_is_valid(pin) || (engine == NULL && first == 0)) {
         return -CUPKEE_EINVAL;
     }
 
@@ -511,110 +439,5 @@ int cupkee_pin_ignore(int pin)
     } else {
         return -CUPKEE_EINVAL;
     }
-}
-
-void *cupkee_pin_group_create(void)
-{
-    cupkee_object_t *obj = cupkee_object_create(pin_group_tag);
-
-    if (obj) {
-        uint8_t *pin = cupkee_malloc(GROUP_DEF_SIZE);
-        pin_group_t *g;
-
-        if (!pin) {
-            cupkee_object_destroy(obj);
-            return NULL;
-        }
-
-        g = (pin_group_t *)obj->entry;
-        g->max = GROUP_DEF_SIZE;
-        g->num = 0;
-        g->pin = pin;
-
-        return g;
-    }
-
-    return NULL;
-}
-
-int cupkee_pin_group_push(void *entry, int pin)
-{
-    pin_group_t *g = entry;
-    if (g) {
-        if (pin_is_valid(pin) && g->num < g->max) {
-            g->pin[g->num++] = pin;
-            return g->num;
-        }
-    }
-
-    return -CUPKEE_EINVAL;
-}
-
-int cupkee_pin_group_pop(void *entry)
-{
-    pin_group_t *g = entry;
-    if (g) {
-        if (g->num > 0) {
-            return g->pin[--g->num];
-        } else {
-            return -CUPKEE_EEMPTY;
-        }
-    }
-
-    return -CUPKEE_EINVAL;
-}
-
-int cupkee_pin_group_get(void *entry)
-{
-    pin_group_t *g = entry;
-    if (g) {
-        int retv = 0;
-        unsigned i;
-
-        for (i = 0; i < g->num; i++) {
-            uint8_t pin = g->pin[i];
-
-            if (pin_is_valid(pin) && hw_gpio_get(BANK_OF(pin), PORT_OF(pin)) > 0) {
-                retv |= 1 << i;
-            }
-            // else keep this bit zero
-        }
-
-        return retv;
-    }
-
-    return -CUPKEE_EINVAL;
-}
-
-int cupkee_pin_group_set(void *entry, uint32_t v)
-{
-    pin_group_t *g = entry;
-    if (g) {
-        unsigned i;
-
-        for (i = 0; i < g->num; i++) {
-            uint8_t pin = g->pin[i];
-
-            if (pin_is_valid(pin)) {
-                hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v & 1);
-            }
-            v >>= 1;
-            // else keep this bit zero
-        }
-
-        return 0;
-    }
-
-    return -CUPKEE_EINVAL;
-}
-
-int cupkee_pin_group_tag(void)
-{
-    return pin_group_tag;
-}
-
-int cupkee_is_pin_group(void *entry)
-{
-    return cupkee_is_object(entry, pin_group_tag);
 }
 

@@ -78,7 +78,7 @@ static int device_setup_io(int inst)
         pins = GPIO10 | GPIO11;
     }
 
-    if (hw_gpio_use_setup(1, pins, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN)) {
+    if (hw_gpio_setup(1, pins, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN, 0)) {
         return 0;
     } else {
         return -1;
@@ -95,7 +95,7 @@ static inline void device_reset_io(int inst)
         pins = GPIO10 | GPIO11;
     }
 
-    hw_gpio_release(1, pins);
+    hw_gpio_unuse(1, pins);
 }
 
 static inline void device_send_start(hw_i2c_t *i2c) {

@@ -50,10 +50,10 @@ int hw_setup_gpio(void)
     return 0;
 }
 
-int hw_gpio_use(int bank, uint16_t pins)
+static inline int hw_gpio_use(int bank, uint16_t pins)
 {
-    if (bank >= GPIO_BANK_MAX || (hw_gpio_used[bank] & pins)) {
-        return CUPKEE_FALSE;
+    if (bank >= GPIO_BANK_MAX) {
+        return -1;
     }
 
     if (!hw_gpio_used[bank]) {
@@ -62,74 +62,121 @@ int hw_gpio_use(int bank, uint16_t pins)
 
     hw_gpio_used[bank] |= pins;
 
-    return CUPKEE_TRUE;
+    return 0;
 }
 
-int hw_gpio_use_setup(int bank, uint16_t pins, uint8_t mode, uint8_t cnf)
-{
-    uint32_t bank_base = hw_gpio_bank[bank];
-
-    if (hw_gpio_use(bank, pins)) {
-        gpio_set_mode(bank_base, mode, cnf, pins);
-        return CUPKEE_TRUE;
-    }
-    return CUPKEE_FALSE;
-}
-
-int hw_gpio_release(int bank, uint16_t pins)
+int hw_gpio_unuse(int bank, uint16_t pins)
 {
     uint32_t bank_base;
     if (bank >= GPIO_BANK_MAX) {
-        return 0;
+        return -1;
     }
 
     bank_base = hw_gpio_bank[bank];
+    GPIO_ODR(bank_base) &= ~pins;
     gpio_set_mode(bank_base, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, pins);
 
     hw_gpio_used[bank] &= ~pins;
     if (!hw_gpio_used[bank]) {
         rcc_periph_clock_disable(hw_gpio_rcc[bank]);
     }
-    return 1;
+
+    return 0;
 }
 
-int hw_gpio_enable(uint8_t bank, uint8_t port, uint8_t dir)
+int hw_gpio_setup(int bank, uint16_t pins, uint8_t mode, uint8_t cnf, uint8_t pullup)
 {
-    uint8_t cnf, mod;
+    uint32_t bank_base = hw_gpio_bank[bank];
+
+    if (hw_gpio_use(bank, pins)) {
+        return -CUPKEE_EINVAL;
+    }
+
+    gpio_set_mode(bank_base, mode, cnf, pins);
+
+    if (pullup) {
+        GPIO_ODR(bank_base) |= pins;
+    } else {
+        GPIO_ODR(bank_base) &= ~pins;
+    }
+
+    return 0;
+}
+
+int hw_gpio_mode_set(uint8_t bank, uint8_t port, uint8_t mode)
+{
+    uint16_t ports;
 
     if (bank >= GPIO_BANK_MAX || port >= GPIO_PIN_MAX) {
         return -CUPKEE_EINVAL;
     }
 
-    switch (dir) {
-    case HW_DIR_IN:
-        mod = GPIO_MODE_INPUT;
-        cnf = GPIO_CNF_INPUT_FLOAT;
-        break;
-    case HW_DIR_OUT:
-        mod = GPIO_MODE_OUTPUT_10_MHZ;
-        cnf = GPIO_CNF_OUTPUT_PUSHPULL;
-        break;
-    case HW_DIR_DUPLEX:
-        mod = GPIO_MODE_OUTPUT_2_MHZ;
-        cnf = GPIO_CNF_OUTPUT_OPENDRAIN;
-        break;
+    ports = 1 << port;
+    switch (mode) {
+    case CUPKEE_PIN_MODE_NE:
+        return hw_gpio_unuse(bank, ports);
+    case CUPKEE_PIN_MODE_IN:
+        return hw_gpio_setup(bank, ports,
+                             GPIO_MODE_INPUT,
+                             GPIO_CNF_INPUT_FLOAT, 0);
+    case CUPKEE_PIN_MODE_OUT:
+        return hw_gpio_setup(bank, ports,
+                             GPIO_MODE_OUTPUT_10_MHZ,
+                             GPIO_CNF_OUTPUT_PUSHPULL, 0);
+    case CUPKEE_PIN_MODE_AIN:
+    case CUPKEE_PIN_MODE_AOUT:
+        return -CUPKEE_EINVAL;
+
+    case CUPKEE_PIN_MODE_IN_PULLUP:
+        return hw_gpio_setup(bank, ports,
+                             GPIO_MODE_INPUT,
+                             GPIO_CNF_INPUT_PULL_UPDOWN, 1);
+    case CUPKEE_PIN_MODE_IN_PULLDOWN:
+        return hw_gpio_setup(bank, ports,
+                             GPIO_MODE_INPUT,
+                             GPIO_CNF_INPUT_PULL_UPDOWN, 0);
+    case CUPKEE_PIN_MODE_OPENDRAIN:
+        return hw_gpio_setup(bank, ports,
+                             GPIO_MODE_OUTPUT_10_MHZ,
+                             GPIO_CNF_OUTPUT_OPENDRAIN, 0);
     default:
         return -CUPKEE_EINVAL;
     }
-
-    if (hw_gpio_use_setup(bank, 1 << port, mod, cnf)) {
-        return CUPKEE_OK;
-    }
-
-    return -CUPKEE_ERESOURCE;
 }
 
-int hw_gpio_disable(uint8_t bank, uint8_t port)
+int hw_gpio_mode_get(uint8_t bank, uint8_t port)
 {
-    hw_gpio_release(bank, 1 << port);
+    uint8_t mod, cnf, odr;
+    uint32_t base;
 
-    return 0;
+    if (bank >= GPIO_BANK_MAX || port >= GPIO_PIN_MAX) {
+        return -CUPKEE_EINVAL;
+    }
+
+    base = hw_gpio_bank[bank];
+    if (port >= 8) {
+        mod = (GPIO_CRL(base) >> (port * 4)) & 0xf;
+    } else {
+        mod = (GPIO_CRH(base) >> ((port - 8) * 4)) & 0xf;
+    }
+    cnf = mod >> 2;
+    mod = mod & 0x3;
+    odr = (GPIO_ODR(base) >> port) & 1;
+
+    if (mod) { // Output
+        switch(cnf) {
+        case 0: return CUPKEE_PIN_MODE_AIN;
+        case 1: return CUPKEE_PIN_MODE_IN;
+        case 2: return odr ? CUPKEE_PIN_MODE_IN_PULLUP : CUPKEE_PIN_MODE_IN_PULLDOWN;
+        default: return CUPKEE_PIN_MODE_NE;
+        }
+    } else { // input
+        switch(cnf) {
+        case 0: return CUPKEE_PIN_MODE_OUT;
+        case 1: return CUPKEE_PIN_MODE_OPENDRAIN;
+        default: return CUPKEE_PIN_MODE_ALTFN;
+        }
+    }
 }
 
 int hw_gpio_set(uint8_t bank, uint8_t port, int v)

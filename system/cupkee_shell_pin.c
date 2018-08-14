@@ -52,102 +52,100 @@ static int pin_listen(int pin, val_t *fn)
     }
 }
 
-static int pin_setup(int ac, val_t *av, const char *setting)
+static int pin_mode_parse(const char *name)
 {
-    int i, dir;
+    if (!name) {
+        return -1;
+    }
 
-    if (!strcasecmp(setting, "in")) {
-        dir = HW_DIR_IN;
+    if (!strcasecmp(name, "in")) {
+        return CUPKEE_PIN_MODE_IN;
     } else
-    if (!strcasecmp(setting, "out")) {
-        dir = HW_DIR_OUT;
+    if (!strcasecmp(name, "out")) {
+        return CUPKEE_PIN_MODE_OUT;
     } else
-    if (!strcasecmp(setting, "duplex")) {
-        dir = HW_DIR_DUPLEX;
+    if (!strcasecmp(name, "ain")) {
+        return CUPKEE_PIN_MODE_AIN;
     } else
-    if (!strcasecmp(setting, "disable")) {
-        // disable pins
-        for (i = 0; i < ac; i++) {
-            if (val_is_number(av + i)) {
-                cupkee_pin_disable(val_2_integer(av + i));
-            }
-        }
-        return 1;
+    if (!strcasecmp(name, "aout")) {
+        return CUPKEE_PIN_MODE_AOUT;
     } else
-    if (!strcasecmp(setting, "ignore")) {
-        // ignore pins
-        for (i = 0; i < ac; i++) {
-            if (val_is_number(av + i)) {
-                cupkee_pin_ignore(val_2_integer(av + i));
-            }
-        }
-        return 1;
+    if (!strcasecmp(name, "in-pullup")) {
+        return CUPKEE_PIN_MODE_IN_PULLUP;
+    } else
+    if (!strcasecmp(name, "in-pulldown")) {
+        return CUPKEE_PIN_MODE_IN_PULLDOWN;
+    } else
+    if (!strcasecmp(name, "opendrain")) {
+        return CUPKEE_PIN_MODE_OPENDRAIN;
     } else {
-        return 0;
+        // default
+        return CUPKEE_PIN_MODE_NE;
     }
-
-    for (i = 0; i < ac; ++i) {
-        if (!val_is_number(av + i) || CUPKEE_OK != cupkee_pin_enable(val_2_integer(av + i), dir)) {
-            goto DO_FAIL;
-        }
-    }
-
-    return 1;
-
-DO_FAIL:
-    for (--i; i >= 0; --i) {
-        cupkee_pin_disable(val_2_integer(av + i));
-    }
-    return 0;
 }
 
-val_t native_pin_group(env_t *env, int ac, val_t *av)
+static const char *pin_mode_name(int mode)
 {
-    void *grp = cupkee_pin_group_create();
-    uint8_t i;
+    switch (mode) {
+    case CUPKEE_PIN_MODE_IN:            return "in";
+    case CUPKEE_PIN_MODE_OUT:           return "out";
+    case CUPKEE_PIN_MODE_AIN:           return "ain";
+    case CUPKEE_PIN_MODE_AOUT:          return "aout";
+    case CUPKEE_PIN_MODE_IN_PULLUP:     return "in-pullup";
+    case CUPKEE_PIN_MODE_IN_PULLDOWN:   return "in-pulldown";
+    case CUPKEE_PIN_MODE_OPENDRAIN:     return "opendrain";
+    case CUPKEE_PIN_MODE_ALTFN:         return "altfn";
+    default:                    return "NE";
+    }
+}
+
+val_t native_pin_mode(env_t *env, int ac, val_t *av)
+{
+    array_t *list;
+    int i, mode;
+    const char *name;
 
     (void) env;
 
-    if (!grp) {
-        return VAL_UNDEFINED;
-    }
-
-    for (i = 0; i < ac; i++) {
-        if (val_is_number(av + i)) {
-            uint8_t pin = val_2_integer(av + i);
-            cupkee_pin_group_push(grp, pin);
-        }
-    }
-    return cupkee_shell_object_create(env, grp);
-}
-
-val_t native_pin(env_t *env, int ac, val_t *av)
-{
-    (void) env;
-
-    if (ac == 0 || !val_is_number(av)) {
-        return VAL_UNDEFINED;
-    } else {
-        int pin = val_2_integer(av);
-
-        if (ac == 1) {
-            return val_mk_number(cupkee_pin_get(pin));
+    if (ac == 1) {  // Get mode
+        if (val_is_number(av) && 0 <= (mode = cupkee_pin_mode_get(val_2_integer(av)))) {
+            name = pin_mode_name(mode);
+            return val_mk_foreign_string((intptr_t)name);
         } else {
-            if (ac == 2 && val_is_number(av + 1)) {
-                return cupkee_pin_set(pin, val_is_true(av + 1)) > 0 ? VAL_TRUE : VAL_FALSE;
-            } else
-            if (val_is_function(av + 1)) {
-                return pin_listen(pin, av + 1) == 0 ? VAL_TRUE : VAL_FALSE;
-            } else {
-                int end = ac - 1;
+            // Invalid parameter
+            return VAL_UNDEFINED;
+        }
+    } else
+    if (ac < 1 || 0 > (mode = pin_mode_parse(val_2_cstring(av + (ac - 1))))) {
+        // Invalid parameter
+        return VAL_UNDEFINED;
+    }
 
-                if (val_is_string(av + end)) {
-                    return val_mk_boolean(pin_setup(end, av, val_2_cstring(av + end)));
-                }
+    // Set mode
+    list = array_entry(av);
+    if (list) {
+        int n = array_length(list);
+        for (i = 0; i < n; ++i) {
+            val_t *v = array_get(list, i);
+            if (val_is_number(v)) {
+                cupkee_pin_mode_set(val_2_integer(v), mode);
+            } else {
+                break;
+            }
+        }
+    } else {
+        int n = ac - 1;
+        for (i = 0; i < n; ++i) {
+            val_t *v = av + i;
+            if (val_is_number(v)) {
+                cupkee_pin_mode_set(val_2_integer(v), mode);
+            } else {
+                break;
             }
         }
     }
-    return VAL_UNDEFINED;
+
+    return val_mk_number(i);
 }
 
 val_t native_pin_toggle(env_t *env, int ac, val_t *av)
@@ -155,6 +153,7 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     int i;
 
     (void) env;
+
     for (i = 0; i < ac; i++) {
         if (val_is_number(av + i)) {
             cupkee_pin_toggle(val_2_integer(av + i));
@@ -164,26 +163,73 @@ val_t native_pin_toggle(env_t *env, int ac, val_t *av)
     return VAL_UNDEFINED;
 }
 
-val_t native_pin_pluse(env_t *env, int ac, val_t *av)
+val_t native_pin_read(env_t *env, int ac, val_t *av)
 {
-    int i, n, param[2];
-    int retv;
+    uint32_t retv = 0;
 
     (void) env;
 
-    for (i = 0, n = 0; i < ac && n < 2; i++) {
-        if (val_is_number(av + i)) {
-            param[n++] = val_2_integer(av + i);
+    if (ac > 0) {
+        array_t *list = array_entry(av);
+        int i = 0, n;
+
+        if (list) {
+            n = array_length(list);
+            for (; i < n; ++i) {
+                val_t *v = array_get(list, i);
+                if (val_is_number(v) && cupkee_pin_get(val_2_integer(v)) > 0) {
+                    retv = (retv << 1) | 1;
+                } else {
+                    retv <<= 1;
+                }
+            }
+        } else {
+            n = ac;
+            for (; i < n; ++i) {
+                val_t *v = av + i;
+                if (val_is_number(v) && cupkee_pin_get(val_2_integer(v)) > 0) {
+                    retv = (retv << 1) | 1;
+                } else {
+                    retv <<= 1;
+                }
+            }
         }
     }
 
-    if (n != 2) {
+    return val_mk_number(retv);
+}
+
+val_t native_pin_write(env_t *env, int ac, val_t *av)
+{
+    int n = ac - 1;
+
+    (void) env;
+
+    if (n > 0 && val_is_number(av + n)) {
+        uint32_t data = val_2_integer(av + n);
+        array_t *list = array_entry(av);
+
+        if (list) {
+            for (n = array_length(list) - 1; n >= 0; --n) {
+                val_t *v = array_get(list, n);
+                if (val_is_number(v)) {
+                    cupkee_pin_set(val_2_integer(v), data & 1);
+                }
+                data >>= 1;
+            }
+        } else {
+            for (n -= 1; n >= 0; --n) {
+                val_t *v = av + n;
+                if (val_is_number(v)) {
+                    cupkee_pin_set(val_2_integer(v), data & 1);
+                }
+                data >>= 1;
+            }
+        }
+        return VAL_TRUE;
+    } else {
         return VAL_FALSE;
     }
-
-    retv = cupkee_pin_wave_gen(param[0], param[1], 0, NULL, NULL);
-
-    return retv ? VAL_FALSE : VAL_TRUE;
 }
 
 val_t native_pin_wave(env_t *env, int ac, val_t *av)
@@ -219,5 +265,22 @@ val_t native_pin_wave(env_t *env, int ac, val_t *av)
     }
 
     return retv ? VAL_FALSE : VAL_TRUE;
+}
+
+val_t native_pin_watch(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+
+    if (ac > 1 && val_is_number(av)) {
+        int pin = val_2_integer(av);
+
+        if (val_is_function(av + 1)) {
+            return pin_listen(pin, av + 1) == 0 ? VAL_TRUE : VAL_FALSE;
+        } else
+        if (!val_is_true(av + 1)) {
+            cupkee_pin_ignore(pin);
+        }
+    }
+    return VAL_UNDEFINED;
 }
 

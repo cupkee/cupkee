@@ -63,9 +63,9 @@ static inline int device_chn_setup(uint8_t chn)
 {
     if (chn < 16) {
         int      port = chn_port[chn];
-        uint16_t pin  = chn_pin[chn];
+        uint16_t pins = chn_pin[chn];
 
-        if (!hw_gpio_use_setup(port, pin, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG)) {
+        if (!hw_gpio_setup(port, pins, GPIO_MODE_INPUT, GPIO_CNF_INPUT_ANALOG, 0)) {
             return -CUPKEE_ERESOURCE;
         }
     } else
@@ -80,10 +80,10 @@ static inline int device_chn_setup(uint8_t chn)
 
 static inline void device_chn_reset(uint8_t chn) {
     if (chn < 16) {
-        int port     = chn_port[chn];
-        uint16_t pin = chn_pin[chn];
+        int      port = chn_port[chn];
+        uint16_t pins = chn_pin[chn];
 
-        hw_gpio_release(port, pin);
+        hw_gpio_unuse(port, pins);
     }
 }
 

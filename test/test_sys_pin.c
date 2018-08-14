@@ -45,8 +45,7 @@ static int test_clean(void)
 static void test_basic(void)
 {
     // enable & disable
-    CU_ASSERT(0 == cupkee_pin_enable(0, CUPKEE_PIN_IN));
-    CU_ASSERT(0 == cupkee_pin_disable(0));
+    CU_ASSERT(0 == cupkee_pin_mode_set(0, CUPKEE_PIN_MODE_IN));
 
     // get & set
     hw_gpio_set(0, 0, 1);
@@ -68,42 +67,8 @@ static void test_basic(void)
     CU_ASSERT(1 == hw_gpio_get(0, 1));
     CU_ASSERT(0 == hw_gpio_get(0, 2));
     CU_ASSERT(1 == hw_gpio_get(0, 3));
-}
 
-static void test_group(void)
-{
-    void *grp;
-    intptr_t v;
-
-    CU_ASSERT(NULL != (grp = cupkee_pin_group_create()));
-
-    CU_ASSERT(1 == cupkee_pin_group_push(grp, 0));
-    CU_ASSERT(2 == cupkee_pin_group_push(grp, 1));
-    CU_ASSERT(3 == cupkee_pin_group_push(grp, 2));
-    CU_ASSERT(4 == cupkee_pin_group_push(grp, 3));
-
-    hw_gpio_set(0, 0, 0); // lowest bit
-    hw_gpio_set(0, 1, 1);
-    hw_gpio_set(0, 2, 0);
-    hw_gpio_set(0, 3, 1);
-    CU_ASSERT(10 == cupkee_pin_group_get(grp));
-
-    CU_ASSERT(0 == cupkee_pin_group_set(grp, 0xc));
-    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 0, &v) && v == 0);
-    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 1, &v) && v == 0);
-    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 2, &v) && v == 1);
-    CU_ASSERT(CUPKEE_OBJECT_ELEM_INT == cupkee_elem_get(grp, 3, &v) && v == 1);
-
-    CU_ASSERT(0 == cupkee_elem_set(grp, 0, CUPKEE_OBJECT_ELEM_INT, 1));
-    CU_ASSERT(0 == cupkee_elem_set(grp, 1, CUPKEE_OBJECT_ELEM_INT, 1));
-    CU_ASSERT(0 == cupkee_elem_set(grp, 2, CUPKEE_OBJECT_ELEM_INT, 0));
-    CU_ASSERT(0 == cupkee_elem_set(grp, 3, CUPKEE_OBJECT_ELEM_INT, 0));
-    CU_ASSERT(3 == cupkee_pin_group_get(grp));
-
-    CU_ASSERT(0 > cupkee_elem_set(grp, 4, CUPKEE_OBJECT_ELEM_INT, 0));
-    CU_ASSERT(CUPKEE_OBJECT_ELEM_NV == cupkee_elem_get(grp, 4, &v));
-
-    CU_ASSERT(0 == cupkee_release(grp));
+    CU_ASSERT(0 == cupkee_pin_mode_set(0, CUPKEE_PIN_MODE_NE));
 }
 
 static int changed_pin;
@@ -191,7 +156,6 @@ CU_pSuite test_sys_pin(void)
 
     if (suite) {
         CU_add_test(suite, "pin basic        ", test_basic);
-        CU_add_test(suite, "pin group        ", test_group);
         CU_add_test(suite, "pin event        ", test_event);
     }
 
