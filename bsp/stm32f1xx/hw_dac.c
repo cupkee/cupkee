@@ -17,11 +17,32 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#ifndef __HW_ADC_INC__
-#define __HW_ADC_INC__
+#include "hardware.h"
 
-void  hw_setup_adc(void);
-void  hw_adc_poll(void);
+void  hw_setup_dac(void)
+{
+}
 
-#endif /* __HW_ADC_INC__ */
+int   hw_dac_start(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return -CUPKEE_EIMPLEMENT;
+}
+
+int   hw_dac_stop(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return -CUPKEE_EIMPLEMENT;
+}
+
+int   hw_dac_set(uint8_t bank, uint8_t port, float v)
+{
+    (void) bank;
+    (void) port;
+    (void) v;
+    return -CUPKEE_EIMPLEMENT;
+}
+
 

@@ -109,6 +109,14 @@ int hw_timer_update(int inst, int us);
 int hw_timer_duration_get(int inst);
 int hw_timer_start_aux(uint16_t us);
 
+/* ADC & DAC build-in */
+int  hw_adc_start(uint8_t bank, uint8_t port);
+int  hw_adc_stop(uint8_t bank, uint8_t port);
+int  hw_adc_get(uint8_t bank, uint8_t port, float *v);
+int  hw_dac_start(uint8_t bank, uint8_t port);
+int  hw_dac_stop(uint8_t bank, uint8_t port);
+int  hw_dac_set(uint8_t bank, uint8_t port, float v);
+
 /* DEVICE */
 int hw_device_setup(void);
 int hw_device_setup_noirq(void);

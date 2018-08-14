@@ -17,11 +17,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  **/
 
-#ifndef __HW_ADC_INC__
-#define __HW_ADC_INC__
+#ifndef __HW_DAC_INC__
+#define __HW_DAC_INC__
 
-void  hw_setup_adc(void);
-void  hw_adc_poll(void);
+void  hw_setup_dac(void);
 
-#endif /* __HW_ADC_INC__ */
+#endif /* __HW_DAC_INC__ */
+
 

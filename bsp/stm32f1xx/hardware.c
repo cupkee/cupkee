@@ -179,9 +179,12 @@ uint8_t hw_reset_flags(void)
 
 int hw_device_setup(void)
 {
+    /* setup build in device */
+    hw_setup_adc();
+    hw_setup_dac();
+
     /* initial device resouce */
     hw_setup_usart();
-    hw_setup_adc();
     hw_setup_i2c();
     hw_setup_spi();
     hw_setup_usb();

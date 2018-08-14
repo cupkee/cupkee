@@ -230,7 +230,14 @@ int cupkee_pin_mode_get(int pin)
 int cupkee_pin_mode_set(int pin, int mode)
 {
     if (pin_is_valid(pin)) {
-        return hw_gpio_mode_set(BANK_OF(pin), PORT_OF(pin), mode);
+        if (mode == CUPKEE_PIN_MODE_AIN) {
+            return hw_adc_start(BANK_OF(pin), PORT_OF(pin));
+        } else
+        if (mode == CUPKEE_PIN_MODE_AOUT) {
+            return hw_dac_start(BANK_OF(pin), PORT_OF(pin));
+        } else {
+            return hw_gpio_mode_set(BANK_OF(pin), PORT_OF(pin), mode);
+        }
     } else {
         return -CUPKEE_EINVAL;
     }
@@ -249,6 +256,24 @@ int cupkee_pin_set(int pin, int v)
 {
     if (pin_is_valid(pin)) {
         return hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v);
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int cupkee_pin_get_analog(int pin, float *v)
+{
+    if (pin_is_valid(pin)) {
+        return hw_adc_get(BANK_OF(pin), PORT_OF(pin), v);
+    } else {
+        return -CUPKEE_EINVAL;
+    }
+}
+
+int cupkee_pin_set_analog(int pin, float v)
+{
+    if (pin_is_valid(pin)) {
+        return hw_dac_set(BANK_OF(pin), PORT_OF(pin), v);
     } else {
         return -CUPKEE_EINVAL;
     }

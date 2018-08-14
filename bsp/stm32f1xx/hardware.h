@@ -69,6 +69,7 @@
 #include "hw_timer.h"
 #include "hw_usart.h"
 #include "hw_adc.h"
+#include "hw_dac.h"
 #include "hw_i2c.h"
 #include "hw_spi.h"
 

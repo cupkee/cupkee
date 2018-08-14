@@ -232,7 +232,7 @@ val_t native_pin_write(env_t *env, int ac, val_t *av)
     }
 }
 
-val_t native_pin_wave(env_t *env, int ac, val_t *av)
+val_t native_pin_squarewave(env_t *env, int ac, val_t *av)
 {
     int i, n, param[3];
     int retv = -1;
@@ -282,5 +282,33 @@ val_t native_pin_watch(env_t *env, int ac, val_t *av)
         }
     }
     return VAL_UNDEFINED;
+}
+
+val_t native_pin_read_analog(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+    if (ac > 0 && val_is_number(av)) {
+        float v;
+
+        if (cupkee_pin_get_analog(val_2_integer(av), &v) == 0) {
+            return val_mk_number(v);
+        }
+    }
+
+    return VAL_UNDEFINED;
+}
+
+val_t native_pin_write_analog(env_t *env, int ac, val_t *av)
+{
+    (void) env;
+    if (ac > 1 && val_is_number(av) && val_is_number(av + 1)) {
+        float v = val_2_double(av + 1);
+
+        if (v >= 0 && v <= 1 && cupkee_pin_set_analog(val_2_integer(av), v) == 0) {
+            return VAL_TRUE;
+        }
+    }
+
+    return VAL_FALSE;
 }
 

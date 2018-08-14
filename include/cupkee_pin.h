@@ -50,8 +50,10 @@ int cupkee_pin_wave_gen(int pin, uint32_t first, uint32_t second,
 int cupkee_pin_wave_update(int pin, uint32_t first);
 int cupkee_pin_wave_stop(int pin, int v);
 int cupkee_pin_wave_get(int pin, int i);
-
 uint32_t cupkee_pin_duration(int pin);
+
+int cupkee_pin_set_analog(int pin, float v);
+int cupkee_pin_get_analog(int pin, float *v);
 
 #endif /* __CUPKEE_PIN_INC__ */
 

@@ -35,10 +35,11 @@ val_t native_pin_write(env_t *env, int ac, val_t *av);
 val_t native_pin_analog_read(env_t *env, int ac, val_t *av);
 val_t native_pin_analog_write(env_t *env, int ac, val_t *av);
 val_t native_pin_pulse(env_t *env, int ac, val_t *av);
-val_t native_pin_wave(env_t *env, int ac, val_t *av);
+val_t native_pin_squarewave(env_t *env, int ac, val_t *av);
 val_t native_pin_watch(env_t *env, int ac, val_t *av);
 
-val_t native_pin(env_t *env, int ac, val_t *av);
+val_t native_pin_read_analog(env_t *env, int ac, val_t *av);
+val_t native_pin_write_analog(env_t *env, int ac, val_t *av);
 
 /* cupkee_shell_sdmp.c */
 val_t native_report(env_t *env, int ac, val_t *av);
