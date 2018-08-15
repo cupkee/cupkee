@@ -42,6 +42,7 @@ void cupkee_timeout_unregister(cupkee_timeout_t *t);
 int cupkee_timeout_clear_all(void);
 int cupkee_timeout_clear_with_flags(uint32_t flags);
 int cupkee_timeout_clear_with_id(uint32_t id);
+int cupkee_timeout_update_with_id(uint32_t id, uint32_t wait);
 
 static inline uint32_t cupkee_systicks(void) {
     return _cupkee_systicks;

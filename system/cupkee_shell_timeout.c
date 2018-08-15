@@ -102,6 +102,20 @@ val_t native_set_interval(env_t *env, int ac, val_t *av)
     return tid < 0 ? val_mk_boolean(0) : val_mk_number(tid);
 }
 
+val_t native_update_interval(env_t *env, int ac, val_t *av)
+{
+    if (ac > 1 && val_is_number(av) && val_is_number(av + 1)) {
+        uint32_t id = val_2_integer(av);
+        uint32_t wait = val_2_integer(av + 1);
+
+        if (cupkee_timeout_update_with_id(tid, wait) == 1) {
+            return VAL_TRUE;
+        }
+    }
+
+    return VAL_FALSE;
+}
+
 val_t native_clear_timeout(env_t *env, int ac, val_t *av)
 {
     int n = timeout_unregister(ac, av, FLAG_TIMEOUT);

@@ -50,6 +50,21 @@ static int timeout_clear_by(int (*fn)(cupkee_timeout_t *, int), int x)
     return n;
 }
 
+static int timeout_update_by(int (*fn)(cupkee_timeout_t *, int), int x, uint32_t wait)
+{
+    cupkee_timeout_t *prev = NULL, *curr = timeout_head;
+    int n = 0;
+
+    while (curr) {
+        if (fn(curr, x)) {
+            curr->wait = wait;
+            n ++;
+        }
+        curr = curr->next;
+    }
+    return n;
+}
+
 static int timeout_with_flag(cupkee_timeout_t *t, int flags)
 {
     return t->flags == flags;
@@ -170,6 +185,11 @@ int cupkee_timeout_clear_with_flags(uint32_t flags)
 int cupkee_timeout_clear_with_id(uint32_t id)
 {
     return timeout_clear_by(timeout_with_id, id);
+}
+
+int cupkee_timeout_update_with_id(uint32_t id, uint32_t wait)
+{
+    return timeout_update_by(timeout_with_id, id, wait);
 }
 
 volatile uint32_t _cupkee_systicks;

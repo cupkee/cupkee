@@ -278,10 +278,10 @@ val_t native_pin_watch(env_t *env, int ac, val_t *av)
             return pin_listen(pin, av + 1) == 0 ? VAL_TRUE : VAL_FALSE;
         } else
         if (!val_is_true(av + 1)) {
-            cupkee_pin_ignore(pin);
+            return pin_ignore(pin) == 0 ? VAL_TRUE : VAL_FALSE;
         }
     }
-    return VAL_UNDEFINED;
+    return VAL_FALSE;
 }
 
 val_t native_pin_read_analog(env_t *env, int ac, val_t *av)
