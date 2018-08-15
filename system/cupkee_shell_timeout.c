@@ -104,11 +104,13 @@ val_t native_set_interval(env_t *env, int ac, val_t *av)
 
 val_t native_update_interval(env_t *env, int ac, val_t *av)
 {
+    (void) env;
+
     if (ac > 1 && val_is_number(av) && val_is_number(av + 1)) {
         uint32_t id = val_2_integer(av);
         uint32_t wait = val_2_integer(av + 1);
 
-        if (cupkee_timeout_update_with_id(tid, wait) == 1) {
+        if (cupkee_timeout_update_with_id(id, wait) == 1) {
             return VAL_TRUE;
         }
     }

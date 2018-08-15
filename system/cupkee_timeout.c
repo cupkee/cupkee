@@ -52,7 +52,7 @@ static int timeout_clear_by(int (*fn)(cupkee_timeout_t *, int), int x)
 
 static int timeout_update_by(int (*fn)(cupkee_timeout_t *, int), int x, uint32_t wait)
 {
-    cupkee_timeout_t *prev = NULL, *curr = timeout_head;
+    cupkee_timeout_t *curr = timeout_head;
     int n = 0;
 
     while (curr) {

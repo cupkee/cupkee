@@ -292,6 +292,51 @@ int hw_gpio_ignore(uint8_t bank, uint8_t port)
     return 0;
 }
 
+/* ADC & DAC build-in */
+int  hw_adc_start(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return 0;
+}
+
+int  hw_adc_stop(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return 0;
+}
+
+int  hw_adc_get(uint8_t bank, uint8_t port, float *v)
+{
+    (void) bank;
+    (void) port;
+    (void) v;
+    return 0;
+}
+
+int  hw_dac_start(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return 0;
+}
+
+int  hw_dac_stop(uint8_t bank, uint8_t port)
+{
+    (void) bank;
+    (void) port;
+    return 0;
+}
+
+int  hw_dac_set(uint8_t bank, uint8_t port, float v)
+{
+    (void) bank;
+    (void) port;
+    (void) v;
+    return 0;
+}
+
 /* TIMER */
 int hw_timer_alloc(void)
 {
