@@ -29,7 +29,7 @@ mod_INC = $(addprefix -I${MOD_DIR}/, ${mod_NAMES})
 define build_mod_rule
 DUMMY = $(shell mkdir -p ${BUILD_DIR}/modules/${1}/lib)
 ${1}_SRCS = ${addprefix modules/${1}/lib/, ${notdir ${wildcard ${MAIN_DIR}/modules/${1}/lib/*.c}}}
-${1}_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include
+${1}_CPPFLAGS = -I${INC_DIR} -I${LANG_DIR}/include -I${MAIN_DIR}
 ${1}_CFLAGS   =
 endef
 

@@ -195,6 +195,7 @@ int hw_device_setup(void)
 void hw_poll(void)
 {
     hw_poll_usb();
+    hw_poll_adc();
 }
 
 void hw_halt(void)

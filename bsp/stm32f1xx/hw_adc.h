@@ -21,7 +21,7 @@
 #define __HW_ADC_INC__
 
 void  hw_setup_adc(void);
-void  hw_adc_poll(void);
+void  hw_poll_adc(void);
 
 #endif /* __HW_ADC_INC__ */
 

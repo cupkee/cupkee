@@ -23,6 +23,7 @@
 #define ADC_START       1
 #define ADC_CONVERT     2
 #define ADC_BUSY        3      // work in process
+#define ADC_RESUME      4
 #define ADC_INVALID     0xffff
 
 static uint8_t adc_state;
@@ -79,6 +80,19 @@ static void hw_adc_setup(void)
     }
 
     adc_state = ADC_SETUP;
+}
+
+static void hw_adc_resume(void)
+{
+    adc_power_off(ADC1);
+    adc_disable_scan_mode(ADC1);
+    adc_disable_external_trigger_regular(ADC1);
+    adc_set_right_aligned(ADC1);
+    adc_set_single_conversion_mode(ADC1);
+    adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
+
+    adc_power_on(ADC1);
+    adc_state = ADC_RESUME;
 }
 
 static void hw_adc_reset(void)
@@ -157,12 +171,12 @@ int hw_adc_get(uint8_t bank, uint8_t port, float *v)
     }
 
     if (v) {
-        *v = adc_chn_data[x] * (1.0 / 65535);
+        *v = adc_chn_data[x] * (1.0 / 0xFFF);
     }
     return 0;
 }
 
-void hw_adc_poll(void)
+void hw_poll_adc(void)
 {
     if (adc_chn_state) {
         switch(adc_state) {
@@ -188,7 +202,7 @@ void hw_adc_poll(void)
                 if (x < 16) {
                     adc_chn_data[x] = adc_read_regular(ADC1);
                     if (adc_cur >= adc_num) {
-                        adc_state = ADC_START;
+                        hw_adc_resume();
                     } else {
                         adc_state = ADC_CONVERT;
                     }
@@ -196,6 +210,9 @@ void hw_adc_poll(void)
                     hw_adc_reset();
                 }
             }
+            break;
+        case ADC_RESUME:
+            adc_state = ADC_SETUP;
             break;
         default:
             // Todo: error process here

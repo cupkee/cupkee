@@ -165,16 +165,16 @@ int hw_gpio_mode_get(uint8_t bank, uint8_t port)
 
     if (mod) { // Output
         switch(cnf) {
+        case 0: return CUPKEE_PIN_MODE_OUT;
+        case 1: return CUPKEE_PIN_MODE_OPENDRAIN;
+        default: return CUPKEE_PIN_MODE_ALTFN;
+        }
+    } else { // input
+        switch(cnf) {
         case 0: return CUPKEE_PIN_MODE_AIN;
         case 1: return CUPKEE_PIN_MODE_IN;
         case 2: return odr ? CUPKEE_PIN_MODE_IN_PULLUP : CUPKEE_PIN_MODE_IN_PULLDOWN;
         default: return CUPKEE_PIN_MODE_NE;
-        }
-    } else { // input
-        switch(cnf) {
-        case 0: return CUPKEE_PIN_MODE_OUT;
-        case 1: return CUPKEE_PIN_MODE_OPENDRAIN;
-        default: return CUPKEE_PIN_MODE_ALTFN;
         }
     }
 }

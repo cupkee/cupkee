@@ -22,6 +22,8 @@
 #include "cupkee_sysdisk.h"
 
 static const uint8_t *cupkee_board_id = NULL;
+static void (*cupkee_user_dispatch)(uint16_t witch, uint8_t code);
+static void (*cupkee_user_sync)(uint32_t ticks);
 
 void cupkee_event_poll(void)
 {
@@ -31,6 +33,9 @@ void cupkee_event_poll(void)
         if (e.type == EVENT_SYSTICK) {
             cupkee_device_sync(_cupkee_systicks);
             cupkee_timeout_sync(_cupkee_systicks);
+            if (cupkee_user_sync) {
+                cupkee_user_sync(_cupkee_systicks);
+            }
         } else
         if (e.type == EVENT_AUXTICK) {
             cupkee_pin_schedule(_cupkee_auxticks);
@@ -40,6 +45,9 @@ void cupkee_event_poll(void)
         } else
         if (e.type == EVENT_PIN) {
             cupkee_pin_event_dispatch(e.which, e.code);
+        } else
+        if (e.type == EVENT_USER && cupkee_user_dispatch) {
+            cupkee_user_dispatch(e.which, e.code);
         }
     }
 }
@@ -93,11 +101,11 @@ void cupkee_init(const uint8_t *id)
 
     cupkee_object_setup();
 
-    cupkee_pin_setup();
-
     cupkee_timeout_setup();
 
     cupkee_timer_setup();
+
+    cupkee_pin_setup();
 
     cupkee_device_setup();
 
@@ -107,6 +115,8 @@ void cupkee_init(const uint8_t *id)
     hw_device_setup();
 
     cupkee_board_id = id;
+    cupkee_user_sync = NULL;
+    cupkee_user_dispatch = NULL;
 }
 
 void cupkee_loop(void)
@@ -120,5 +130,15 @@ void cupkee_loop(void)
 
         cupkee_event_poll();
     }
+}
+
+void cupkee_set_user_dispatch(void (*dispatch)(uint16_t witch, uint8_t code))
+{
+    cupkee_user_dispatch = dispatch;
+}
+
+void cupkee_set_user_sync(void (*sync)(uint32_t))
+{
+    cupkee_user_sync = sync;
 }
 

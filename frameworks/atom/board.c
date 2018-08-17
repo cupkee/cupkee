@@ -36,15 +36,13 @@ static const native_t board_entries[] = {
     {"interface",       native_interface},
     {"print",           native_print},
 
-    /*
     {"pinMode",         native_pin_mode},
     {"pinRead",         native_pin_read},
     {"pinWrite",        native_pin_read},
-    {"toggle",          native_pin_toggle},
-    {"pulse",           native_pin_pulse},
-    {"wave",            native_pin_wave},
-    {"watch",           native_pin_watch},
-    {"ignore",          native_pin_ignore},
+    {"pinToggle",       native_pin_toggle},
+    {"pinWave",         native_pin_squarewave},
+    {"pinWatch",        native_pin_watch},
+    /*
     {"Serial",          native_pin_serial},
     */
 
@@ -52,6 +50,7 @@ static const native_t board_entries[] = {
     {"setInterval",     native_set_interval},
     {"clearTimeout",    native_clear_timeout},
     {"clearInterval",   native_clear_interval},
+    {"updateInterval",  native_update_interval},
 
     {"Device",          native_create_device},
     {"Timer",           native_create_timer},

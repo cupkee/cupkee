@@ -113,12 +113,12 @@ val_t native_pin_mode(env_t *env, int ac, val_t *av)
             return val_mk_foreign_string((intptr_t)name);
         } else {
             // Invalid parameter
-            return VAL_UNDEFINED;
+            return VAL_FALSE;
         }
     } else
     if (ac < 1 || 0 > (mode = pin_mode_parse(val_2_cstring(av + (ac - 1))))) {
         // Invalid parameter
-        return VAL_UNDEFINED;
+        return VAL_FALSE;
     }
 
     // Set mode
@@ -145,7 +145,14 @@ val_t native_pin_mode(env_t *env, int ac, val_t *av)
         }
     }
 
-    return val_mk_number(i);
+    if (i == 1) {
+        return VAL_TRUE;
+    } else
+    if (i > 1) {
+        return val_mk_number(i);
+    } else {
+        return VAL_FALSE;
+    }
 }
 
 val_t native_pin_toggle(env_t *env, int ac, val_t *av)

@@ -345,7 +345,6 @@ int cupkee_pin_wave_get(int pin, int i)
     return pdata->wave_period[i & 1];
 }
 
-
 int cupkee_pin_wave_gen(
     int pin,
     uint32_t first, uint32_t second,

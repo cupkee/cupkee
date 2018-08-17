@@ -93,11 +93,11 @@ static const cupkee_desc_t timer_desc = {
 
 int cupkee_timer_setup(void)
 {
+    hw_timer_start_aux(CUPKEE_AUXTICKS_STEP);
+
     if (0 >= (timer_tag = cupkee_object_register(sizeof(cupkee_timer_t), &timer_desc))) {
         return -1;
     }
-
-    hw_timer_start_aux(CUPKEE_AUXTICKS_STEP);
 
     return 0;
 }
