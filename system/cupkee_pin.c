@@ -179,6 +179,7 @@ void cupkee_pin_schedule(uint32_t curr_ticks)
                     pdata->wave_last_ticks = curr_ticks;
                     list_add_tail(&pdata->link, &pin_control.wake_pool[index]);
                 } else {
+                    pdata->wave_engine = NULL;
                     list_head_init(&pdata->link);
                 }
             }
@@ -319,6 +320,8 @@ static int pin_wave_start(
     pdata->wave_period[1] = second;
     pdata->wave_ticks[0] = cupkee_auxticks_of(first);
     pdata->wave_ticks[1] = cupkee_auxticks_of(second);
+    pdata->wave_engine = engine;
+    pdata->wave_engine_data = data;
 
     pdata->wave_edges = 0;
     pdata->wave_last_ticks = curr_ticks;
