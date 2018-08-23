@@ -47,6 +47,7 @@ int cupkee_pin_get(int pin);
 int cupkee_pin_toggle(int pin);
 int cupkee_pin_wave_gen(int pin, uint32_t first, uint32_t second,
                         cupkee_wave_engine_t engine, void *data);
+int cupkee_pin_wave_set(int pin, int start, uint32_t first, uint32_t second);
 int cupkee_pin_wave_update(int pin, uint32_t first);
 int cupkee_pin_wave_stop(int pin, int v);
 int cupkee_pin_wave_get(int pin, int i);

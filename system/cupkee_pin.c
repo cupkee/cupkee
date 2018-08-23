@@ -66,6 +66,11 @@ static inline int pin_is_valid(uint8_t pin) {
     return pin < pin_control.pin_num;
 }
 
+static inline pin_data_t *pin_peek_data(int pin)
+{
+    return pin_control.pin_data[pin];
+}
+
 static pin_data_t *pin_get_data(int pin)
 {
     pin_data_t *pdata = pin_control.pin_data[pin];
@@ -403,6 +408,32 @@ int cupkee_pin_wave_update(int pin, uint32_t first)
     }
 }
 
+int cupkee_pin_wave_set(int pin, int start, uint32_t first, uint32_t second)
+{
+    pin_data_t *pdata;
+
+    if (!pin_is_valid(pin) || first == 0 || second == 0) {
+        return -CUPKEE_EINVAL;
+    }
+
+    pdata = pin_get_data(pin);
+    if (!pdata) {
+        return -CUPKEE_ERESOURCE;
+    }
+
+    if (list_is_empty(&pdata->link)) {
+        cupkee_pin_set(pin, start);
+        return pin_wave_start(pin, pdata, first, second, NULL, NULL);
+    } else {
+        pdata->wave_period[0] = first;
+        pdata->wave_ticks[0] = cupkee_auxticks_of(first);
+        pdata->wave_period[1] = second;
+        pdata->wave_ticks[1] = cupkee_auxticks_of(second);
+
+        return 0;
+    }
+}
+
 int cupkee_pin_wave_stop(int pin, int v)
 {
     pin_data_t *pdata;
@@ -411,12 +442,9 @@ int cupkee_pin_wave_stop(int pin, int v)
         return -CUPKEE_EINVAL;
     }
 
-    pdata = pin_get_data(pin);
-    if (!pdata) {
-        return -CUPKEE_EINVAL;
-    }
-
-    if (list_is_empty(&pdata->link)) {
+    pdata = pin_peek_data(pin);
+    if (!pdata || list_is_empty(&pdata->link)) {
+        hw_gpio_set(BANK_OF(pin), PORT_OF(pin), v);
         return 0;
     }
 
