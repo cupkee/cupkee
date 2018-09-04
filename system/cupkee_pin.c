@@ -412,8 +412,18 @@ int cupkee_pin_wave_set(int pin, int start, uint32_t first, uint32_t second)
 {
     pin_data_t *pdata;
 
-    if (!pin_is_valid(pin) || first == 0 || second == 0) {
+    if (!pin_is_valid(pin)) {
         return -CUPKEE_EINVAL;
+    }
+
+    if (first == 0) {
+        cupkee_pin_set(pin, !start);
+        return 0;
+    }
+
+    if (second == 0) {
+        cupkee_pin_set(pin, start);
+        return 0;
     }
 
     pdata = pin_get_data(pin);

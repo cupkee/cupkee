@@ -53,13 +53,16 @@ static void command_do(int ac, char **av)
     }
 
     for (i = 0; i < command_num; i++) {
+        int retv;
         if (!strcmp(av[0], command_entrys[i].name)) {
             if (command_entrys[i].handle) {
-                command_entrys[i].handle(ac, av);
+                retv = command_entrys[i].handle(ac, av);
+                console_log("status: %d\r\n", retv);
             }
-            break;
+            return;
         }
     }
+    console_log("Unknown command: %s\r\n", av[0]);
 }
 
 static int command_complete(void)

@@ -20,10 +20,6 @@
 #ifndef __CUPKEE_PIN_INC__
 #define __CUPKEE_PIN_INC__
 
-#define CUPKEE_PIN_OUT      HW_DIR_OUT
-#define CUPKEE_PIN_IN       HW_DIR_IN
-#define CUPKEE_PIN_DUPLEX   HW_DIR_DUPLEX
-
 typedef struct cupkee_pinmap_t {
     uint8_t bank;
     uint8_t port;

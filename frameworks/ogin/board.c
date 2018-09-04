@@ -36,6 +36,7 @@ static int command_hello(int ac, char **av)
     (void) av;
 
     console_log("hello cupkee!\r\n");
+    cupkee_pin_mode_set(0, CUPKEE_PIN_MODE_OUT);
 
     return 0;
 }
