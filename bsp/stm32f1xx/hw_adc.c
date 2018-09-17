@@ -19,11 +19,10 @@
 
 #include "hardware.h"
 
-#define ADC_SETUP       0
+#define ADC_IDLE       0
 #define ADC_START       1
 #define ADC_CONVERT     2
 #define ADC_BUSY        3      // work in process
-#define ADC_RESUME      4
 #define ADC_INVALID     0xffff
 
 static uint8_t adc_state;
@@ -73,26 +72,12 @@ static void hw_adc_setup(void)
     adc_set_single_conversion_mode(ADC1);
     adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
 
-    adc_power_on(ADC1);
-
     for (i = 0; i < 16; ++i) {
         adc_chn_data[i] = 0;
     }
 
-    adc_state = ADC_SETUP;
-}
-
-static void hw_adc_resume(void)
-{
-    adc_power_off(ADC1);
-    adc_disable_scan_mode(ADC1);
-    adc_disable_external_trigger_regular(ADC1);
-    adc_set_right_aligned(ADC1);
-    adc_set_single_conversion_mode(ADC1);
-    adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
-
     adc_power_on(ADC1);
-    adc_state = ADC_RESUME;
+    adc_state = ADC_IDLE;
 }
 
 static void hw_adc_reset(void)
@@ -100,14 +85,15 @@ static void hw_adc_reset(void)
     adc_power_off(ADC1);
     rcc_periph_clock_disable(RCC_ADC1);
 
-    adc_state = ADC_SETUP;
+    adc_state = ADC_IDLE;
+    adc_chn_state = 0;
 }
 
 void hw_setup_adc(void)
 {
     int i;
 
-    adc_state = ADC_SETUP;
+    adc_state = ADC_IDLE;
     adc_chn_state = 0;
     for (i = 0; i < 16; ++i) {
         adc_chn_data[i] = 0;
@@ -180,18 +166,18 @@ void hw_poll_adc(void)
 {
     if (adc_chn_state) {
         switch(adc_state) {
-        case ADC_SETUP:
+        case ADC_IDLE:
             adc_reset_calibration(ADC1);
             adc_calibrate(ADC1);
             adc_state = ADC_START;
             break;
         case ADC_START:
             adc_num = hw_adc_chn_scan(adc_seq);
-            adc_set_regular_sequence(ADC1, adc_num, adc_seq);
             adc_cur = 0;
             adc_state = ADC_CONVERT;
             break;
         case ADC_CONVERT:
+            adc_set_regular_sequence(ADC1, 1, adc_seq + adc_cur);
             adc_start_conversion_direct(ADC1);
             adc_state = ADC_BUSY;
             break;
@@ -202,7 +188,7 @@ void hw_poll_adc(void)
                 if (x < 16) {
                     adc_chn_data[x] = adc_read_regular(ADC1);
                     if (adc_cur >= adc_num) {
-                        hw_adc_resume();
+                        adc_state = ADC_START;
                     } else {
                         adc_state = ADC_CONVERT;
                     }
@@ -211,9 +197,6 @@ void hw_poll_adc(void)
                 }
             }
             break;
-        case ADC_RESUME:
-            adc_state = ADC_SETUP;
-            break;
         default:
             // Todo: error process here
             hw_adc_reset();
@@ -221,3 +204,4 @@ void hw_poll_adc(void)
         }
     }
 }
+
