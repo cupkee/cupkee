@@ -137,7 +137,7 @@ int hw_timer_start_aux(uint16_t us)
     TIM_CNT(base) = 0;
     TIM_PSC(base) = 72; // 1 us
     TIM_DIER(base) = TIM_DIER_UIE;
-    TIM_ARR(base) = us;
+    TIM_ARR(base) = us - 1;
 
     nvic_enable_irq(device_irq[inst]);
     TIM_CR1(base) = TIM_CR1_CEN;

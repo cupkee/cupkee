@@ -123,6 +123,38 @@ static void pin_event_handle_clear(int pin)
     }
 }
 
+static int pin_wave_start(
+    int pin, pin_data_t *pdata,
+    uint32_t first, uint32_t second,
+    cupkee_wave_engine_t engine, void *data
+) {
+    uint32_t curr_ticks;
+    uint8_t index;
+
+    (void) pin;
+
+    curr_ticks = _cupkee_auxticks;
+    if (engine) {
+        if (0 == (first = engine(0, first, data))) {
+            return 0;
+        }
+    }
+    pdata->wave_period[0] = first;
+    pdata->wave_period[1] = second;
+    pdata->wave_ticks[0] = cupkee_auxticks_of(first);
+    pdata->wave_ticks[1] = cupkee_auxticks_of(second);
+    pdata->wave_engine = engine;
+    pdata->wave_engine_data = data;
+
+    pdata->wave_edges = 0;
+    pdata->wave_last_ticks = curr_ticks;
+
+    index = (curr_ticks + pdata->wave_ticks[0]) & CUPKEE_PIN_SCHEDULE_MASK;
+    list_add_tail(&pdata->link, &pin_control.wake_pool[index]);
+
+    return 0;
+}
+
 int cupkee_pin_setup(void)
 {
     pin_control.pin_num = 0;
@@ -302,38 +334,6 @@ uint32_t cupkee_pin_duration(int pin)
             return pdata->bsp_data.duration << CUPKEE_AUXTICKS_SHIFT;
         }
     }
-    return 0;
-}
-
-static int pin_wave_start(
-    int pin, pin_data_t *pdata,
-    uint32_t first, uint32_t second,
-    cupkee_wave_engine_t engine, void *data
-) {
-    uint32_t curr_ticks;
-    uint8_t index;
-
-    (void) pin;
-
-    curr_ticks = _cupkee_auxticks;
-    if (engine) {
-        if (0 == (first = engine(0, first, data))) {
-            return 0;
-        }
-    }
-    pdata->wave_period[0] = first;
-    pdata->wave_period[1] = second;
-    pdata->wave_ticks[0] = cupkee_auxticks_of(first);
-    pdata->wave_ticks[1] = cupkee_auxticks_of(second);
-    pdata->wave_engine = engine;
-    pdata->wave_engine_data = data;
-
-    pdata->wave_edges = 0;
-    pdata->wave_last_ticks = curr_ticks;
-
-    index = (curr_ticks + pdata->wave_ticks[0]) & CUPKEE_PIN_SCHEDULE_MASK;
-    list_add_tail(&pdata->link, &pin_control.wake_pool[index]);
-
     return 0;
 }
 
