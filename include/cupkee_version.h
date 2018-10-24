@@ -22,9 +22,9 @@
 
 #define CUPKEE_MAJOR        0
 #define CUPKEE_MINOR        1
-#define CUPKEE_REVISION     3
+#define CUPKEE_REVISION     5
 
-#define CUPKEE_VERSION      "0.1.3"
+#define CUPKEE_VERSION      "0.1.5"
 
 #endif /* __CUPKEE_VERSION_INC__ */
 
