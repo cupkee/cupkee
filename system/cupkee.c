@@ -67,7 +67,7 @@ void cupkee_sysinfo_get(uint8_t *info_buf)
     info_buf[7] = 0x00;
     hw_cuid_get(info_buf + 8);
 
-    // OS ID
+    // BOARD ID
     if (cupkee_board_id) {
         memcpy(info_buf + CUPKEE_VER_SIZE + CUPKEE_UID_SIZE, cupkee_board_id, CUPKEE_UID_SIZE);
     } else {

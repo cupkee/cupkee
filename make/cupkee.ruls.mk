@@ -102,7 +102,7 @@ TGT_LDFLAGS		+= $(ARCH_FLAGS)
 ###############################################################################
 # Build ruls
 
-%.images: %.bin %.hex %.srec %.list %.map
+%.image: %.bin %.hex %.srec %.list %.map
 	@printf "*** $* images generated ***\n"
 
 %.bin: %.elf
@@ -226,5 +226,5 @@ $(foreach elf,${elf_NAMES},$(eval $(call build_elf_rule,${elf})))
 $(foreach lib,${lib_NAMES},$(eval $(call build_lib_rule,${lib})))
 
 
-.PHONY: clean lib all images elf bin hex srec list
+.PHONY: clean lib all image elf bin hex srec list
 

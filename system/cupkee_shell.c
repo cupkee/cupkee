@@ -457,12 +457,15 @@ int cupkee_shell_start(const char *initial)
 
     if (!(hw_reset_flags() & HW_RESET_SAFE) && app) {
         val_t *res;
+        char buf[60];
 
         if (0 > interp_execute_stmts(&shell_env, app, &res)) {
             console_log("execute app scripts fail..\r\n");
             return -1;
         }
-        console_log("execute app scripts ok..\r\n");
+        console_log("APP: ");
+        console_log(cupkee_sdmp_get_interface_string(buf));
+        console_log("\r\n");
     }
 
     return 0;

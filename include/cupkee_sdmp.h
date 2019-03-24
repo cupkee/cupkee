@@ -25,6 +25,7 @@ int cupkee_sdmp_tty_write(size_t len, const char *text);
 int cupkee_sdmp_tty_write_sync(size_t len, const char *text);
 
 int cupkee_sdmp_set_interface_id(const char *id);
+char *cupkee_sdmp_get_interface_string(char *buf);
 int cupkee_sdmp_set_tty_handler(void (*handler)(int, const void *));
 int cupkee_sdmp_set_call_handler(int (*handler)(int x, void *args));
 int cupkee_sdmp_set_query_handler(int (*handler)(uint16_t flags));

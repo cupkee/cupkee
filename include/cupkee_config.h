@@ -22,7 +22,6 @@
 
 // Systicks & Auxticks
 #define CUPKEE_AUXTICKS_SHIFT           4  // 16us pre ticks
-
 #define CUPKEE_AUXTICKS_MASK            (0xff >> (8 - CUPKEE_AUXTICKS_SHIFT))
 #define CUPKEE_AUXTICKS_STEP            (1 << CUPKEE_AUXTICKS_SHIFT)
 

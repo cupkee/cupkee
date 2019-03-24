@@ -769,6 +769,11 @@ int cupkee_sdmp_update_state_string(int id, const char *s)
     return CUPKEE_ERESOURCE;
 }
 
+static const uint8_t hex_map_char[16] = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+};
+
 static int char2hex(char c)
 {
     if (c >= '0' && c <= '9') {
@@ -786,23 +791,61 @@ static int char2hex(char c)
 
 int cupkee_sdmp_set_interface_id(const char *id)
 {
-    int pos = 0;
+    int pos = 4;
 
-    while (*id) {
+    // set head
+    sdmp_app_interface[0] = 0;
+    sdmp_app_interface[1] = 0;
+    sdmp_app_interface[2] = 0;
+    sdmp_app_interface[3] = 0;
+
+    while (*id && pos < CUPKEE_UID_SIZE) {
         int hi = char2hex(*id++);
-        int lo = char2hex(*id++);
+        int lo;
+
+        if (*id) {
+            lo = char2hex(*id++);
+        } else {
+            lo = 0;
+        }
 
         if (hi >= 0 && lo >= 0) {
             sdmp_app_interface[pos++] = hi * 16 + lo;
         } else {
             break;
         }
-
-        if (pos == CUPKEE_UID_SIZE) {
-            return 0;
-        }
     }
 
-    return -CUPKEE_EINVAL;
+    // padding 0
+    while (pos < CUPKEE_UID_SIZE) {
+        sdmp_app_interface[pos++] = 0;
+    }
+
+    return 0;
 }
 
+char *cupkee_sdmp_get_interface_string(char *buf)
+{
+    uint8_t *id = sdmp_app_interface;
+    int pos, end;
+
+    for (pos = 4, end = 0; pos < CUPKEE_UID_SIZE; ++pos) {
+        uint8_t byte = id[pos];
+        uint8_t hi, lo;
+
+        if (pos == 8 || pos == 10 || pos == 12 || pos == 14) {
+            buf[end++] = '-';
+        }
+
+        if (pos >= 20 && id[pos]) {
+            break;
+        }
+        hi = 0xf & (byte >> 4);
+        lo = 0xf & byte;
+        buf[end++] = hex_map_char[hi];
+        buf[end++] = hex_map_char[lo];
+    }
+    buf[end] = 0;
+
+    return buf;
+}
