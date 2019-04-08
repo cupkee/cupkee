@@ -122,7 +122,6 @@ val_t native_interface(env_t *env, int ac, val_t *av)
 
     if (val_is_string(av)) {
         const char *id = val_2_cstring(av);
-        char buf[50];
 
         if (cupkee_sdmp_set_interface_id(id)) {
             return VAL_FALSE;
